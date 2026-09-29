@@ -1,0 +1,37 @@
+[
+  {
+    // Explorer waits a few seconds before launching startup applications. Removing the delay makes
+    // them start sooner — which can make sign-in feel slower on HDD systems. Optional by design.
+    "id": "windows.disable-startup-delay",
+    "name": "Remove startup application delay",
+    "description": "Removes the artificial delay Explorer applies before launching startup applications.",
+    "category": "Windows",
+    "impact": "Low",
+    "risk": "Low",
+    "benefitConfidence": "Possible",
+    "recommendation": "Optional",
+    "conditions": [
+      { "fact": "registry:HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize|StartupDelayInMSec", "operator": "notEquals", "value": "0" }
+    ],
+    "changes": [
+      { "kind": "registry.value", "target": "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize|StartupDelayInMSec", "value": "0", "valueKind": "DWord" }
+    ],
+    "notes": [ "On systems with a hard disk, starting everything at once can make the desktop less responsive right after sign-in." ]
+  },
+  {
+    "id": "windows.disable-search-web-suggestions",
+    "name": "Disable web suggestions in Start search",
+    "description": "Stops the Start menu search box from querying Bing for suggestions. Local search keeps working.",
+    "category": "Windows",
+    "impact": "Low",
+    "risk": "Low",
+    "benefitConfidence": "Possible",
+    "recommendation": "Optional",
+    "conditions": [
+      { "fact": "registry:HKCU\\Software\\Policies\\Microsoft\\Windows\\Explorer|DisableSearchBoxSuggestions", "operator": "notEquals", "value": "1" }
+    ],
+    "changes": [
+      { "kind": "registry.value", "target": "HKCU\\Software\\Policies\\Microsoft\\Windows\\Explorer|DisableSearchBoxSuggestions", "value": "1", "valueKind": "DWord" }
+    ]
+  }
+]

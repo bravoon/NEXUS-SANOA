@@ -1,0 +1,21 @@
+[
+  {
+    // Delivery Optimization may upload Windows Update content to other PCs on the Internet.
+    // Restricting it to the local network (mode 1) keeps upstream bandwidth free. Requires administrator.
+    "id": "network.delivery-optimization-lan-only",
+    "name": "Limit update sharing to the local network",
+    "description": "Restricts Windows Update Delivery Optimization peer-to-peer sharing to PCs on your local network.",
+    "category": "Network",
+    "impact": "Low",
+    "risk": "Low",
+    "benefitConfidence": "Possible",
+    "recommendation": "Optional",
+    "conditions": [
+      { "fact": "registry:HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization|DODownloadMode", "operator": "notExists" }
+    ],
+    "changes": [
+      { "kind": "registry.value", "target": "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization|DODownloadMode", "value": "1", "valueKind": "DWord" }
+    ],
+    "notes": [ "Only affects upload bandwidth used by Windows Update; it does not change game latency." ]
+  }
+]

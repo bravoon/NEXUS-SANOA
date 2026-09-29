@@ -1,0 +1,455 @@
+<!--
+  Page views as data templates. Pure presentation: every value is bound to structured data returned by the engine API.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="clr-namespace:Nexus.UI.ViewModels">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="../Themes/Theme.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- Reusable: a transaction result -->
+    <DataTemplate x:Key="ExecutionResultTemplate">
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding Status}" FontWeight="SemiBold" Foreground="{Binding Status, Converter={StaticResource Tone}}" Margin="0,0,10,0" />
+                    <TextBlock Text="{Binding TransactionId}" Style="{StaticResource Muted}" />
+                </StackPanel>
+                <ItemsControl ItemsSource="{Binding Transaction.Items}" Margin="0,8,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="0,4">
+                                <TextBlock><Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" /><Run Text="  " /><Run Text="{Binding Status, Mode=OneWay}" Foreground="{StaticResource MutedBrush}" /></TextBlock>
+                                <ItemsControl ItemsSource="{Binding Changes}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Style="{StaticResource Muted}" Margin="12,0,0,0">
+                                                <Run Text="{Binding Description, Mode=OneWay}" /><Run Text=": " /><Run Text="{Binding Before, Mode=OneWay}" /><Run Text=" → " /><Run Text="{Binding After, Mode=OneWay}" />
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding Messages, Converter={StaticResource Join}}" Style="{StaticResource Muted}" Margin="0,6,0,0" />
+            </StackPanel>
+        </Border>
+    </DataTemplate>
+
+    <!-- ============================== Dashboard ============================== -->
+    <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
+        <StackPanel>
+            <TextBlock Text="Dashboard" Style="{StaticResource H1}" />
+            <TextBlock Text="Live telemetry from the engine. Sensors that are not exposed by this PC are shown as unavailable — never estimated." Style="{StaticResource Muted}" Margin="0,0,0,16" />
+            <UniformGrid Columns="3">
+                <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="CPU" Style="{StaticResource Muted}" /><TextBlock Text="{Binding Cpu}" Style="{StaticResource Metric}" /><TextBlock Text="{Binding CpuTemp, StringFormat=Temperature: {0}}" Style="{StaticResource Muted}" /></StackPanel></Border>
+                <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="GPU" Style="{StaticResource Muted}" /><TextBlock Text="{Binding Gpu}" Style="{StaticResource Metric}" /><TextBlock Text="{Binding GpuTemp, StringFormat=Temperature: {0}}" Style="{StaticResource Muted}" /></StackPanel></Border>
+                <Border Style="{StaticResource Card}"><StackPanel><TextBlock Text="Memory" Style="{StaticResource Muted}" /><TextBlock Text="{Binding Memory}" Style="{StaticResource Metric}" FontSize="22" /><TextBlock Text="{Binding Disk, StringFormat=Disk active: {0}}" Style="{StaticResource Muted}" /></StackPanel></Border>
+            </UniformGrid>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Engine" Style="{StaticResource H2}" />
+                    <TextBlock Text="{Binding Status.Platform, StringFormat=Platform: {0}}" />
+                    <TextBlock Text="{Binding Status.IsElevated, StringFormat=Running elevated: {0} (Nexus asks for administrator rights only per change)}" />
+                    <TextBlock Text="{Binding Status.ActiveProfile, StringFormat=Active profile: {0}, TargetNullValue=Active profile: none}" />
+                    <TextBlock Text="{Binding Status.TransactionsCommitted, StringFormat=Committed transactions: {0}}" />
+                    <TextBlock Text="{Binding Status.LastScan, StringFormat=Last scan: {0:g}, TargetNullValue=Last scan: never}" />
+                    <Button Content="Refresh" Command="{Binding RefreshCommand}" HorizontalAlignment="Left" Margin="0,10,0,0" Style="{StaticResource Secondary}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================== Diagnostics ============================== -->
+    <DataTemplate DataType="{x:Type vm:DiagnosticsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Diagnostics" Style="{StaticResource H1}" />
+            <TextBlock Text="Measures the system, then explains what limits it. Start your game first for a meaningful bottleneck analysis." Style="{StaticResource Muted}" Margin="0,0,0,12" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <Button Content="Scan &amp; analyze" Command="{Binding ScanCommand}" />
+                <TextBlock Text="Sampling seconds:" VerticalAlignment="Center" Margin="8,0" />
+                <TextBox Text="{Binding SampleSeconds, UpdateSourceTrigger=PropertyChanged}" Width="50" />
+            </StackPanel>
+            <ProgressBar Value="{Binding Progress}" Maximum="100" Margin="0,0,12,12" Visibility="{Binding Busy, Converter={StaticResource BoolVis}}" />
+            <TextBlock Text="{Binding Message}" Foreground="{StaticResource YellowBrush}" Visibility="{Binding Message, Converter={StaticResource Visible}}" Margin="0,0,0,10" />
+
+            <Border Style="{StaticResource Card}" Visibility="{Binding Report, Converter={StaticResource Visible}}">
+                <StackPanel>
+                    <TextBlock Text="Primary bottleneck" Style="{StaticResource Muted}" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Report.Bottleneck.Primary}" Style="{StaticResource Metric}" Margin="0,0,14,0" />
+                        <Border Style="{StaticResource Badge}" BorderBrush="{Binding Report.Bottleneck.Confidence, Converter={StaticResource Tone}}">
+                            <TextBlock Text="{Binding Report.Bottleneck.Confidence, Converter={StaticResource Upper}}" Foreground="{Binding Report.Bottleneck.Confidence, Converter={StaticResource Tone}}" FontWeight="SemiBold" />
+                        </Border>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Report.Bottleneck.Explanation}" Margin="0,6" />
+                    <ItemsControl ItemsSource="{Binding Report.Bottleneck.Evidence}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource Muted}"><Run Text="• " /><Run Text="{Binding Metric, Mode=OneWay}" /><Run Text=": " /><Run Text="{Binding Observed, Mode=OneWay}" /><Run Text="   (threshold " /><Run Text="{Binding Threshold, Mode=OneWay}" /><Run Text=")" /></TextBlock>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <ItemsControl ItemsSource="{Binding Report.Findings}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Padding="14,10">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Style="{StaticResource Badge}" BorderBrush="{Binding Severity, Converter={StaticResource Tone}}">
+                                        <TextBlock Text="{Binding Severity, Converter={StaticResource Upper}}" FontSize="11" Foreground="{Binding Severity, Converter={StaticResource Tone}}" />
+                                    </Border>
+                                    <Border Style="{StaticResource Badge}" BorderBrush="{Binding Confidence, Converter={StaticResource Tone}}">
+                                        <TextBlock Text="{Binding Confidence, Converter={StaticResource Upper}}" FontSize="11" Foreground="{Binding Confidence, Converter={StaticResource Tone}}" />
+                                    </Border>
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding Explanation}" Style="{StaticResource Muted}" Margin="0,6,0,0" />
+                                <ItemsControl ItemsSource="{Binding Evidence}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Style="{StaticResource Muted}"><Run Text="• " /><Run Text="{Binding Metric, Mode=OneWay}" /><Run Text=": " /><Run Text="{Binding Observed, Mode=OneWay}" /></TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,12"
+                       Text="CONFIRMED = measured or a plain fact · LIKELY = strong evidence · POSSIBLE = weak evidence · UNKNOWN = not enough data. Hypotheses are never shown as facts." />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================== Optimizations ============================== -->
+    <DataTemplate DataType="{x:Type vm:OptimizationsViewModel}">
+        <StackPanel>
+            <TextBlock Text="Optimizations" Style="{StaticResource H1}" />
+            <TextBlock Text="Each optimization is justified, previewed, backed up, verified and reversible. Select items, review the preview, then apply them as one transaction." Style="{StaticResource Muted}" Margin="0,0,0,12" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <Button Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource Secondary}" />
+                <Button Content="Select recommended" Command="{Binding SelectRecommendedCommand}" Style="{StaticResource Secondary}" />
+                <Button Content="Dry run" Command="{Binding DryRunCommand}" Style="{StaticResource Secondary}" />
+                <Button Content="Apply selected" Command="{Binding ApplyCommand}" />
+                <CheckBox Content="Show applied / not applicable" IsChecked="{Binding ShowAll}" Margin="8,0" />
+            </StackPanel>
+            <TextBlock Text="{Binding Message}" Foreground="{StaticResource YellowBrush}" Visibility="{Binding Message, Converter={StaticResource Visible}}" />
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="3*" /><ColumnDefinition Width="2*" /></Grid.ColumnDefinitions>
+                <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding Current}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource Card}" Margin="0,0,8,8" Padding="12,10">
+                                <DockPanel>
+                                    <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsSelected}" IsEnabled="{Binding Selectable}" Margin="0,2,10,0" VerticalAlignment="Top" />
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Style="{StaticResource Badge}" BorderBrush="{Binding R.Status, Converter={StaticResource Tone}}">
+                                                <TextBlock Text="{Binding R.Status, Converter={StaticResource Upper}}" FontSize="11" Foreground="{Binding R.Status, Converter={StaticResource Tone}}" />
+                                            </Border>
+                                            <TextBlock Text="{Binding R.Name}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0">
+                                            <Run Text="{Binding R.Category, Mode=OneWay}" /><Run Text=" · impact " /><Run Text="{Binding R.Impact, Mode=OneWay}" /><Run Text=" · risk " /><Run Text="{Binding R.Risk, Mode=OneWay}" /><Run Text=" · expected benefit " /><Run Text="{Binding R.ExpectedBenefitConfidence, Mode=OneWay, Converter={StaticResource Upper}}" /><Run Text=" · admin " /><Run Text="{Binding R.RequiresAdmin, Mode=OneWay}" /><Run Text=" · reversible " /><Run Text="{Binding R.Reversible, Mode=OneWay}" />
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding R.Justification, Converter={StaticResource Join}}" Style="{StaticResource Muted}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <StackPanel Grid.Column="1">
+                    <Border Style="{StaticResource Card}" Visibility="{Binding Preview, Converter={StaticResource Visible}}">
+                        <StackPanel>
+                            <TextBlock Text="Preview" Style="{StaticResource H2}" />
+                            <TextBlock Text="{Binding Preview.Name}" FontWeight="SemiBold" />
+                            <ItemsControl ItemsSource="{Binding Preview.Changes}" Margin="0,8">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,0,0,8">
+                                            <TextBlock Text="{Binding Description}" />
+                                            <TextBlock Text="{Binding Target}" Style="{StaticResource Muted}" FontFamily="Consolas" />
+                                            <TextBlock><Run Text="before: " Foreground="{StaticResource MutedBrush}" /><Run Text="{Binding Before, Mode=OneWay}" Foreground="{StaticResource YellowBrush}" /></TextBlock>
+                                            <TextBlock><Run Text="after:  " Foreground="{StaticResource MutedBrush}" /><Run Text="{Binding After, Mode=OneWay}" Foreground="{StaticResource GreenBrush}" /></TextBlock>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding Preview.Warnings, Converter={StaticResource Join}}" Foreground="{StaticResource YellowBrush}" />
+                            <TextBlock Text="{Binding Preview.BlockingReasons, Converter={StaticResource Join}}" Foreground="{StaticResource RedBrush}" />
+                        </StackPanel>
+                    </Border>
+                    <ContentControl Content="{Binding Result}" ContentTemplate="{StaticResource ExecutionResultTemplate}" Visibility="{Binding Result, Converter={StaticResource Visible}}" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================== Processes ============================== -->
+    <DataTemplate DataType="{x:Type vm:ProcessesViewModel}">
+        <StackPanel>
+            <TextBlock Text="Processes" Style="{StaticResource H1}" />
+            <TextBlock Text="Classification is based on signature, location and Windows' critical flag. Suspicious means 'worth checking', not 'malware'. Protected processes cannot be terminated." Style="{StaticResource Muted}" Margin="0,0,0,12" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <Button Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource Secondary}" />
+                <ComboBox x:Name="prio" ItemsSource="{Binding Priorities}" SelectedIndex="1" Width="130" Margin="0,0,8,0" />
+                <Button Content="Set priority (this session)" Command="{Binding PriorityCommand}" CommandParameter="{Binding SelectedItem, ElementName=prio}" Style="{StaticResource Secondary}" />
+                <Button Content="Terminate…" Command="{Binding TerminateCommand}" Style="{StaticResource Danger}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Message}" Foreground="{StaticResource YellowBrush}" Visibility="{Binding Message, Converter={StaticResource Visible}}" Margin="0,0,0,8" />
+            <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" Height="520" Margin="0,0,12,12">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="PID" Binding="{Binding Pid}" />
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="170" />
+                    <DataGridTextColumn Header="CPU %" Binding="{Binding CpuPercent, StringFormat=F1}" />
+                    <DataGridTextColumn Header="Memory" Binding="{Binding WorkingSetBytes, Converter={StaticResource Reading}}" />
+                    <DataGridTextColumn Header="GPU" Binding="{Binding GpuPercent, Converter={StaticResource Reading}}" />
+                    <DataGridTextColumn Header="Disk" Binding="{Binding DiskBytesPerSec, Converter={StaticResource Reading}}" />
+                    <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" />
+                    <DataGridTemplateColumn Header="Class">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate><TextBlock Text="{Binding Classification, Converter={StaticResource Upper}}" Foreground="{Binding Classification, Converter={StaticResource Tone}}" VerticalAlignment="Center" /></DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridCheckBoxColumn Header="Protected" Binding="{Binding IsProtected}" />
+                    <DataGridTextColumn Header="Publisher" Binding="{Binding Publisher}" Width="160" />
+                    <DataGridTextColumn Header="Path" Binding="{Binding Path}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+            <TextBlock Text="{Binding Selected.ClassificationReasons, Converter={StaticResource Join}}" Style="{StaticResource Muted}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================== Startup ============================== -->
+    <DataTemplate DataType="{x:Type vm:StartupViewModel}">
+        <StackPanel>
+            <TextBlock Text="Startup" Style="{StaticResource H1}" />
+            <TextBlock Text="Entries from registry Run keys, Startup folders, logon/boot scheduled tasks and third-party auto-start services. Disabling never deletes the entry. Impact is an estimate." Style="{StaticResource Muted}" Margin="0,0,0,12" />
+            <Button Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource Secondary}" HorizontalAlignment="Left" Margin="0,0,0,10" />
+            <TextBlock Text="{Binding Message}" Foreground="{StaticResource YellowBrush}" Visibility="{Binding Message, Converter={StaticResource Visible}}" Margin="0,0,0,8" />
+            <DataGrid ItemsSource="{Binding Items}" Height="540" Margin="0,0,12,12">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding Enabled, Converter={StaticResource Upper}}" Padding="8,2" FontSize="11"
+                                        Command="{Binding DataContext.ToggleCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"
+                                        Background="{Binding Enabled, Converter={StaticResource Tone}}" ToolTip="Toggle (reversible)" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="180" />
+                    <DataGridTextColumn Header="Source" Binding="{Binding Source}" />
+                    <DataGridTextColumn Header="Scope" Binding="{Binding Scope}" />
+                    <DataGridTextColumn Header="Impact" Binding="{Binding Impact}" />
+                    <DataGridTextColumn Header="Signed" Binding="{Binding Signed}" />
+                    <DataGridTextColumn Header="Publisher" Binding="{Binding Publisher}" Width="150" />
+                    <DataGridCheckBoxColumn Header="Critical" Binding="{Binding IsCritical}" />
+                    <DataGridTextColumn Header="Command" Binding="{Binding Command}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================== Gaming ============================== -->
+    <DataTemplate DataType="{x:Type vm:GamingViewModel}">
+        <StackPanel>
+            <TextBlock Text="Gaming" Style="{StaticResource H1}" />
+            <TextBlock Text="Per-game profiles are applied while the game runs and restored when it exits. Background apps are de-prioritised, never closed. Measure the effect in Benchmark." Style="{StaticResource Muted}" Margin="0,0,0,12" />
+            <ItemsControl ItemsSource="{Binding Launchers}" Margin="0,0,0,10">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Badge}" BorderBrush="{Binding Installed, Converter={StaticResource Tone}}" Margin="0,0,8,6">
+                            <TextBlock><Run Text="{Binding Name, Mode=OneWay}" /><Run Text="{Binding Running, Mode=OneWay, StringFormat=' · running: {0}'}" /></TextBlock>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="3*" /><ColumnDefinition Width="2*" /></Grid.ColumnDefinitions>
+                <DataGrid ItemsSource="{Binding Games}" SelectedItem="{Binding Game}" Height="360" Margin="0,0,12,12">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Game" Binding="{Binding Name}" Width="180" />
+                        <DataGridTextColumn Header="Launcher" Binding="{Binding Launcher}" />
+                        <DataGridTextColumn Header="Executable" Binding="{Binding Executable}" Width="*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Border Grid.Column="1" Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Game profile" Style="{StaticResource H2}" />
+                        <TextBlock Text="{Binding Game.Name, TargetNullValue=Select a game}" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <TextBlock Text="Process priority" Style="{StaticResource Muted}" />
+                        <ComboBox ItemsSource="{Binding Priorities}" SelectedItem="{Binding Priority}" Margin="0,2,0,8" />
+                        <TextBlock Text="GPU preference (Windows graphics settings)" Style="{StaticResource Muted}" />
+                        <ComboBox ItemsSource="{Binding GpuPreferences}" SelectedItem="{Binding GpuPreference}" Margin="0,2,0,8" />
+                        <TextBlock Text="Background processes to de-prioritise (comma separated)" Style="{StaticResource Muted}" />
+                        <TextBox Text="{Binding Background}" Margin="0,2,0,8" />
+                        <CheckBox Content="Apply automatically when the game starts" IsChecked="{Binding AutoApply}" Margin="0,0,0,10" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Save profile" Command="{Binding SaveCommand}" />
+                            <Button Content="Apply now" Command="{Binding ApplyCommand}" Style="{StaticResource Secondary}" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding Message}" Style="{StaticResource Muted}" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+            <ContentControl Content="{Binding Result}" ContentTemplate="{StaticResource ExecutionResultTemplate}" Visibility="{Binding Result, Converter={StaticResource Visible}}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================== Benchmark ============================== -->
+    <DataTemplate DataType="{x:Type vm:BenchmarkViewModel}">
+        <StackPanel>
+            <TextBlock Text="Benchmark" Style="{StaticResource H1}" />
+            <TextBlock Text="Measure before and after every change. FPS requires PresentMon (tools folder). Differences within the noise threshold are reported as 'no significant change'." Style="{StaticResource Muted}" Margin="0,0,0,12" />
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <WrapPanel>
+                        <StackPanel Margin="0,0,12,0"><TextBlock Text="Name" Style="{StaticResource Muted}" /><TextBox Text="{Binding Name}" Width="180" /></StackPanel>
+                        <StackPanel Margin="0,0,12,0"><TextBlock Text="Duration (s)" Style="{StaticResource Muted}" /><TextBox Text="{Binding Duration}" Width="80" /></StackPanel>
+                        <StackPanel Margin="0,0,12,0"><TextBlock Text="Game process (e.g. cs2.exe)" Style="{StaticResource Muted}" /><TextBox Text="{Binding ProcessName}" Width="200" /></StackPanel>
+                    </WrapPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button Content="Start" Command="{Binding StartCommand}" />
+                        <Button Content="Stop" Command="{Binding StopCommand}" Style="{StaticResource Secondary}" />
+                    </StackPanel>
+                    <ProgressBar Value="{Binding Progress}" Maximum="100" Margin="0,10,0,0" />
+                </StackPanel>
+            </Border>
+            <DataGrid ItemsSource="{Binding Results}" Height="260" Margin="0,0,12,12">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="150" />
+                    <DataGridTextColumn Header="When" Binding="{Binding StartedAt, StringFormat=g}" />
+                    <DataGridTextColumn Header="Source" Binding="{Binding FrameSource}" />
+                    <DataGridTextColumn Header="Avg FPS" Binding="{Binding Frames.AverageFps, Converter={StaticResource Reading}}" />
+                    <DataGridTextColumn Header="1% low" Binding="{Binding Frames.OnePercentLowFps, Converter={StaticResource Reading}}" />
+                    <DataGridTextColumn Header="0.1% low" Binding="{Binding Frames.PointOnePercentLowFps, Converter={StaticResource Reading}}" />
+                    <DataGridTextColumn Header="CPU" Binding="{Binding Load.CpuUsageAvg, Converter={StaticResource Reading}}" />
+                    <DataGridTextColumn Header="GPU" Binding="{Binding Load.GpuUsageAvg, Converter={StaticResource Reading}}" />
+                    <DataGridTextColumn Header="Profile" Binding="{Binding ActiveProfile}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Compare runs" Style="{StaticResource H2}" />
+                    <WrapPanel>
+                        <ComboBox ItemsSource="{Binding Results}" SelectedItem="{Binding Baseline}" DisplayMemberPath="Name" Width="200" Margin="0,0,8,0" />
+                        <TextBlock Text="→" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <ComboBox ItemsSource="{Binding Results}" SelectedItem="{Binding Candidate}" DisplayMemberPath="Name" Width="200" Margin="0,0,8,0" />
+                        <Button Content="Compare" Command="{Binding CompareCommand}" />
+                    </WrapPanel>
+                    <StackPanel Visibility="{Binding Comparison, Converter={StaticResource Visible}}" Margin="0,10,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Comparison.Verdict}" Style="{StaticResource Metric}" FontSize="22" Foreground="{Binding Comparison.Verdict, Converter={StaticResource Tone}}" Margin="0,0,12,0" />
+                            <Border Style="{StaticResource Badge}" BorderBrush="{Binding Comparison.Confidence, Converter={StaticResource Tone}}">
+                                <TextBlock Text="{Binding Comparison.Confidence, Converter={StaticResource Upper}}" Foreground="{Binding Comparison.Confidence, Converter={StaticResource Tone}}" />
+                            </Border>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Comparison.Explanation}" Style="{StaticResource Muted}" Margin="0,4" />
+                        <ItemsControl ItemsSource="{Binding Comparison.Deltas}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock><Run Text="{Binding Metric, Mode=OneWay}" /><Run Text=": " /><Run Text="{Binding Baseline, Mode=OneWay, StringFormat=F1}" /><Run Text=" → " /><Run Text="{Binding Candidate, Mode=OneWay, StringFormat=F1}" /><Run Text="  (" /><Run Text="{Binding DeltaPercent, Mode=OneWay, StringFormat=+0.0;-0.0}" /><Run Text="%)" /></TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================== Profiles ============================== -->
+    <DataTemplate DataType="{x:Type vm:ProfilesViewModel}">
+        <StackPanel>
+            <TextBlock Text="Profiles" Style="{StaticResource H1}" />
+            <TextBlock Text="A profile is a set of settings applied through the same pipeline — previewed, backed up and reversible." Style="{StaticResource Muted}" Margin="0,0,0,12" />
+            <ListBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding Selected}" HorizontalContentAlignment="Stretch">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Padding="12,10" Margin="0,0,12,8">
+                            <StackPanel>
+                                <TextBlock><Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" /><Run Text="  " /><Run Text="{Binding Kind, Mode=OneWay}" Foreground="{StaticResource MutedBrush}" /></TextBlock>
+                                <TextBlock Text="{Binding Description}" Style="{StaticResource Muted}" />
+                                <ItemsControl ItemsSource="{Binding Settings}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate><TextBlock Style="{StaticResource Muted}"><Run Text="• " /><Run Text="{Binding Key, Mode=OneWay}" /><Run Text=" = " /><Run Text="{Binding Value, Mode=OneWay}" /></TextBlock></DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,10">
+                <Button Content="Preview (dry run)" Command="{Binding PreviewCommand}" Style="{StaticResource Secondary}" />
+                <Button Content="Apply profile" Command="{Binding ApplyCommand}" />
+            </StackPanel>
+            <TextBlock Text="{Binding Message}" Foreground="{StaticResource YellowBrush}" Visibility="{Binding Message, Converter={StaticResource Visible}}" />
+            <ContentControl Content="{Binding Result}" ContentTemplate="{StaticResource ExecutionResultTemplate}" Visibility="{Binding Result, Converter={StaticResource Visible}}" />
+        </StackPanel>
+    </DataTemplate>
+
+    <!-- ============================== History ============================== -->
+    <DataTemplate DataType="{x:Type vm:HistoryViewModel}">
+        <StackPanel>
+            <TextBlock Text="History &amp; Restore" Style="{StaticResource H1}" />
+            <TextBlock Text="Every change is a transaction. Undo a whole transaction or a single optimization without restoring the entire computer." Style="{StaticResource Muted}" Margin="0,0,0,12" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                <Button Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource Secondary}" />
+                <Button Content="Roll back transaction" Command="{Binding RollbackCommand}" Style="{StaticResource Danger}" />
+            </StackPanel>
+            <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" Height="260" Margin="0,0,12,12">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Transaction" Binding="{Binding TransactionId}" Width="150" />
+                    <DataGridTextColumn Header="When" Binding="{Binding CreatedAt, StringFormat=g}" />
+                    <DataGridTemplateColumn Header="Status">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate><TextBlock Text="{Binding Status}" Foreground="{Binding Status, Converter={StaticResource Tone}}" VerticalAlignment="Center" /></DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+            <ItemsControl ItemsSource="{Binding Selected.Items}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}" Padding="12,10">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Undo this item" VerticalAlignment="Top" Style="{StaticResource Secondary}"
+                                        Command="{Binding DataContext.RollbackItemCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                <StackPanel>
+                                    <TextBlock><Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" /><Run Text="  " /><Run Text="{Binding Status, Mode=OneWay}" Foreground="{StaticResource MutedBrush}" /></TextBlock>
+                                    <ItemsControl ItemsSource="{Binding Changes}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Style="{StaticResource Muted}"><Run Text="{Binding Description, Mode=OneWay}" /><Run Text=": " /><Run Text="{Binding Before, Mode=OneWay}" /><Run Text=" → " /><Run Text="{Binding After, Mode=OneWay}" /></TextBlock>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Text="{Binding Error}" Foreground="{StaticResource RedBrush}" Visibility="{Binding Error, Converter={StaticResource Visible}}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Border Style="{StaticResource Card}" Visibility="{Binding Result, Converter={StaticResource Visible}}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Result.Status}" FontWeight="SemiBold" Foreground="{Binding Result.Status, Converter={StaticResource Tone}}" />
+                    <TextBlock Text="{Binding Result.Messages, Converter={StaticResource Join}}" Style="{StaticResource Muted}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </DataTemplate>
+</ResourceDictionary>

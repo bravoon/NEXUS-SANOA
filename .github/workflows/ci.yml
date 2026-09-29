@@ -1,0 +1,24 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  engine-tests:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Build (whole solution, including the WPF UI)
+        run: dotnet build NexusOptimizer.sln -c Release
+      - name: Engine tests (no UI, simulated Windows APIs)
+        run: dotnet test src/Nexus.Tests -c Release --no-build
+      - name: CLI smoke test (simulation)
+        run: |
+          dotnet src/Nexus.CLI/bin/Release/net8.0/nexus.dll analyze --simulate --seconds 2 --data-dir ./ci-data
+          dotnet src/Nexus.CLI/bin/Release/net8.0/nexus.dll recommendations --simulate --data-dir ./ci-data

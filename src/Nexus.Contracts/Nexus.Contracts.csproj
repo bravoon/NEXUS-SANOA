@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Shared, dependency-free data contracts. The only assembly the UI shares with the Engine. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Nexus.Contracts</RootNamespace>
+  </PropertyGroup>
+</Project>

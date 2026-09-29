@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Safety Layer: backups, restore, rollback and least-privilege enforcement. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Nexus.Security</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nexus.Contracts\Nexus.Contracts.csproj" />
+    <ProjectReference Include="..\Nexus.Platform\Nexus.Platform.csproj" />
+    <ProjectReference Include="..\Nexus.Data\Nexus.Data.csproj" />
+  </ItemGroup>
+</Project>

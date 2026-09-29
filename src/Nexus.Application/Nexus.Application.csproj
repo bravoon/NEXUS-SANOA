@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Application Layer: use-case services consumed by every client, the API dispatcher and the composition root. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Nexus.Application</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nexus.Contracts\Nexus.Contracts.csproj" />
+    <ProjectReference Include="..\Nexus.Engine\Nexus.Engine.csproj" />
+    <ProjectReference Include="..\Nexus.Ipc\Nexus.Ipc.csproj" />
+  </ItemGroup>
+</Project>

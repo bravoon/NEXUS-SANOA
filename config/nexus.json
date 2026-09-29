@@ -1,0 +1,34 @@
+{
+  // NEXUS OPTIMIZER engine configuration. Every value has a safe default in code;
+  // only override what you need. Comments and trailing commas are allowed.
+  "defaultSampleSeconds": 5,
+  "sampleIntervalSeconds": 1,
+
+  "diagnostics": {
+    "gpuSaturationPercent": 95,
+    "gpuHighPercent": 90,
+    "cpuHighPercent": 85,
+    "coreSaturationPercent": 95,
+    "memoryHighPercent": 90,
+    "diskActiveHighPercent": 90,
+    "loadThresholdPercent": 50,
+    "sustainedFraction": 0.8,
+    "minSamplesForConfirmed": 5,
+    "cpuTempHighCelsius": 90,
+    "gpuTempHighCelsius": 85,
+    "driverAgeMonthsWarning": 12,
+    "lowFreeSpacePercent": 10
+  },
+
+  "tempCleanupMinAgeDays": 7,
+  "tempCleanupMinTotalMb": 500,
+  "benchmarkNoiseThresholdPercent": 3,
+
+  "logLevel": "Info",
+  "logRetentionDays": 30,
+  "snapshotRetention": 20,
+  "rulesDirectory": "rules"
+
+  // "protectedProcesses", "criticalServices" and "startup" (criticalPatterns / knownImpact)
+  // can be overridden here as well; see docs/CONFIGURATION.md.
+}

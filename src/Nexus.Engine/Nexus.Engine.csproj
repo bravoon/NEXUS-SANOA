@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Optimization Engine: the product. Analysis, diagnostics, rules, modules, transactions, gaming,
+    benchmarks and profiles. It has no knowledge of any user interface.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Nexus.Engine</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nexus.Contracts\Nexus.Contracts.csproj" />
+    <ProjectReference Include="..\Nexus.Platform\Nexus.Platform.csproj" />
+    <ProjectReference Include="..\Nexus.Data\Nexus.Data.csproj" />
+    <ProjectReference Include="..\Nexus.Security\Nexus.Security.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Nexus.Tests" />
+    <Using Include="Nexus.Engine.Core" />
+  </ItemGroup>
+</Project>
