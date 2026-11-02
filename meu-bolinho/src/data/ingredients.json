@@ -1,0 +1,6 @@
+{
+  "farinha": { "nome": "farinha", "material": "po", "corConteudo": "#EFE3C8", "corRecipiente": "#E69F00", "simbolo": "quadrado" },
+  "acucar": { "nome": "açúcar", "material": "po", "corConteudo": "#FFFFFF", "corRecipiente": "#56B4E9", "simbolo": "triangulo" },
+  "leite": { "nome": "leite", "material": "liquido", "corConteudo": "#DDEBF7", "corRecipiente": "#0072B2", "simbolo": "gota" },
+  "chocolate_po": { "nome": "chocolate", "material": "po", "corConteudo": "#6B3E26", "corRecipiente": "#CC79A7", "simbolo": "estrela" }
+}

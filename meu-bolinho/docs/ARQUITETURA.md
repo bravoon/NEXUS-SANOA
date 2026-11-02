@@ -1,6 +1,6 @@
 # Meu Bolinho — Documento de Arquitetura (Etapa 1)
 
-> Status: **proposta para validação**. Nenhum código de jogo foi escrito ainda.
+> Status: **aprovado** (Etapa 1). Atualizado no Milestone 1 com as decisões tomadas na implementação (ver §12).
 
 ## 1. Princípio central: ZERO AUTO-COMPLETE
 
@@ -111,7 +111,8 @@ stateDiagram-v2
         EmGesto --> EmGesto : amostra → progresso += delta(input)
         EmGesto --> Aguardando : pointerup antes da meta (progresso CONGELA)
         EmGesto --> Correcao : excesso / casca / fora de ordem
-        Correcao --> Aguardando : criança corrige manualmente (colher)
+        Correcao --> Correcao : gestos de correção (colher) / soltar ainda com erro
+        Correcao --> Concluida : erro corrigido E pointerup
         EmGesto --> Concluida : progresso ≥ meta E pointerup
     }
 
@@ -123,7 +124,7 @@ stateDiagram-v2
 
 Regras da FSM (testadas unitariamente):
 
-- `Concluida` só é alcançável a partir de `EmGesto` (nunca de `Aguardando`, nunca por timer).
+- `Concluida` só é alcançável por `pointerup` a partir de `EmGesto` ou `Correcao` (nunca de `Aguardando`, nunca por timer).
 - `Correcao` bloqueia avanço até a condição de erro voltar a zero (ex.: nível ≤ alvo + tolerância).
 - Transições inválidas lançam erro em dev e são ignoradas em produção.
 - A FSM é um `reducer` puro: `next = transition(state, event)`, facilitando teste e debug.
@@ -211,9 +212,11 @@ acumulado += d                 // sentido livre: horário e anti-horário somam 
 voltas = |acumulado| / 2π
 ```
 
-Decisão a validar: girar no sentido contrário **subtrai** (|acumulado| reflete rotação líquida).
-Isso evita "vai e vem" contar como volta. Linha reta produz d ≈ 0 líquido; toque parado é filtrado
-por ωmin.
+Contagem por **trechos** (implementada no Milestone 1, ver §12): um trecho é rotação contínua num
+mesmo sentido (inversão detectada com histerese de 0,35 rad) e só passa a contar depois de varrer
+π; a partir daí conta ao vivo. Linha reta nunca varre π vista do centro, então nunca conta; vai e vem
+reinicia o trecho a cada inversão, então nunca conta; dedo parado é filtrado por movimento mínimo
+(3 px) e ωmin (0,6 rad/s). Inverter o sentido não faz a barra voltar.
 
 **Vazão por ângulo**
 
@@ -268,19 +271,22 @@ Overlay com: colisores (tigela, bico, anel válido do mexer em verde/vermelho), 
 - `recipeFsm`: sequência válida chega a `Final`; `Concluida` inacessível sem `EmGesto`; `Correcao`
   bloqueia; receita nova só com JSON (teste carrega todos os arquivos de `data/recipes`).
 
-## 12. Decisões que preciso que você valide
+## 12. Decisões
 
-1. **Pasta**: o repositório atual é o NEXUS Optimizer (C#). Proponho manter o jogo isolado em
-   `meu-bolinho/`. Prefere um repositório separado?
-2. **Sentido do mexer**: rotação contrária subtrai (proposta) ou qualquer sentido soma?
-3. **Ingredientes do modo Fácil**: 4 = farinha, açúcar, ovo, leite. Confeiteiro adiciona
-   chocolate/fermento/manteiga (7). Ok?
-4. **Inclinação**: deslocamento horizontal relativo ao ponto onde o dedo pegou o recipiente
-   (proposta), ou relativo ao centro da tigela?
-5. **Testes**: Vitest (proposta, integra com Vite).
-
-## 13. Próximo passo
-
-Após sua validação: **Milestone 1** — Vite + Phaser + TS strict, formas geométricas, arrastar,
-despejar (com medidor e excesso) e mexer (4 estágios por crossfade de cor), modo debug e os testes
-do acumulador angular e da vazão.
+1. **Pasta**: jogo isolado em `meu-bolinho/` dentro deste repositório.
+2. **Sentido do mexer** — *ajuste em relação à proposta*: em vez de "rotação contrária subtrai",
+   o Milestone 1 usa contagem por trechos (§7). Motivo: com subtração, uma criança que troca de
+   sentido vê a barra **voltar**, o que soa como punição. A contagem por trechos atende o mesmo
+   critério (vai e vem e linha reta não contam) sem o progresso diminuir. Custo: cada vez que o dedo
+   encosta, a primeira meia volta não conta (a barra mostra essa meia volta em verde-claro,
+   "quase"). Se preferir a subtração, a troca fica restrita a `AngularAccumulator`.
+3. **Ingredientes do modo Fácil**: farinha, açúcar, ovo e leite (o ovo entra no Milestone 2).
+   O Confeiteiro chega a 7.
+4. **Inclinação**: medida pelo deslocamento horizontal a partir do ponto em que o recipiente
+   entrou na zona de despejo (acima da tigela). Dentro da zona o recipiente trava na horizontal,
+   para a criança poder inclinar sem tirar o bico de cima da tigela; recuar o dedo 50 px ou sair
+   da zona na vertical destrava.
+5. **Correção de excesso**: cada colherada retira `quantidade × tolerância`, menos que a largura
+   da faixa-alvo, então a colher nunca "pula" a faixa para baixo. A etapa termina ao soltar a
+   colher quando o nível já voltou para a faixa.
+6. **Testes**: Vitest, ambiente Node, sem navegador.

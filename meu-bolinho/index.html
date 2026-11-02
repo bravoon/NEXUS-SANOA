@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#fff4e6" />
+    <title>Meu Bolinho</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #fff4e6; overflow: hidden; overscroll-behavior: none; }
+      #jogo { width: 100vw; height: 100vh; height: 100dvh; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+      #girar { display: none; position: fixed; inset: 0; z-index: 10; background: #fff4e6; color: #3b2a20;
+        font: bold 28px/1.4 'Arial Rounded MT Bold', Arial, sans-serif; text-align: center;
+        flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
+      #girar .celular { width: 70px; height: 120px; border: 8px solid #3b2a20; border-radius: 16px; animation: girar 2s ease-in-out infinite; }
+      @keyframes girar { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+      @media (orientation: portrait) and (max-width: 900px) { #girar { display: flex; } }
+    </style>
+  </head>
+  <body>
+    <div id="jogo"></div>
+    <div id="girar" role="alert"><div class="celular"></div><div>Gire o celular ↻</div></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

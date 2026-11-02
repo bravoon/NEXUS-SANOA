@@ -1,0 +1,32 @@
+/** Ponto de entrada: Phaser com Scale Manager FIT em 1280×720 lógicos, paisagem. */
+import Phaser from 'phaser';
+import { ALTURA, CORES, LARGURA } from './config/layout';
+import { BootScene } from './scenes/BootScene';
+import { CozinhaScene } from './scenes/CozinhaScene';
+import { MenuScene } from './scenes/MenuScene';
+
+const jogo = new Phaser.Game({
+  type: Phaser.AUTO,
+  parent: 'jogo',
+  backgroundColor: CORES.fundo,
+  width: LARGURA,
+  height: ALTURA,
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+  input: { activePointers: 1 },
+  render: { antialias: true, roundPixels: false },
+  scene: [BootScene, MenuScene, CozinhaScene],
+});
+
+// Modo retrato em telas pequenas: o CSS mostra "gire o celular" e o jogo dorme.
+const retrato = window.matchMedia('(orientation: portrait) and (max-width: 900px)');
+const aplicarOrientacao = (): void => {
+  if (retrato.matches) jogo.loop.sleep();
+  else jogo.loop.wake();
+};
+retrato.addEventListener('change', aplicarOrientacao);
+jogo.events.once(Phaser.Core.Events.READY, aplicarOrientacao);
+
+// Acesso para testes de ponta a ponta e inspeção manual (somente com ?debug na URL).
+if (import.meta.env.DEV || new URLSearchParams(location.search).has('debug')) {
+  (window as unknown as { __jogo: Phaser.Game }).__jogo = jogo;
+}

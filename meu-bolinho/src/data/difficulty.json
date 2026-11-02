@@ -1,0 +1,16 @@
+{
+  "facil": {
+    "maxIngredientes": 4,
+    "voltas": 5,
+    "tolerancia": 0.2,
+    "cascaDeOvo": false,
+    "cobertura": 0.8
+  },
+  "confeiteiro": {
+    "maxIngredientes": 7,
+    "voltas": 10,
+    "tolerancia": 0.08,
+    "cascaDeOvo": true,
+    "cobertura": 0.9
+  }
+}

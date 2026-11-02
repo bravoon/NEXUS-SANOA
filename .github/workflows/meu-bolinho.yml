@@ -1,0 +1,23 @@
+name: meu-bolinho
+on:
+  push:
+    paths: ['meu-bolinho/**', '.github/workflows/meu-bolinho.yml']
+  pull_request:
+    paths: ['meu-bolinho/**', '.github/workflows/meu-bolinho.yml']
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: meu-bolinho
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: meu-bolinho/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
