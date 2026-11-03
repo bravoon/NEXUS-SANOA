@@ -5,6 +5,7 @@
  * Etapas com "apenas": "<nivel>" só existem nesse nível.
  * Adicionar uma receita nova = adicionar um JSON; nenhum código muda.
  */
+import { CONFIG_DESPEJAR_MASSA, CONFIG_FORNO } from '../../config/gameplay';
 import {
   DIFICULDADES,
   TIPOS_ETAPA,
@@ -18,6 +19,9 @@ import {
   type TipoEtapa,
 } from './recipeTypes';
 
+/** Ingrediente implícito da etapa de ovos (conta para o limite de ingredientes). */
+export const ITEM_OVO = 'ovo';
+
 export class ErroReceita extends Error {
   constructor(
     public readonly receitaId: string,
@@ -30,6 +34,7 @@ export class ErroReceita extends Error {
 
 const ehObjeto = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
+const ehCor = (v: unknown): boolean => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v);
 
 /** Valida a estrutura bruta (vinda de JSON) e devolve uma ReceitaJson tipada. */
 export function validarReceita(bruto: unknown): ReceitaJson {
@@ -37,29 +42,49 @@ export function validarReceita(bruto: unknown): ReceitaJson {
   const id = bruto['id'];
   if (typeof id !== 'string' || id.length === 0) throw new ErroReceita('?', '"id" ausente');
   if (typeof bruto['nome'] !== 'string') throw new ErroReceita(id, '"nome" ausente');
-  if (typeof bruto['corMassa'] !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(bruto['corMassa'])) {
-    throw new ErroReceita(id, '"corMassa" deve ser #RRGGBB');
-  }
+  if (!ehCor(bruto['corMassa'])) throw new ErroReceita(id, '"corMassa" deve ser #RRGGBB');
   const etapas = bruto['etapas'];
   if (!Array.isArray(etapas) || etapas.length === 0) throw new ErroReceita(id, '"etapas" vazio');
 
   etapas.forEach((e: unknown, i) => {
     if (!ehObjeto(e)) throw new ErroReceita(id, `etapa ${i} não é objeto`);
-    if (!TIPOS_ETAPA.includes(e['tipo'] as TipoEtapa)) {
+    const tipo = e['tipo'] as TipoEtapa;
+    if (!TIPOS_ETAPA.includes(tipo)) {
       throw new ErroReceita(id, `etapa ${i}: tipo desconhecido "${String(e['tipo'])}"`);
     }
     if (e['apenas'] !== undefined && !DIFICULDADES.includes(e['apenas'] as Dificuldade)) {
       throw new ErroReceita(id, `etapa ${i}: "apenas" inválido`);
     }
-    for (const campo of ['quantidade', 'tolerancia', 'voltas'] as const) {
+    for (const campo of ['quantidade', 'tolerancia', 'voltas', 'cobertura', 'tempoSegundos', 'restanteMax'] as const) {
       const v = e[campo];
       if (v !== undefined && (typeof v !== 'number' || !(v > 0))) {
         throw new ErroReceita(id, `etapa ${i}: "${campo}" deve ser número > 0`);
       }
     }
-    if (e['tipo'] === 'despejar') {
-      if (typeof e['item'] !== 'string') throw new ErroReceita(id, `etapa ${i}: "item" ausente`);
-      if (typeof e['quantidade'] !== 'number') throw new ErroReceita(id, `etapa ${i}: "quantidade" ausente`);
+    for (const campo of ['cobertura', 'restanteMax', 'tolerancia'] as const) {
+      const v = e[campo];
+      if (typeof v === 'number' && v > 1) throw new ErroReceita(id, `etapa ${i}: "${campo}" deve ser ≤ 1`);
+    }
+    if (e['corCobertura'] !== undefined && !ehCor(e['corCobertura'])) {
+      throw new ErroReceita(id, `etapa ${i}: "corCobertura" deve ser #RRGGBB`);
+    }
+    switch (tipo) {
+      case 'despejar':
+        if (typeof e['item'] !== 'string') throw new ErroReceita(id, `etapa ${i}: "item" ausente`);
+        if (typeof e['quantidade'] !== 'number') throw new ErroReceita(id, `etapa ${i}: "quantidade" ausente`);
+        break;
+      case 'quebrar_ovo':
+        if (!Number.isInteger(e['quantidade'])) throw new ErroReceita(id, `etapa ${i}: "quantidade" de ovos deve ser inteira`);
+        break;
+      case 'forno': {
+        const t = e['tempoSegundos'];
+        if (typeof t === 'number' && (t < CONFIG_FORNO.tempoMinSeg || t > CONFIG_FORNO.tempoMaxSeg)) {
+          throw new ErroReceita(id, `etapa ${i}: "tempoSegundos" deve estar entre ${CONFIG_FORNO.tempoMinSeg} e ${CONFIG_FORNO.tempoMaxSeg}`);
+        }
+        break;
+      }
+      default:
+        break;
     }
   });
 
@@ -91,13 +116,25 @@ export function resolverReceita(
           material: def.material,
         };
       }
+      case 'quebrar_ovo':
+        return { tipo: 'quebrar_ovo', quantidade: e.quantidade ?? 1, cascaDeOvo: padrao.cascaDeOvo };
       case 'mexer':
         return { tipo: 'mexer', voltas: e.voltas ?? padrao.voltas };
+      case 'untar':
+        return { tipo: 'untar', cobertura: e.cobertura ?? padrao.cobertura };
+      case 'despejar_massa':
+        return { tipo: 'despejar_massa', restanteMax: e.restanteMax ?? CONFIG_DESPEJAR_MASSA.restanteMax };
+      case 'forno':
+        return { tipo: 'forno', tempoSegundos: e.tempoSegundos ?? CONFIG_FORNO.tempoPadraoSeg };
+      case 'desenformar':
+        return { tipo: 'desenformar' };
+      case 'decorar':
+        return { tipo: 'decorar', cobertura: e.cobertura ?? padrao.cobertura, corCobertura: e.corCobertura ?? '#5A3220' };
     }
   });
 
-  const lista = etapas.flatMap((e) => (e.tipo === 'despejar' ? [e.item] : []));
-  const unicos = [...new Set(lista)];
+  const recipientes = [...new Set(etapas.flatMap((e) => (e.tipo === 'despejar' ? [e.item] : [])))];
+  const unicos = [...new Set(etapas.flatMap((e) => (e.tipo === 'despejar' ? [e.item] : e.tipo === 'quebrar_ovo' ? [ITEM_OVO] : [])))];
   if (unicos.length > padrao.maxIngredientes) {
     throw new ErroReceita(
       receita.id,
@@ -112,5 +149,6 @@ export function resolverReceita(
     dificuldade,
     etapas,
     ingredientes: unicos,
+    recipientes,
   };
 }

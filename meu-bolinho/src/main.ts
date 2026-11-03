@@ -2,8 +2,13 @@
 import Phaser from 'phaser';
 import { ALTURA, CORES, LARGURA } from './config/layout';
 import { BootScene } from './scenes/BootScene';
+import { ConfeitarScene } from './scenes/ConfeitarScene';
 import { CozinhaScene } from './scenes/CozinhaScene';
+import { FornoScene } from './scenes/FornoScene';
 import { MenuScene } from './scenes/MenuScene';
+import { PausaScene } from './scenes/PausaScene';
+import { ResultadoScene } from './scenes/ResultadoScene';
+import { SelecaoReceitaScene } from './scenes/SelecaoReceitaScene';
 
 const jogo = new Phaser.Game({
   type: Phaser.AUTO,
@@ -13,8 +18,8 @@ const jogo = new Phaser.Game({
   height: ALTURA,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   input: { activePointers: 1 },
-  render: { antialias: true, roundPixels: false },
-  scene: [BootScene, MenuScene, CozinhaScene],
+  scene: [BootScene, MenuScene, SelecaoReceitaScene, CozinhaScene, FornoScene, ConfeitarScene, ResultadoScene, PausaScene],
+  render: { antialias: true, roundPixels: false, preserveDrawingBuffer: false },
 });
 
 // Modo retrato em telas pequenas: o CSS mostra "gire o celular" e o jogo dorme.

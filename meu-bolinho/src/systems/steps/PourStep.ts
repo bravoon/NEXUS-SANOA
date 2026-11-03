@@ -87,6 +87,11 @@ export class PourStep {
     return this.ultimaVazao;
   }
 
+  /** Erro a corrigir (para a FSM sair da correção). */
+  erroPendente(): boolean {
+    return this.emExcesso;
+  }
+
   metaAtingida(): boolean {
     return this.despejadoTotal >= this.limiteInferior - 1e-9 && !this.emExcesso;
   }

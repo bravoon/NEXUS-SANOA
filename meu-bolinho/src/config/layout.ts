@@ -29,10 +29,37 @@ export const MESA_Y = 600;
 export const POSICOES_RECIPIENTES = [100, 225, 350, 475] as const;
 export const RECIPIENTE = { largura: 84, altura: 104, y: 540 } as const;
 
-export const PRATINHO_DESCARTE = { x: 1060, y: 610, raio: 60 } as const;
-export const DESCANSO_COLHER = { x: 1060, y: 470 } as const;
+export const PRATINHO_DESCARTE = { x: 1150, y: 545, raio: 60 } as const;
+export const DESCANSO_COLHER = { x: 1150, y: 400 } as const;
 
-export const MASCOTE = { x: 1180, y: 120 } as const;
+/** Caixa de ovos na frente da mesa, à direita. */
+export const CAIXA_OVOS = { x: 1040, y: 660, espaco: 72 } as const;
+export const OVO = { largura: 52, altura: 66 } as const;
+
+/** Estação da forma (untar / despejar massa), na Cozinha. */
+export const FORMA = { cx: 830, cy: 470, rx: 175, ry: 112, rxInterno: 158, ryInterno: 98, parede: 42 } as const;
+/** Onde a tigela descansa (escala reduzida) enquanto a forma está no centro. */
+export const TIGELA_LATERAL = { x: 330, y: 400, escala: 0.6 } as const;
+
+export const MASCOTE = { x: 1170, y: 130 } as const;
+export const BOTAO_PAUSA = { x: 1236, y: 44, raio: 34, segurarMs: 2000 } as const;
+
+/** Forno (cena Forno). */
+export const FORNO = {
+  x: 360, y: 110, largura: 560, altura: 470,
+  porta: { x: 400, y: 190, largura: 380, altura: 350 },
+  botao: { x: 850, y: 270, raio: 44, raioGesto: 90 },
+  luz: { x: 850, y: 170 },
+  /** Posição e escala da forma dentro do forno. */
+  formaDentro: { x: 590, y: 430, escala: 0.62 },
+} as const;
+export const BANCADA_FORNO = { formaX: 1080, formaY: 600, escala: 0.5 } as const;
+export const LUVA = { x: 1180, y: 330 } as const;
+export const PRATO_DESENFORMAR = { x: 1130, y: 260 } as const;
+
+/** Bolo na cena Confeitar. */
+export const BOLO = { cx: 640, topoY: 360, rx: 215, ry: 88, alturaLateral: 110, pratoRx: 290, pratoRy: 92 } as const;
+export const BANDEJA_Y = 650;
 export const BARRA_MEXER = { x: 580, y: 180, largura: 360, altura: 36 } as const;
 
 /** Paleta inspirada em Okabe-Ito (segura para daltonismo) + tons de cozinha. */

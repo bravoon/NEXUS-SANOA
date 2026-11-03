@@ -1,8 +1,7 @@
-/** Menu do protótipo: escolha da dificuldade (botões grandes, sem depender de leitura). */
+/** Menu inicial: botões grandes, sem depender de leitura. */
 import Phaser from 'phaser';
 import { ALTURA, CORES, LARGURA } from '../config/layout';
-import type { Dificuldade } from '../systems/recipe/recipeTypes';
-import type { DadosCozinha } from './CozinhaScene';
+import { botaoGrande, ESTILO_TITULO } from './ui';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -11,41 +10,20 @@ export class MenuScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(CORES.fundo);
-    this.add
-      .text(LARGURA / 2, 150, 'Meu Bolinho', { fontFamily: 'Arial Rounded MT Bold, Arial, sans-serif', fontSize: '84px', color: '#3b2a20', fontStyle: 'bold' })
-      .setOrigin(0.5);
-    this.add
-      .text(LARGURA / 2, 225, 'Protótipo — Milestone 1', { fontFamily: 'Arial, sans-serif', fontSize: '24px', color: '#6b5a4e' })
-      .setOrigin(0.5);
-
-    this.botao(LARGURA / 2 - 190, 420, 'Fácil', 1, 0x56b4e9, 'facil');
-    this.botao(LARGURA / 2 + 190, 420, 'Confeiteiro', 2, 0xe69f00, 'confeiteiro');
-
-    this.add
-      .text(LARGURA / 2, ALTURA - 40, 'Tecla D: modo debug', { fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#9c8a7e' })
-      .setOrigin(0.5);
-  }
-
-  private botao(x: number, y: number, rotulo: string, estrelas: number, cor: number, dificuldade: Dificuldade): void {
-    const c = this.add.container(x, y);
+    // bolinho decorativo
     const g = this.add.graphics();
-    g.fillStyle(cor, 1);
-    g.fillRoundedRect(-160, -110, 320, 220, 36);
-    g.lineStyle(6, CORES.texto, 1);
-    g.strokeRoundedRect(-160, -110, 320, 220, 36);
-    const txt = this.add
-      .text(0, 50, rotulo, { fontFamily: 'Arial Rounded MT Bold, Arial, sans-serif', fontSize: '40px', color: '#ffffff', fontStyle: 'bold', stroke: '#3b2a20', strokeThickness: 6 })
-      .setOrigin(0.5);
-    c.add([g, txt]);
-    for (let i = 0; i < estrelas; i++) {
-      c.add(this.add.image((i - (estrelas - 1) / 2) * 70, -35, 'estrela').setScale(2.6).setTint(CORES.destaque));
-    }
-    c.setSize(320, 220).setInteractive({ useHandCursor: true });
-    c.on('pointerdown', () => c.setScale(0.95));
-    c.on('pointerout', () => c.setScale(1));
-    c.on('pointerup', () => {
-      const dados: DadosCozinha = { receitaId: 'prototipo', dificuldade };
-      this.scene.start('Cozinha', dados);
-    });
+    g.fillStyle(0xcc79a7, 1);
+    g.fillTriangle(LARGURA / 2 - 80, 330, LARGURA / 2 + 80, 330, LARGURA / 2 + 60, 430);
+    g.fillTriangle(LARGURA / 2 - 80, 330, LARGURA / 2 + 60, 430, LARGURA / 2 - 60, 430);
+    g.fillStyle(0xfff0f5, 1);
+    g.fillCircle(LARGURA / 2 - 45, 320, 45);
+    g.fillCircle(LARGURA / 2 + 45, 320, 45);
+    g.fillCircle(LARGURA / 2, 285, 55);
+    g.fillStyle(0xd55e00, 1);
+    g.fillCircle(LARGURA / 2, 225, 16);
+
+    this.add.text(LARGURA / 2, 120, 'Meu Bolinho', ESTILO_TITULO).setOrigin(0.5);
+    botaoGrande(this, LARGURA / 2, 540, '▶  Jogar', CORES.sucesso, () => this.scene.start('SelecaoReceita'), 340, 110);
+    this.add.text(LARGURA / 2, ALTURA - 30, 'Tecla D: modo debug  ·  segure ⏸ por 2 s para pausar', { fontFamily: 'Arial, sans-serif', fontSize: '18px', color: '#9c8a7e' }).setOrigin(0.5);
   }
 }

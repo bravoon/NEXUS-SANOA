@@ -49,7 +49,33 @@ describe('resolverReceita', () => {
     expect(resolverReceita(validarReceita(base), 'confeiteiro', tabela, ings).ingredientes).toContain('chocolate_po');
   });
 
+  it('resolve as etapas do fluxo completo com padrões', () => {
+    const r = validarReceita({
+      id: 'y', nome: 'Y', corMassa: '#123456',
+      etapas: [
+        { tipo: 'quebrar_ovo', quantidade: 2 }, { tipo: 'untar' }, { tipo: 'despejar_massa' },
+        { tipo: 'forno' }, { tipo: 'desenformar' }, { tipo: 'decorar', cobertura: 0.5 },
+      ],
+    });
+    const f = resolverReceita(r, 'facil', tabela, ings);
+    expect(f.etapas).toEqual([
+      { tipo: 'quebrar_ovo', quantidade: 2, cascaDeOvo: false },
+      { tipo: 'untar', cobertura: 0.8 },
+      { tipo: 'despejar_massa', restanteMax: 0.05 },
+      { tipo: 'forno', tempoSegundos: 20 },
+      { tipo: 'desenformar' },
+      { tipo: 'decorar', cobertura: 0.5, corCobertura: '#5A3220' },
+    ]);
+    expect(resolverReceita(r, 'confeiteiro', tabela, ings).etapas[0]).toMatchObject({ cascaDeOvo: true });
+    expect(f.recipientes).toEqual([]);
+    expect(f.ingredientes).toEqual(['ovo']);
+  });
+
   it('recusa JSON inválido com mensagem clara', () => {
+    expect(() => validarReceita({ ...base, etapas: [{ tipo: 'forno', tempoSegundos: 60 }] })).toThrow(/tempoSegundos/);
+    expect(() => validarReceita({ ...base, etapas: [{ tipo: 'quebrar_ovo', quantidade: 1.5 }] })).toThrow(/inteira/);
+    expect(() => validarReceita({ ...base, etapas: [{ tipo: 'untar', cobertura: 1.5 }] })).toThrow(/≤ 1/);
+    expect(() => validarReceita({ ...base, etapas: [{ tipo: 'decorar', corCobertura: 'marrom' }] })).toThrow(/corCobertura/);
     expect(() => validarReceita({ ...base, etapas: [{ tipo: 'voar' }] })).toThrow(/tipo desconhecido/);
     expect(() => validarReceita({ ...base, corMassa: 'azul' })).toThrow(/corMassa/);
     expect(() => validarReceita({ ...base, etapas: [{ tipo: 'despejar', item: 'leite' }] })).toThrow(/quantidade/);
@@ -60,8 +86,14 @@ describe('resolverReceita', () => {
   });
 
   it('recusa receitas acima do máximo de ingredientes do nível', () => {
-    const muitos = { ...base, etapas: ['farinha', 'acucar', 'leite', 'chocolate_po', 'farinha2'].map((item) => ({ tipo: 'despejar', item, quantidade: 1 })) };
-    const ingsExtra = { ...ings, farinha2: ings['farinha']! };
-    expect(() => resolverReceita(validarReceita(muitos), 'facil', tabela, ingsExtra)).toThrow(/excedem/);
+    const muitos = {
+      ...base,
+      etapas: [
+        ...['farinha', 'acucar', 'leite', 'chocolate_po'].map((item) => ({ tipo: 'despejar', item, quantidade: 1 })),
+        { tipo: 'quebrar_ovo', quantidade: 2 }, // o ovo também conta como ingrediente
+      ],
+    };
+    expect(() => resolverReceita(validarReceita(muitos), 'facil', tabela, ings)).toThrow(/5 ingredientes excedem/);
+    expect(resolverReceita(validarReceita(muitos), 'confeiteiro', tabela, ings).ingredientes).toContain('ovo');
   });
 });

@@ -17,26 +17,40 @@ npm test           # testes unitários (Node, sem navegador)
 npm run build      # typecheck + build de produção em dist/
 ```
 
-## Status: Milestone 1 (protótipo com formas geométricas)
+## Status: Milestone 2 (fluxo completo de uma receita, formas geométricas)
 
-Implementado: arrastar, despejar (vazão por ângulo, medidor com faixa-alvo, excesso corrigido com
-colher), mexer (acumulador angular, massa em 4 estágios), cartão da receita, mascote com falas,
-rejeição de ingrediente fora de ordem, modo debug (tecla **D**) e aviso para girar o celular.
+Receita `Bolo Fofinho` (`src/data/recipes/fofinho.json`), do ingrediente ao bolo decorado:
+
+| Cena | Etapas |
+|---|---|
+| Cozinha | despejar farinha, açúcar e leite (+ fermento no Confeiteiro) · quebrar 2 ovos · mexer · untar a forma · despejar a massa |
+| Forno | colocar a forma · fechar a porta · girar o timer · bolo cresce (20 s) · abrir · luva · retirar · desenformar |
+| Confeitar | cobertura · confeitos, morangos, velas, granulado (sacudir) · desfazer · Pronto! |
+| Resultado | foto do bolo decorado |
+
+Também: menu, seleção de receita e dificuldade, pausa protegida (segurar ⏸ 2 s), mascote com falas,
+modo debug (tecla **D**) em todas as cenas.
 
 ### Como testar à mão
 
-1. `npm run dev`, escolha **Fácil** ou **Confeiteiro** (o Confeiteiro tem tolerância ±8%, 10 voltas e chocolate).
-2. **Despejar**: arraste o recipiente que balança (o mesmo símbolo destacado no cartão) até acima
-   da tigela. Ele para na horizontal; mova o dedo para a **direita** para inclinar. Abaixo de 25°
-   nada sai. Acompanhe o medidor no recipiente: a faixa verde é o alvo.
-   - Solte no meio: o nível congela (critério de aceite).
-   - Incline com o bico fora da tigela (modo debug: ponto vermelho): nada cai.
-   - Passe da faixa: o mascote avisa; leve a colher até a tigela e depois até o pratinho, repetindo até voltar à faixa, e solte.
-   - Arraste um ingrediente fora de ordem até a tigela e solte: ele volta e o mascote indica o certo.
-3. **Mexer**: gire o dedo dentro da tigela. Linha reta, vai e vem ou dedo parado não contam.
-   A barra verde-clara mostra a meia volta "quase contando"; a barra verde, as voltas contadas.
-4. Tecla **D**: colisores (zona de despejo em magenta, boca da tigela em ciano, anel do mexer em
-   vermelho/verde), FSM, ângulo, vazão, quantidade despejada, voltas, ω e estágio da massa.
-   Em dev, 3 toques rápidos no canto superior esquerdo também alternam o debug no celular.
+1. `npm run dev` → **Jogar** → escolha **Fácil** (1 estrela) ou **Confeiteiro** (2 estrelas) → toque no bolo.
+2. **Despejar**: arraste o recipiente que balança até acima da tigela; ele trava na horizontal e o
+   dedo para a **direita** inclina (abaixo de 25° nada sai). O medidor tem a faixa-alvo verde.
+   Passou da faixa → colher até a tigela e depois ao pratinho. Ingrediente fora de ordem é rejeitado.
+3. **Ovos**: arraste um ovo da caixa até a beirada da tigela e solte; toque nele duas vezes
+   (1º trinca, 2º abre). No Confeiteiro pode cair casca: retire com a colher.
+4. **Mexer**: gire o dedo dentro da tigela (linha reta, vai e vem e dedo parado não contam).
+5. **Untar**: passe o dedo por toda a forma; o metal sem manteiga fica cinza. A barra mostra a meta.
+6. **Despejar a massa**: arraste a tigela (à esquerda) até acima da forma e mova o dedo para a
+   direita para inclinar, até a tigela ficar quase vazia.
+7. **Forno**: leve a forma para dentro, toque na porta para fechar, gire o botão uma volta. Espere o
+   apito, toque na porta para abrir, leve a luva até a forma e arraste a forma até a bancada.
+   Tente pegar a forma sem luva: "Cuidado, está quente!".
+8. **Desenformar**: leve o prato até a forma e puxe para baixo, rápido (devagar não vale).
+9. **Decorar**: cubra o bolo com o dedo; depois arraste enfeites da bandeja e sacuda o pote de
+   granulado sobre o bolo. ↶ desfaz. **Pronto!** mostra o resultado.
+10. Tecla **D** em qualquer cena: colisores, FSM, vazão, voltas, grade de cobertura (verde/vermelho),
+    fase do forno, velocidade do swipe, enfeites. Em dev, 3 toques rápidos no canto superior
+    esquerdo também alternam o debug no celular.
 
 Adicione `?debug` à URL do build para expor `window.__jogo` (inspeção e testes de ponta a ponta).

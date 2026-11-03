@@ -34,6 +34,10 @@ export class GestureSystem {
     input.on('pointerupoutside', this.up, this);
     scene.game.events.on('blur', this.cancelar, this);
     scene.game.events.on('hidden', this.cancelar, this);
+    // Pausar a cena: o "soltar" do dedo acontece com a cena pausada e nunca chegaria aqui.
+    // Sem isto, o ponteiro ficaria "ativo" para sempre e a cena não aceitaria mais toques.
+    scene.events.on('pause', this.cancelar, this);
+    scene.events.on('resume', this.zerar, this);
     scene.events.once('shutdown', this.destruir, this);
   }
 
@@ -71,7 +75,14 @@ export class GestureSystem {
     this.ouvintes.aoSoltar({ ...this.ultima, t: performance.now() });
   }
 
+  private zerar(): void {
+    this.ativo = null;
+    this.ultima = null;
+  }
+
   destruir(): void {
+    this.scene.events.off('pause', this.cancelar, this);
+    this.scene.events.off('resume', this.zerar, this);
     const input = this.scene.input;
     input.off('pointerdown', this.down, this);
     input.off('pointermove', this.move, this);

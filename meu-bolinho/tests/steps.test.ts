@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { EventBus, type MapaEventos } from '../src/systems/events/EventBus';
+import { BowlContents } from '../src/systems/fill/BowlContents';
 import { PourStep } from '../src/systems/steps/PourStep';
 import { StirStep } from '../src/systems/steps/StirStep';
 import { RecipeRunner } from '../src/systems/recipe/RecipeRunner';
@@ -69,7 +70,7 @@ describe('StirStep', () => {
 
 describe('RecipeRunner (integração com a FSM)', () => {
   const receita: ReceitaResolvida = {
-    id: 't', nome: 't', corMassa: '#ffffff', dificuldade: 'facil', ingredientes: ['leite'],
+    id: 't', nome: 't', corMassa: '#ffffff', dificuldade: 'facil', ingredientes: ['leite'], recipientes: ['leite'],
     etapas: [
       { tipo: 'despejar', item: 'leite', alvo: 'tigela', quantidade: 1, tolerancia: 0.2, material: 'liquido' },
       { tipo: 'mexer', voltas: 1 },
@@ -83,7 +84,7 @@ describe('RecipeRunner (integração com a FSM)', () => {
     bus.on('etapa:concluida', (e) => concluidas.push(e.indice));
     bus.on('receita:concluida', () => (terminou = true));
 
-    const r = new RecipeRunner(receita, bus);
+    const r = new RecipeRunner(receita, bus, { rng: () => 0, tigela: new BowlContents(4) });
     r.iniciar();
     expect(r.estado.sub).toBe('aguardando');
 
@@ -113,7 +114,7 @@ describe('RecipeRunner (integração com a FSM)', () => {
     const bus = new EventBus<MapaEventos>();
     const erros: string[] = [];
     bus.on('etapa:erro', (e) => erros.push(e.erro));
-    const r = new RecipeRunner(receita, bus);
+    const r = new RecipeRunner(receita, bus, { rng: () => 0, tigela: new BowlContents(4) });
     r.iniciar();
     const p = r.controlador as PourStep;
 
@@ -127,6 +128,30 @@ describe('RecipeRunner (integração com a FSM)', () => {
     r.inicioDoGesto(); // pega a colher
     while (p.emExcesso) p.retirarColherada();
     r.fimDoGesto();
+    expect(r.estado.sub).toBe('concluida');
+  });
+});
+
+describe('RecipeRunner: saída da correção', () => {
+  it('casca retirada antes do 2º ovo: volta para aguardando; depois conclui normalmente', async () => {
+    const { EggStep } = await import('../src/systems/steps/EggStep');
+    const bus = new EventBus<MapaEventos>();
+    const receita: ReceitaResolvida = {
+      id: 'o', nome: 'o', corMassa: '#ffffff', dificuldade: 'confeiteiro', ingredientes: ['ovo'], recipientes: [],
+      etapas: [{ tipo: 'quebrar_ovo', quantidade: 2, cascaDeOvo: true }],
+    };
+    const r = new RecipeRunner(receita, bus, { rng: () => 0, tigela: new BowlContents(4) });
+    r.iniciar();
+    const e = r.controlador as InstanceType<typeof EggStep>;
+    r.inicioDoGesto(); e.apoiarNaBorda(); r.fimDoGesto();
+    r.inicioDoGesto(); e.toque(0); r.fimDoGesto();
+    r.inicioDoGesto(); e.toque(500); if (e.caiuCasca) r.reportarErro('casca'); r.fimDoGesto();
+    expect(r.estado.sub).toBe('correcao');
+    r.inicioDoGesto(); e.retirarCasca(); r.fimDoGesto(); // colher
+    expect(r.estado).toMatchObject({ sub: 'aguardando', erro: null });
+    r.inicioDoGesto(); e.apoiarNaBorda(); e.toque(2000); e.toque(2500); if (e.caiuCasca) r.reportarErro('casca'); r.fimDoGesto();
+    expect(r.estado.sub).toBe('correcao'); // o 2º ovo também derrubou casca (rng 0)
+    r.inicioDoGesto(); e.retirarCasca(); r.fimDoGesto();
     expect(r.estado.sub).toBe('concluida');
   });
 });

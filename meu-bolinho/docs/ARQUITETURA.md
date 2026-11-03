@@ -77,8 +77,8 @@ stateDiagram-v2
     Menu --> AreaPais : segurar 2 s (cadeado)
     AreaPais --> Menu
     SelecaoReceita --> Cozinha : receita + dificuldade escolhidas
-    Cozinha --> Forno : etapa "despejar_massa" concluída
-    Forno --> Confeitar : "desenformar" concluído
+    Cozinha --> Forno : próxima etapa é "forno"
+    Forno --> Confeitar : próxima etapa é "decorar"
     Confeitar --> Resultado : criança toca "Pronto!" (só aparece após cobertura ≥ meta)
     Resultado --> Galeria : salvar bolo
     Resultado --> Menu
@@ -94,6 +94,13 @@ stateDiagram-v2
 
 Observação: "Pronto!" no Confeitar não executa nada — apenas encerra uma etapa **livre** (decoração
 é criativa e não tem meta além da cobertura mínima).
+
+**Roteamento data-driven (Milestone 2):** a troca de cena não é fixa no código. `Sessao.CENA_DA_ETAPA`
+diz em que cena cada *tipo* de etapa acontece (`despejar`, `quebrar_ovo`, `mexer`, `untar`,
+`despejar_massa` → Cozinha; `forno`, `desenformar` → Forno; `decorar` → Confeitar). Quando a próxima
+etapa pertence a outra cena, a cena atual faz *fade* e passa a `Sessao` adiante (runner, EventBus,
+tigela, forma). A `Sessao` é pura (sem Phaser) e é a mesma usada no teste de aceite da receita
+completa. Preload e Área dos pais entram no Milestone 3; Galeria no Milestone 4.
 
 ## 5. FSM da receita (RecipeRunner)
 
@@ -112,7 +119,8 @@ stateDiagram-v2
         EmGesto --> Aguardando : pointerup antes da meta (progresso CONGELA)
         EmGesto --> Correcao : excesso / casca / fora de ordem
         Correcao --> Correcao : gestos de correção (colher) / soltar ainda com erro
-        Correcao --> Concluida : erro corrigido E pointerup
+        Correcao --> Concluida : erro corrigido E meta atingida E pointerup
+        Correcao --> Aguardando : erro corrigido, meta ainda não (ERRO_CORRIGIDO)
         EmGesto --> Concluida : progresso ≥ meta E pointerup
     }
 
@@ -126,6 +134,8 @@ Regras da FSM (testadas unitariamente):
 
 - `Concluida` só é alcançável por `pointerup` a partir de `EmGesto` ou `Correcao` (nunca de `Aguardando`, nunca por timer).
 - `Correcao` bloqueia avanço até a condição de erro voltar a zero (ex.: nível ≤ alvo + tolerância).
+  Se o erro sumiu mas a etapa ainda não terminou (ex.: casca retirada, falta o 2º ovo), o
+  `pointerup` gera `ERRO_CORRIGIDO` e a FSM volta para `Aguardando` (a colher sai de cena).
 - Transições inválidas lançam erro em dev e são ignoradas em produção.
 - A FSM é um `reducer` puro: `next = transition(state, event)`, facilitando teste e debug.
 
@@ -133,41 +143,58 @@ Regras da FSM (testadas unitariamente):
 
 | `tipo` | Reconhecedor | Progresso | Conclusão |
 |---|---|---|---|
-| `pegar` | Drag | — | item solto no colisor do alvo **e** na ordem correta |
 | `despejar` | Drag + Tilt | nível do alvo / `quantidade` | `|nível − alvo| ≤ tolerância` e pointerup |
-| `quebrar_ovo` | Drag + Tap(cooldown 300 ms) | ovos abertos / `quantidade` | todos abertos e sem casca na tigela |
+| `quebrar_ovo` | Drag até a borda + Tap (cooldown 300 ms) | ovos abertos / `quantidade` | todos abertos e sem casca na tigela |
 | `mexer` | Rotação circular | voltas / `voltas` | voltas ≥ meta |
-| `untar` / `cobrir` | Pincel | cobertura da grade | cobertura ≥ `cobertura` |
+| `untar` | Pincel | cobertura da grade 32×32 | cobertura ≥ `cobertura` |
 | `despejar_massa` | Drag + Tilt (viscoso) | 1 − nível da tigela | tigela < 5% |
-| `forno` | Drag → Tap porta → Rotação (≤ 1 volta) → Drag com luva | sub-etapas | bolo retirado com luva |
+| `forno` | Drag → Tap porta → Rotação (≤ 1 volta) → *assar por tempo* → Tap porta → Drag luva → Drag forma | fases | forma solta na bancada, com luva |
 | `desenformar` | Drag prato + Swipe ↓ | — | swipe com dist ≥ 150 px e vel ≥ 0,6 px/ms |
-| `decorar` | Drag livre + Shake | livre | toque em "Pronto!" |
+| `decorar` | Pincel (cobertura) → Drag de enfeites + Shake (granulado) | cobertura da grade | cobertura ≥ `cobertura` e toque em "Pronto!" |
+
+Pegar ingrediente (drag & drop) não é uma etapa própria: faz parte de `despejar` (ingrediente fora
+de ordem é rejeitado ao ser solto sobre a tigela).
 
 ## 6. Formato de dados
 
-`data/recipes/chocolate.json` (exemplo resumido):
+`data/recipes/fofinho.json` (a receita do Milestone 2):
 
 ```json
 {
-  "id": "chocolate",
-  "nome": "Bolo de Chocolate",
-  "icone": "receita_chocolate",
-  "corMassa": "#6B3E26",
+  "id": "fofinho",
+  "nome": "Bolo Fofinho",
+  "corMassa": "#EBC57E",
   "etapas": [
     { "tipo": "despejar", "item": "farinha", "alvo": "tigela", "quantidade": 1.0 },
-    { "tipo": "despejar", "item": "acucar",  "alvo": "tigela", "quantidade": 0.75 },
+    { "tipo": "despejar", "item": "acucar", "alvo": "tigela", "quantidade": 0.5 },
     { "tipo": "quebrar_ovo", "quantidade": 2 },
-    { "tipo": "despejar", "item": "leite",   "alvo": "tigela", "quantidade": 1.0 },
-    { "tipo": "despejar", "item": "chocolate_po", "alvo": "tigela", "quantidade": 0.5, "apenas": "confeiteiro" },
+    { "tipo": "despejar", "item": "leite", "alvo": "tigela", "quantidade": 0.75 },
+    { "tipo": "despejar", "item": "fermento", "alvo": "tigela", "quantidade": 0.25, "apenas": "confeiteiro" },
     { "tipo": "mexer" },
     { "tipo": "untar", "alvo": "forma" },
     { "tipo": "despejar_massa", "alvo": "forma" },
     { "tipo": "forno", "tempoSegundos": 20 },
     { "tipo": "desenformar" },
-    { "tipo": "decorar", "cobertura": "chocolate" }
+    { "tipo": "decorar", "corCobertura": "#5A3220" }
   ]
 }
 ```
+
+Campos por tipo (todos opcionais, exceto onde indicado; os demais vêm da dificuldade ou de
+`config/gameplay.ts`):
+
+| tipo | campos |
+|---|---|
+| `despejar` | `item` (obrigatório, chave de `ingredients.json`), `quantidade` (obrigatório), `tolerancia`, `alvo` |
+| `quebrar_ovo` | `quantidade` (inteiro, padrão 1); `cascaDeOvo` vem da dificuldade |
+| `mexer` | `voltas` |
+| `untar` | `cobertura` (0–1) |
+| `despejar_massa` | `restanteMax` (0–1, padrão 0,05) |
+| `forno` | `tempoSegundos` (15–25, padrão 20) |
+| `desenformar` | — |
+| `decorar` | `cobertura` (0–1), `corCobertura` (#RRGGBB) |
+
+O ovo conta como ingrediente para `maxIngredientes`. Qualquer etapa aceita `"apenas": "facil" | "confeiteiro"`.
 
 `data/difficulty.json` — valores que **omitidos** na etapa vêm daqui (a etapa pode sobrescrever):
 
@@ -290,3 +317,17 @@ Overlay com: colisores (tigela, bico, anel válido do mexer em verde/vermelho), 
    da faixa-alvo, então a colher nunca "pula" a faixa para baixo. A etapa termina ao soltar a
    colher quando o nível já voltou para a faixa.
 6. **Testes**: Vitest, ambiente Node, sem navegador.
+7. **Ovo (Milestone 2)**: a criança arrasta o ovo da caixa até a beirada da tigela (zona de impacto
+   em anel ao redor da borda) e solta; o ovo fica apoiado. Depois, dois toques nele (1º trinca,
+   2º abre; toques a menos de 300 ms do anterior são ignorados). No Confeiteiro, cada ovo tem 50%
+   de chance de derrubar casca (`CONFIG_OVO.chanceCasca`), retirada com a colher como no excesso.
+8. **Forno (Milestone 2)**: a única fase por tempo é "assando", depois de a criança fechar a porta e
+   girar o timer uma volta (98% da volta liga, tolerância para dedos pequenos). Durante a pausa o
+   forno também para. Depois do apito: abrir a porta, levar a luva até a forma e arrastar a forma
+   até a bancada. Tentar pegar a forma sem luva gera o erro `quente` (correção: pegar a luva).
+9. **Desenformar (Milestone 2)**: a virada da forma acompanha o dedo (0–150 px para baixo); soltar
+   sem distância (150 px), velocidade média (0,6 px/ms) ou com desvio lateral grande desfaz a virada.
+10. **Decorar (Milestone 2)**: enfeites livres (confeito, morango, vela) e granulado (porção a cada
+    3 inversões rápidas do pote em 600 ms). "Desfazer" remove a última ação inteira (uma porção de
+    granulado é uma ação). Máximo de 120 itens. A foto do bolo (Resultado) é um `snapshotArea` do
+    enquadramento do bolo, pronta para a galeria do Milestone 4.

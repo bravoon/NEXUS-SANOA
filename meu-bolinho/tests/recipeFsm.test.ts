@@ -44,11 +44,20 @@ describe('FSM da receita', () => {
     expect(s).toMatchObject({ sub: 'concluida', erro: null, indice: 0 });
   });
 
+  it('ERRO_CORRIGIDO volta para aguardando sem concluir; só vale na correção', () => {
+    const emCorrecao = aplicar(pronto(), { type: 'GESTO_INICIO' }, { type: 'ERRO', erro: 'casca' });
+    const s = transicao(emCorrecao, { type: 'ERRO_CORRIGIDO' });
+    expect(s).toMatchObject({ sub: 'aguardando', erro: null, indice: 0 });
+    expect(transicao(pronto(), { type: 'ERRO_CORRIGIDO' })).toMatchObject({ sub: 'aguardando' });
+    const g = aplicar(pronto(), { type: 'GESTO_INICIO' });
+    expect(transicao(g, { type: 'ERRO_CORRIGIDO' })).toBe(g);
+  });
+
   it('não existe estado de derrota: nenhum evento leva a algo fora do conjunto conhecido', () => {
     const validos = new Set(['carregar', 'introducao', 'aguardando', 'em_gesto', 'correcao', 'concluida', 'final']);
     const eventos: EventoReceita[] = [
       { type: 'CARREGADA' }, { type: 'INICIAR' }, { type: 'GESTO_INICIO' }, fim(true), fim(false),
-      { type: 'ERRO', erro: 'excesso' }, { type: 'PROXIMA' },
+      { type: 'ERRO', erro: 'excesso' }, { type: 'ERRO_CORRIGIDO' }, { type: 'PROXIMA' },
     ];
     let s = estadoInicial(4);
     let seed = 1;

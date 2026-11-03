@@ -22,6 +22,14 @@ export class BootScene extends Phaser.Scene {
     }
     g.fillPoints(pts, true);
     g.generateTexture('estrela', 24, 24);
+    g.clear();
+
+    // pincel macio (64 px): círculos concêntricos com alfa crescente para o centro
+    for (let r = 32; r > 0; r -= 2) {
+      g.fillStyle(0xffffff, 0.12 + 0.88 * (1 - r / 32) ** 0.5 * 0.4 + (r < 22 ? 0.5 : 0));
+      g.fillCircle(32, 32, r);
+    }
+    g.generateTexture('pincel', 64, 64);
     g.destroy();
 
     this.scene.start('Menu');

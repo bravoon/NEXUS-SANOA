@@ -3,8 +3,15 @@
  * e publica eventos no EventBus. Puro (sem Phaser): a cena só traduz input em chamadas.
  */
 import type { EventBus, MapaEventos } from '../events/EventBus';
+import type { BowlContents } from '../fill/BowlContents';
+import { CoverageStep } from '../steps/CoverageStep';
+import { DecorStep } from '../steps/DecorStep';
+import { EggStep } from '../steps/EggStep';
+import { OvenStep } from '../steps/OvenStep';
+import { PourOutStep } from '../steps/PourOutStep';
 import { PourStep } from '../steps/PourStep';
 import { StirStep } from '../steps/StirStep';
+import { UnmoldStep } from '../steps/UnmoldStep';
 import {
   estadoInicial,
   transicao,
@@ -14,9 +21,25 @@ import {
 } from './recipeFsm';
 import type { EtapaResolvida, ReceitaResolvida } from './recipeTypes';
 
-export type ControladorEtapa = PourStep | StirStep;
+export type ControladorEtapa =
+  | PourStep
+  | EggStep
+  | StirStep
+  | CoverageStep
+  | PourOutStep
+  | OvenStep
+  | UnmoldStep
+  | DecorStep;
 
-export function criarControlador(etapa: EtapaResolvida): ControladorEtapa {
+/** Estado compartilhado de que alguns controladores precisam ao serem criados. */
+export interface ContextoEtapas {
+  /** Fonte de aleatoriedade (injetável nos testes): casca de ovo. */
+  rng: () => number;
+  /** Conteúdo atual da tigela (despejar_massa parte dele). */
+  tigela: BowlContents;
+}
+
+export function criarControlador(etapa: EtapaResolvida, ctx: ContextoEtapas): ControladorEtapa {
   switch (etapa.tipo) {
     case 'despejar':
       return new PourStep({
@@ -25,8 +48,20 @@ export function criarControlador(etapa: EtapaResolvida): ControladorEtapa {
         tolerancia: etapa.tolerancia,
         material: etapa.material,
       });
+    case 'quebrar_ovo':
+      return new EggStep(etapa.quantidade, etapa.cascaDeOvo, ctx.rng);
     case 'mexer':
       return new StirStep(etapa.voltas);
+    case 'untar':
+      return new CoverageStep('untar', etapa.cobertura);
+    case 'despejar_massa':
+      return new PourOutStep(ctx.tigela.total, etapa.restanteMax);
+    case 'forno':
+      return new OvenStep(etapa.tempoSegundos);
+    case 'desenformar':
+      return new UnmoldStep();
+    case 'decorar':
+      return new DecorStep(etapa.cobertura, Number.parseInt(etapa.corCobertura.slice(1), 16));
   }
 }
 
@@ -38,6 +73,7 @@ export class RecipeRunner {
   constructor(
     readonly receita: ReceitaResolvida,
     private readonly bus: EventBus<MapaEventos>,
+    private readonly ctx: ContextoEtapas,
   ) {
     this.s = estadoInicial(receita.etapas.length);
   }
@@ -80,8 +116,16 @@ export class RecipeRunner {
   fimDoGesto(): void {
     if (!this.gestoAtivo) return;
     this.gestoAtivo = false;
-    if (this.ctrl instanceof StirStep) this.ctrl.fimDoGesto();
+    if (this.ctrl && 'fimDoGesto' in this.ctrl) this.ctrl.fimDoGesto();
     this.despachar({ type: 'GESTO_FIM', metaAtingida: this.ctrl?.metaAtingida() ?? false });
+    // Erro corrigido mas etapa ainda incompleta: sai da correção.
+    if (this.s.sub === 'correcao' && this.ctrl && !this.erroPendente()) this.despachar({ type: 'ERRO_CORRIGIDO' });
+  }
+
+  /** O controlador ainda tem um erro a corrigir (excesso, casca, falta de luva)? */
+  private erroPendente(): boolean {
+    const c = this.ctrl;
+    return !!c && 'erroPendente' in c && c.erroPendente();
   }
 
   reportarErro(erro: TipoErro): void {
@@ -104,7 +148,7 @@ export class RecipeRunner {
     const atual = transicao(anterior, ev);
     if (atual === anterior) {
       // Gestos dentro da correção (ex.: pegar a colher) são no-ops esperados da FSM.
-      const esperado = anterior.sub === 'correcao' && (ev.type === 'GESTO_INICIO' || ev.type === 'GESTO_FIM');
+      const esperado = anterior.sub === 'correcao' && (ev.type === 'GESTO_INICIO' || ev.type === 'GESTO_FIM' || ev.type === 'ERRO_CORRIGIDO');
       if (!esperado && import.meta.env?.DEV) console.warn('[FSM] transição ignorada', anterior.sub, ev.type);
       return;
     }
@@ -113,7 +157,7 @@ export class RecipeRunner {
     const novaEtapa = atual.sub === 'aguardando' && (anterior.sub === 'introducao' || anterior.sub === 'concluida');
     if (novaEtapa) {
       const etapa = this.receita.etapas[atual.indice];
-      this.ctrl = etapa ? criarControlador(etapa) : null;
+      this.ctrl = etapa ? criarControlador(etapa, this.ctx) : null;
     }
 
     this.bus.emit('fsm:mudou', { anterior, atual });

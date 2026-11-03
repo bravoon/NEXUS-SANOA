@@ -1,0 +1,65 @@
+/**
+ * Botão de pausa protegido: é preciso SEGURAR 2 s (anel enche enquanto segura;
+ * soltou antes → o anel zera). Evita saídas acidentais.
+ */
+import Phaser from 'phaser';
+import { BOTAO_PAUSA, CORES } from '../config/layout';
+
+export class PauseButton extends Phaser.GameObjects.Container {
+  private readonly anel: Phaser.GameObjects.Graphics;
+  private segurandoDesde: number | null = null;
+  private disparou = false;
+
+  constructor(
+    scene: Phaser.Scene,
+    private readonly aoPausar: () => void,
+  ) {
+    super(scene, BOTAO_PAUSA.x, BOTAO_PAUSA.y);
+    const g = scene.add.graphics();
+    g.fillStyle(0xffffff, 0.9);
+    g.fillCircle(0, 0, BOTAO_PAUSA.raio);
+    g.lineStyle(4, CORES.texto, 1);
+    g.strokeCircle(0, 0, BOTAO_PAUSA.raio);
+    g.fillStyle(CORES.texto, 1);
+    g.fillRoundedRect(-12, -14, 9, 28, 3);
+    g.fillRoundedRect(3, -14, 9, 28, 3);
+    this.anel = scene.add.graphics();
+    this.add([g, this.anel]);
+    this.setSize(BOTAO_PAUSA.raio * 2, BOTAO_PAUSA.raio * 2).setInteractive({ useHandCursor: true });
+    this.setDepth(90);
+    this.on('pointerdown', () => {
+      this.segurandoDesde = scene.time.now;
+      this.disparou = false;
+    });
+    const soltar = () => {
+      this.segurandoDesde = null;
+      this.anel.clear();
+    };
+    this.on('pointerup', soltar);
+    this.on('pointerout', soltar);
+    scene.events.on('update', this.atualizar, this);
+    scene.events.once('shutdown', () => scene.events.off('update', this.atualizar, this));
+    scene.add.existing(this);
+  }
+
+  private atualizar(): void {
+    if (this.segurandoDesde === null || this.disparou) return;
+    const p = Math.min(1, (this.scene.time.now - this.segurandoDesde) / BOTAO_PAUSA.segurarMs);
+    this.anel.clear();
+    this.anel.lineStyle(8, CORES.sucesso, 1);
+    this.anel.beginPath();
+    this.anel.arc(0, 0, BOTAO_PAUSA.raio + 6, -Math.PI / 2, -Math.PI / 2 + p * Math.PI * 2, false);
+    this.anel.strokePath();
+    if (p >= 1) {
+      this.disparou = true;
+      this.segurandoDesde = null;
+      this.anel.clear();
+      this.aoPausar();
+    }
+  }
+
+  /** Área reservada: toques aqui não viram gestos de etapa. */
+  contem(x: number, y: number): boolean {
+    return Math.hypot(x - this.x, y - this.y) <= BOTAO_PAUSA.raio + 10;
+  }
+}

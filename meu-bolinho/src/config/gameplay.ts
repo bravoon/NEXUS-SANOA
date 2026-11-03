@@ -44,7 +44,7 @@ export interface ParametrosVazao {
 export const VAZAO: Record<Material, ParametrosVazao> = {
   po: { vazaoMax: 0.45, anguloMin: 25, anguloMax: 90, expoente: 1.5, velocidadeParticula: 60 },
   liquido: { vazaoMax: 0.6, anguloMin: 25, anguloMax: 90, expoente: 1.5, velocidadeParticula: 90 },
-  massa: { vazaoMax: 0.2, anguloMin: 25, anguloMax: 90, expoente: 1.8, velocidadeParticula: 20 },
+  massa: { vazaoMax: 0.3, anguloMin: 25, anguloMax: 90, expoente: 1.8, velocidadeParticula: 20 },
 };
 
 export const CONFIG_DESPEJAR = {
@@ -63,3 +63,61 @@ export const CONFIG_ARRASTAR = {
 
 /** Maior dt considerado por frame (ms): evita saltos após troca de aba. */
 export const DT_MAX_MS = 50;
+
+/** Quebrar ovo. */
+export const CONFIG_OVO = {
+  /** Toques mais próximos que isto (ms) são ignorados. */
+  cooldownMs: 300,
+  /** Probabilidade de cair casca por ovo (só quando a dificuldade tem cascaDeOvo). */
+  chanceCasca: 0.5,
+  /** Quantidade (xícaras) que cada ovo acrescenta à tigela. */
+  volumePorOvo: 0.25,
+} as const;
+
+/** Cobertura (untar, cobrir o bolo). */
+export const CONFIG_COBERTURA = {
+  /** Grade de amostragem (colunas × linhas). */
+  colunas: 32,
+  linhas: 32,
+  /** Raio do pincel (px lógicos). */
+  raioPincelUntar: 26,
+  raioPincelCobertura: 30,
+} as const;
+
+/** Despejar a massa na forma. */
+export const CONFIG_DESPEJAR_MASSA = {
+  /** A tigela precisa ficar abaixo desta fração do conteúdo inicial. */
+  restanteMax: 0.05,
+} as const;
+
+/** Forno. */
+export const CONFIG_FORNO = {
+  tempoMinSeg: 15,
+  tempoMaxSeg: 25,
+  tempoPadraoSeg: 20,
+  /** Fração de 1 volta do botão do timer necessária para ligar. */
+  voltaTimer: 0.98,
+} as const;
+
+/** Swipe de desenformar. */
+export const CONFIG_SWIPE = {
+  distanciaMinPx: 150,
+  /** Velocidade média mínima (px/ms) do trecho para baixo. */
+  velocidadeMin: 0.6,
+  /** Desvio horizontal máximo em fração do deslocamento vertical. */
+  desvioMax: 0.6,
+} as const;
+
+/** Sacudir (granulado). */
+export const CONFIG_SACUDIR = {
+  janelaMs: 600,
+  /** |vx| mínimo (px/ms) para contar uma inversão. */
+  velocidadeMin: 0.8,
+  inversoesPorPorcao: 3,
+} as const;
+
+/** Decoração. */
+export const CONFIG_DECORACAO = {
+  maxItens: 120,
+  granulosPorPorcao: 10,
+} as const;

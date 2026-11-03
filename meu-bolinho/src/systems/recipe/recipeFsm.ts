@@ -4,7 +4,8 @@
  * Garantias (cobertas por testes):
  * - "concluida" só é alcançada por GESTO_FIM (a criança soltou o dedo) com a meta atingida,
  *   a partir de "em_gesto" ou "correcao". Nunca por tempo, nunca a partir de "aguardando".
- * - "correcao" só sai para "concluida" quando o erro foi corrigido (meta atingida no GESTO_FIM).
+ * - "correcao" sai para "concluida" (meta atingida no GESTO_FIM) ou volta para "aguardando"
+ *   (ERRO_CORRIGIDO: o erro sumiu, mas a etapa ainda não terminou).
  * - Não existe estado de derrota.
  * - Transição inválida devolve o MESMO objeto de estado (fácil de detectar e ignorar).
  */
@@ -33,6 +34,8 @@ export type EventoReceita =
   | { type: 'GESTO_INICIO' }
   | { type: 'GESTO_FIM'; metaAtingida: boolean }
   | { type: 'ERRO'; erro: TipoErro }
+  /** O erro foi corrigido, mas a meta da etapa ainda não foi atingida (ex.: casca retirada, falta o 2º ovo). */
+  | { type: 'ERRO_CORRIGIDO' }
   | { type: 'PROXIMA' };
 
 export function estadoInicial(total: number): EstadoReceita {
@@ -61,6 +64,7 @@ export function transicao(s: EstadoReceita, ev: EventoReceita): EstadoReceita {
     case 'correcao':
       // Gestos (ex.: retirar o excesso com a colher) acontecem DENTRO da correção.
       if (ev.type === 'GESTO_FIM' && ev.metaAtingida) return { ...s, sub: 'concluida', erro: null };
+      if (ev.type === 'ERRO_CORRIGIDO') return { ...s, sub: 'aguardando', erro: null };
       if (ev.type === 'ERRO' && ev.erro !== s.erro) return { ...s, erro: ev.erro };
       return s;
 

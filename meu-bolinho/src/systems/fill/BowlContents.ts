@@ -33,6 +33,16 @@ export class BowlContents {
     return quantidade - falta;
   }
 
+  /** Remove `quantidade` de todas as camadas na mesma proporção (massa já misturada). */
+  removerProporcional(quantidade: number): number {
+    const total = this.total;
+    if (total <= 0 || quantidade <= 0) return 0;
+    const fator = Math.max(0, 1 - quantidade / total);
+    for (const c of this.camadas) c.quantidade *= fator;
+    this.camadas = this.camadas.filter((c) => c.quantidade > 1e-9);
+    return total - this.total;
+  }
+
   quantidadeDe(item: string): number {
     return this.camadas.reduce((s, c) => (c.item === item ? s + c.quantidade : s), 0);
   }

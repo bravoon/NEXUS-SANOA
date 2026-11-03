@@ -64,6 +64,22 @@ export function desenharSimbolo(
       g.fillCircle(x, y, h);
       g.strokeCircle(x, y, h);
       break;
+    case 'losango': {
+      const pts = [
+        { x, y: y - h },
+        { x: x + h * 0.75, y },
+        { x, y: y + h },
+        { x: x - h * 0.75, y },
+      ];
+      g.fillPoints(pts, true);
+      g.strokePoints(pts, true);
+      break;
+    }
+    default: {
+      // Exaustividade: um símbolo novo em IngredienteDef sem desenho aqui é erro de compilação.
+      const nunca: never = simbolo;
+      throw new Error(`símbolo sem desenho: ${String(nunca)}`);
+    }
   }
 }
 

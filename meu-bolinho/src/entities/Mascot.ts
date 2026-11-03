@@ -48,7 +48,8 @@ export class Mascot extends Phaser.GameObjects.Container {
     this.setDepth(70);
     scene.add.existing(this);
 
-    bus.on('mascote:fala', ({ texto, humor }) => this.falar(texto, humor));
+    const desligar = bus.on('mascote:fala', ({ texto, humor }) => this.falar(texto, humor));
+    scene.events.once('shutdown', desligar);
   }
 
   private desenharBoca(humor: 'feliz' | 'surpreso' | 'neutro'): void {
@@ -63,6 +64,12 @@ export class Mascot extends Phaser.GameObjects.Container {
       b.arc(0, -8, humor === 'feliz' ? 12 : 8, 0.15 * Math.PI, 0.85 * Math.PI, false);
       b.strokePath();
     }
+  }
+
+  /** Esconde o balão (ex.: antes de fotografar o bolo). */
+  silenciar(): void {
+    this.esconder?.remove();
+    this.balao.setVisible(false);
   }
 
   falar(texto: string, humor: 'feliz' | 'surpreso' | 'neutro' = 'feliz'): void {
