@@ -40,12 +40,17 @@ export class MenuScene extends Phaser.Scene {
     this.tweens.add({ targets: c, scaleY: 1.04, scaleX: 0.97, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
 
     this.add.text(LARGURA / 2, 100, 'Meu Bolinho', { ...ESTILO_TITULO, stroke: '#ffffff', strokeThickness: 10 }).setOrigin(0.5);
-    botaoGrande(this, LARGURA / 2, 560, '▶  Jogar', CORES.sucesso, () => {
+    botaoGrande(this, LARGURA / 2 - 110, 570, '▶  Jogar', CORES.sucesso, () => {
       audio?.desbloquear();
       audio?.efeito('pop');
       audio?.falar('escolher_receita');
       this.scene.start('SelecaoReceita');
-    }, 340, 110);
+    }, 320, 110);
+    botaoGrande(this, LARGURA / 2 + 190, 570, '▦', 0xcc79a7, () => {
+      audio?.desbloquear();
+      audio?.efeito('pop');
+      this.scene.start('Galeria');
+    }, 150, 110);
 
     new PauseButton(this, () => this.scene.start('AreaPais'), { x: 60, y: ALTURA - 56, icone: 'cadeado' });
     this.add.text(110, ALTURA - 56, 'pais: segure 2 s', { fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#9c8a7e' }).setOrigin(0, 0.5);

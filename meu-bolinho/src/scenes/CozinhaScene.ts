@@ -15,7 +15,8 @@ import {
   CORES,
   DESCANSO_COLHER,
   FORMA,
-  POSICOES_RECIPIENTES,
+  PRATELEIRA,
+  posicoesRecipientes,
   PRATINHO_DESCARTE,
   RECIPIENTE,
   TIGELA,
@@ -121,12 +122,21 @@ export class CozinhaScene extends CenaEtapas {
     // sombra estreita e baixa: o vidro é transparente, então ela não pode aparecer "dentro" da tigela
     this.sombraTigela = sombra(this, TIGELA.cx, TIGELA.bordaY + TIGELA.profundidade + 8, 220, 2).setDisplaySize(220, 34).setAlpha(0.55);
     this.tigela = new BowlView(this, corHex(receita.corMassa));
+    const posicoes = posicoesRecipientes(receita.recipientes.length);
+    if (posicoes.some((p) => p.y === PRATELEIRA.y)) {
+      // prateleira de trás para receitas com mais de 4 potes
+      const t = this.add.graphics().setDepth(1);
+      t.fillStyle(0x8a5530, 1);
+      t.fillRect(40, PRATELEIRA.tabuaY, 500, 14);
+      t.fillStyle(0xc98b55, 1);
+      t.fillRect(40, PRATELEIRA.tabuaY, 500, 6);
+    }
     receita.recipientes.forEach((item, i) => {
       const def = INGREDIENTES[item];
-      const x = POSICOES_RECIPIENTES[i];
-      if (!def || x === undefined) throw new Error(`Sem lugar na mesa para "${item}"`);
-      sombra(this, x, RECIPIENTE.y + RECIPIENTE.altura / 2 + 2, 110, 2);
-      this.recipientes.push(new PourContainer(this, item, def, { x, y: RECIPIENTE.y }));
+      const pos = posicoes[i];
+      if (!def || !pos) throw new Error(`Sem lugar na mesa para "${item}"`);
+      sombra(this, pos.x, pos.y + RECIPIENTE.altura / 2 + 2, 110, 2);
+      this.recipientes.push(new PourContainer(this, item, def, pos));
     });
 
     this.pratinho = this.criarPratinho();

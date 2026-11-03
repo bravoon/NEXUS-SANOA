@@ -8,10 +8,9 @@ import { BOLO } from '../config/layout';
 import type { Retangulo } from '../systems/coverage/CoverageGrid';
 import type { Decoracao } from '../systems/decoration/Decoracao';
 import { distancia, type Ponto } from '../utils/math';
-import { clarear, escurecer } from '../utils/desenho';
+import { clarear, corAssada, escurecer } from '../utils/desenho';
 import { desenharEnfeite } from './Enfeites';
 
-const COR_MASSA_ASSADA = 0xd9a05b;
 
 export class CakeView {
   private readonly base: Phaser.GameObjects.Graphics;
@@ -21,7 +20,10 @@ export class CakeView {
   /** Pincel reaproveitado em todos os carimbos. */
   private readonly pincel: Phaser.GameObjects.Image;
 
-  constructor(scene: Phaser.Scene, corCobertura: number) {
+  private readonly corMassa: number;
+
+  constructor(scene: Phaser.Scene, corCobertura: number, corMassaCrua: number) {
+    this.corMassa = corAssada(corMassaCrua);
     this.pincel = scene.make.image({ key: 'pincel', add: false }).setTint(corCobertura);
     this.base = scene.add.graphics().setDepth(10);
     this.desenharBase();
@@ -57,13 +59,13 @@ export class CakeView {
     g.lineStyle(4, 0x8aa1b4, 1);
     g.strokeEllipse(BOLO.cx, yBase + 14, BOLO.pratoRx * 2, BOLO.pratoRy * 2);
     // lateral do bolo
-    g.fillStyle(escurecer(COR_MASSA_ASSADA, 0.15), 1);
+    g.fillStyle(escurecer(this.corMassa, 0.15), 1);
     g.fillEllipse(BOLO.cx, yBase, BOLO.rx * 2, BOLO.ry * 2);
     g.fillRect(BOLO.cx - BOLO.rx, BOLO.topoY, BOLO.rx * 2, BOLO.alturaLateral);
     // topo sem cobertura: miolo dourado com "poros" (fica claramente diferente da cobertura)
-    g.fillStyle(COR_MASSA_ASSADA, 1);
+    g.fillStyle(this.corMassa, 1);
     g.fillEllipse(BOLO.cx, BOLO.topoY, BOLO.rx * 2, BOLO.ry * 2);
-    g.fillStyle(clarear(COR_MASSA_ASSADA, 0.3), 1);
+    g.fillStyle(clarear(this.corMassa, 0.3), 1);
     for (let i = 0; i < 40; i++) {
       const a = i * 2.39996;
       const r = Math.sqrt((i + 0.5) / 40);

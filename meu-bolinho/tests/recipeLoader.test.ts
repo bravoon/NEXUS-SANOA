@@ -85,6 +85,17 @@ describe('resolverReceita', () => {
     ).toThrow(/não existe/);
   });
 
+  it('recusa sequências incoerentes (em vez de travar no meio do jogo)', () => {
+    const r = (etapas: object[]) => () => resolverReceita(validarReceita({ ...base, etapas }), 'facil', tabela, ings);
+    expect(r([{ tipo: 'despejar_massa' }])).toThrow(/tigela ainda está vazia/);
+    expect(r([{ tipo: 'mexer' }])).toThrow(/tigela ainda está vazia/);
+    expect(r([{ tipo: 'despejar', item: 'leite', quantidade: 1 }, { tipo: 'forno' }])).toThrow(/não há massa/);
+    expect(r([{ tipo: 'despejar', item: 'leite', quantidade: 1 }, { tipo: 'despejar_massa' }, { tipo: 'decorar' }])).toThrow(/ainda está na forma/);
+    expect(r([{ tipo: 'desenformar' }])).toThrow(/não foi assado/);
+    // só untar/despejar etc. sem forno é permitido (receita curta)
+    expect(r([{ tipo: 'despejar', item: 'leite', quantidade: 1 }, { tipo: 'mexer' }])).not.toThrow();
+  });
+
   it('recusa receitas acima do máximo de ingredientes do nível', () => {
     const muitos = {
       ...base,
@@ -95,5 +106,12 @@ describe('resolverReceita', () => {
     };
     expect(() => resolverReceita(validarReceita(muitos), 'facil', tabela, ings)).toThrow(/5 ingredientes excedem/);
     expect(resolverReceita(validarReceita(muitos), 'confeiteiro', tabela, ings).ingredientes).toContain('ovo');
+  });
+});
+
+describe('acessibilidade dos ingredientes', () => {
+  it('cada ingrediente tem forma (símbolo) única: identificável sem depender de cor', () => {
+    const simbolos = Object.values(ings).map((d) => d.simbolo);
+    expect(new Set(simbolos).size).toBe(simbolos.length);
   });
 });

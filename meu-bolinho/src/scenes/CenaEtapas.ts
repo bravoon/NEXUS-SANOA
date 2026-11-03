@@ -48,6 +48,9 @@ export abstract class CenaEtapas extends Phaser.Scene {
   private readonly dicas = new HintTimer();
   private apresentador!: HintPresenter;
   protected audio: AudioSystem | null = null;
+  private ultimoRelogio = 0;
+  /** Tempo real (ms) desde o frame anterior, para timers de relógio (dicas, forno). */
+  protected dtRealMs = 0;
 
   protected get runner(): RecipeRunner {
     return this.sessao.runner;
@@ -75,6 +78,9 @@ export abstract class CenaEtapas extends Phaser.Scene {
     this.desligar.push(() => feedback.destruir());
     this.apresentador = new HintPresenter(this, this.cartao, (id) => this.falar(id));
     this.dicas.atividade();
+    this.ultimoRelogio = 0;
+    // voltar da pausa não pode contar o tempo pausado (forno, dicas)
+    this.events.on('resume', () => (this.ultimoRelogio = 0));
 
     this.ouvir('fsm:mudou', (e) => this.mudouEstado(e.anterior, e.atual));
     this.ouvir('etapa:concluida', (e) => this.comemorar(e.indice));
@@ -114,9 +120,14 @@ export abstract class CenaEtapas extends Phaser.Scene {
 
   override update(_t: number, deltaMs: number): void {
     const dt = Math.min(deltaMs, DT_MAX_MS);
+    const agora = performance.now();
+    this.dtRealMs = this.ultimoRelogio === 0 ? 0 : Math.min(1000, agora - this.ultimoRelogio);
+    this.ultimoRelogio = agora;
     if (!this.saindo) this.atualizar(dt);
     this.audio?.atualizar();
-    this.atualizarDicas(dt);
+    // inatividade é medida no relógio do sistema (6 s de verdade), não no delta do Phaser,
+    // que é suavizado e limitado; o teto de 1 s ignora saltos (aba em segundo plano)
+    this.atualizarDicas(this.dtRealMs);
     this.debug.atualizar();
   }
 

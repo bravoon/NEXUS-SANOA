@@ -8,7 +8,7 @@ longo no início/fim, normalizado em −16 LUFS. Salve em `src/assets/voz/<arqui
 automaticamente cada arquivo que existir; as falas sem arquivo usam a voz pt-BR do sistema
 (ou só o balão de texto).
 
-Total: 62 falas.
+Total: 64 falas.
 
 | id | arquivo | texto |
 |---|---|---|
@@ -19,12 +19,14 @@ Total: 62 falas.
 | `despejar.leite` | `despejar.leite.mp3` | Agora o leite! Leve até a tigela e incline. |
 | `despejar.chocolate_po` | `despejar.chocolate_po.mp3` | Agora o chocolate! Leve até a tigela e incline. |
 | `despejar.fermento` | `despejar.fermento.mp3` | Agora o fermento! Só um pouquinho. |
+| `despejar.manteiga` | `despejar.manteiga.mp3` | Agora a manteiga derretida! Só um pouquinho. |
 | `despejar.dica` | `despejar.dica.mp3` | Pegue o pote que está balançando, leve até em cima da tigela e mova o dedo para o lado, devagar, para virar. |
 | `rejeicao.farinha` | `rejeicao.farinha.mp3` | Ainda não! Agora é a vez da farinha. |
 | `rejeicao.acucar` | `rejeicao.acucar.mp3` | Ainda não! Agora é a vez do açúcar. |
 | `rejeicao.leite` | `rejeicao.leite.mp3` | Ainda não! Agora é a vez do leite. |
 | `rejeicao.chocolate_po` | `rejeicao.chocolate_po.mp3` | Ainda não! Agora é a vez do chocolate. |
 | `rejeicao.fermento` | `rejeicao.fermento.mp3` | Ainda não! Agora é a vez do fermento. |
+| `rejeicao.manteiga` | `rejeicao.manteiga.mp3` | Ainda não! Agora é a vez da manteiga. |
 | `rejeicao.generica` | `rejeicao.generica.mp3` | Esse agora não! |
 | `excesso` | `excesso.mp3` | Opa, colocou demais! Tire um pouco com a colher. |
 | `excesso.ok` | `excesso.ok.mp3` | Isso! Agora está certinho. Pode soltar a colher. |

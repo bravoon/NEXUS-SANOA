@@ -17,7 +17,7 @@ import type { TipoErro } from '../systems/recipe/recipeFsm';
 import type { EtapaResolvida } from '../systems/recipe/recipeTypes';
 import { OvenStep, type FaseForno } from '../systems/steps/OvenStep';
 import { UnmoldStep } from '../systems/steps/UnmoldStep';
-import { corHex } from '../utils/desenho';
+import { corAssada, corHex, escurecer } from '../utils/desenho';
 import { amortecer, distancia } from '../utils/math';
 import { CenaEtapas } from './CenaEtapas';
 
@@ -282,8 +282,8 @@ export class FornoScene extends CenaEtapas {
     this.desenharVirada(1);
     this.prato.setScale(1).setPosition(this.forma.x, this.forma.y + 20);
     const g = this.add.graphics().setDepth(45);
-    const cor = 0xd9a05b;
-    g.fillStyle(0xb57f43, 1);
+    const cor = corAssada(corHex(this.sessao.receita.corMassa));
+    g.fillStyle(escurecer(cor, 0.2), 1);
     g.fillEllipse(this.forma.x, this.forma.y + 10, 220, 70);
     g.fillRect(this.forma.x - 110, this.forma.y - 30, 220, 40);
     g.fillStyle(cor, 1);
@@ -299,7 +299,7 @@ export class FornoScene extends CenaEtapas {
   protected atualizar(dt: number): void {
     const ctrl = this.runner.controlador;
     if (ctrl instanceof OvenStep) {
-      ctrl.assar(dt); // única fase por tempo (aprovada): só tem efeito em "assando"
+      ctrl.assar(this.dtRealMs); // única fase por tempo (aprovada), em segundos de relógio; só age em "assando"
       this.sessao.forma.assado = ctrl.progressoAssar;
       if (this.faseAnterior !== ctrl.fase) this.aoMudarFase(ctrl.fase);
       this.faseAnterior = ctrl.fase;

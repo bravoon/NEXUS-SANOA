@@ -75,6 +75,12 @@ export function desenharSimbolo(
       g.strokePoints(pts, true);
       break;
     }
+    case 'tablete':
+      // barra deitada com uma "dobra" de papel
+      g.fillRoundedRect(x - h, y - h * 0.5, tam, h, 5);
+      g.strokeRoundedRect(x - h, y - h * 0.5, tam, h, 5);
+      g.lineBetween(x + h * 0.35, y - h * 0.5, x + h * 0.35, y + h * 0.5);
+      break;
     default: {
       // Exaustividade: um símbolo novo em IngredienteDef sem desenho aqui é erro de compilação.
       const nunca: never = simbolo;
@@ -102,4 +108,9 @@ export function desenharSetaCircular(
   const t = espessura * 1.6;
   g.fillStyle(cor, 1);
   g.fillTriangle(px - t, py - t * 0.2, px + t, py - t * 0.2, px + t * 0.2, py + t * 1.4);
+}
+
+/** Cor da massa depois de assada (derivada da cor crua da receita: dourado, marrom-chocolate...). */
+export function corAssada(corMassa: number): number {
+  return misturarCor(corMassa, 0x8b4513, 0.3);
 }

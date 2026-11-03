@@ -91,6 +91,37 @@ export function validarReceita(bruto: unknown): ReceitaJson {
   return bruto as unknown as ReceitaJson;
 }
 
+/**
+ * Regras de coerência da sequência (num dos modos): cada etapa precisa do que as anteriores
+ * produziram. Uma receita incoerente fica indisponível com mensagem clara, em vez de travar o jogo.
+ */
+function validarOrdem(id: string, etapas: EtapaResolvida[]): void {
+  const vistos = new Set<string>();
+  const exigir = (i: number, tipo: string, algum: string[], motivo: string) => {
+    if (!algum.some((t) => vistos.has(t))) throw new ErroReceita(id, `etapa ${i} (${tipo}): ${motivo}`);
+  };
+  etapas.forEach((e, i) => {
+    switch (e.tipo) {
+      case 'mexer':
+      case 'despejar_massa':
+        exigir(i, e.tipo, ['despejar', 'quebrar_ovo'], 'a tigela ainda está vazia');
+        break;
+      case 'forno':
+        exigir(i, e.tipo, ['despejar_massa'], 'não há massa na forma');
+        break;
+      case 'desenformar':
+        exigir(i, e.tipo, ['forno'], 'o bolo ainda não foi assado');
+        break;
+      case 'decorar':
+        exigir(i, e.tipo, ['desenformar'], 'o bolo ainda está na forma');
+        break;
+      default:
+        break;
+    }
+    vistos.add(e.tipo);
+  });
+}
+
 /** Resolve a receita para uma dificuldade, aplicando padrões e filtros. */
 export function resolverReceita(
   receita: ReceitaJson,
@@ -132,6 +163,8 @@ export function resolverReceita(
         return { tipo: 'decorar', cobertura: e.cobertura ?? padrao.cobertura, corCobertura: e.corCobertura ?? '#5A3220' };
     }
   });
+
+  validarOrdem(receita.id, etapas);
 
   const recipientes = [...new Set(etapas.flatMap((e) => (e.tipo === 'despejar' ? [e.item] : [])))];
   const unicos = [...new Set(etapas.flatMap((e) => (e.tipo === 'despejar' ? [e.item] : e.tipo === 'quebrar_ovo' ? [ITEM_OVO] : [])))];

@@ -66,7 +66,7 @@ export interface IngredienteDef {
   material: Material;
   corConteudo: string;
   corRecipiente: string;
-  simbolo: 'quadrado' | 'triangulo' | 'gota' | 'estrela' | 'circulo' | 'losango';
+  simbolo: 'quadrado' | 'triangulo' | 'gota' | 'estrela' | 'circulo' | 'losango' | 'tablete';
 }
 
 export interface EtapaDespejar {

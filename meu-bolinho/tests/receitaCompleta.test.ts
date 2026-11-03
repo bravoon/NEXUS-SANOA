@@ -3,7 +3,7 @@
  * input simulado, nos dois modos. Em cada etapa, antes de completar, verificamos que
  * "soltar no meio" não conclui e que o tempo sozinho não avança nada.
  */
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import difficulty from '../src/data/difficulty.json';
@@ -21,7 +21,9 @@ import { StirStep } from '../src/systems/steps/StirStep';
 import { UnmoldStep } from '../src/systems/steps/UnmoldStep';
 import { circulo } from './helpers';
 
-const json = JSON.parse(readFileSync(join(__dirname, '../src/data/recipes/fofinho.json'), 'utf8'));
+const dirReceitas = join(__dirname, '../src/data/recipes');
+const lerReceita = (arq: string) => JSON.parse(readFileSync(join(dirReceitas, arq), 'utf8'));
+const json = lerReceita('fofinho.json');
 const segurando = { segurando: true, anguloGraus: 90, bicoSobreAlvo: true };
 const area = { x: 0, y: 0, largura: 200, altura: 200 };
 
@@ -33,8 +35,8 @@ function pintarTudo(s: CoverageStep): void {
   }
 }
 
-function jogar(dificuldade: Dificuldade, rng: () => number) {
-  const receita = resolverReceita(validarReceita(json), dificuldade, difficulty as Record<Dificuldade, ParametrosDificuldade>, ingredients as Record<string, IngredienteDef>);
+function jogar(dificuldade: Dificuldade, rng: () => number, bruto: unknown = json) {
+  const receita = resolverReceita(validarReceita(bruto), dificuldade, difficulty as Record<Dificuldade, ParametrosDificuldade>, ingredients as Record<string, IngredienteDef>);
   const sessao = new Sessao(receita, rng);
   const r = sessao.runner;
   const cenas: string[] = [];
@@ -147,5 +149,38 @@ describe('receita completa (fofinho.json)', () => {
     expect(receita.ingredientes).toContain('fermento');
     expect(receita.etapas.find((e) => e.tipo === 'mexer')).toEqual({ tipo: 'mexer', voltas: 10 });
     expect(sessao.runner.estado.sub).toBe('final');
+  });
+});
+
+describe('toda receita em data/recipes joga do início ao fim só com input (adicionar receita = adicionar JSON)', () => {
+  const arquivos = readdirSync(dirReceitas).filter((f) => f.endsWith('.json'));
+  it('há pelo menos 2 receitas', () => expect(arquivos.length).toBeGreaterThanOrEqual(2));
+  for (const arq of arquivos) {
+    for (const d of ['facil', 'confeiteiro'] as const) {
+      it(`${arq} [${d}]`, () => {
+        const { sessao, cenas } = jogar(d, () => 0.3, lerReceita(arq));
+        expect(sessao.runner.estado.sub).toBe('final');
+        // as cenas aparecem na ordem do fluxo, sem voltar
+        const ordem = ['Cozinha', 'Forno', 'Confeitar'];
+        expect(cenas.map((c) => ordem.indexOf(c))).toEqual([...cenas.map((c) => ordem.indexOf(c))].sort());
+      });
+    }
+  }
+
+  it('uma receita inventada agora (nunca vista pelo código) também funciona', () => {
+    const inventada = {
+      id: 'teste-limao', nome: 'Bolo de Limão', corMassa: '#F3E79B',
+      etapas: [
+        { tipo: 'despejar', item: 'farinha', quantidade: 1.25 },
+        { tipo: 'quebrar_ovo', quantidade: 1 },
+        { tipo: 'despejar', item: 'leite', quantidade: 0.5, tolerancia: 0.3 },
+        { tipo: 'mexer', voltas: 3 },
+        { tipo: 'despejar_massa' },
+        { tipo: 'forno', tempoSegundos: 15 },
+        { tipo: 'desenformar' },
+        { tipo: 'decorar', corCobertura: '#FFFDE7', cobertura: 0.6 },
+      ],
+    };
+    expect(jogar('facil', () => 0.9, inventada).sessao.runner.estado.sub).toBe('final');
   });
 });

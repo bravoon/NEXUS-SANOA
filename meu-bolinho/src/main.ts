@@ -4,6 +4,7 @@ import { ALTURA, CORES, LARGURA } from './config/layout';
 import { AudioSystem } from './systems/audio/AudioSystem';
 import { AreaPaisScene } from './scenes/AreaPaisScene';
 import { BootScene } from './scenes/BootScene';
+import { GaleriaScene } from './scenes/GaleriaScene';
 import { PreloadScene } from './scenes/PreloadScene';
 import { ConfeitarScene } from './scenes/ConfeitarScene';
 import { CozinhaScene } from './scenes/CozinhaScene';
@@ -21,7 +22,7 @@ const jogo = new Phaser.Game({
   height: ALTURA,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   input: { activePointers: 1 },
-  scene: [BootScene, PreloadScene, MenuScene, AreaPaisScene, SelecaoReceitaScene, CozinhaScene, FornoScene, ConfeitarScene, ResultadoScene, PausaScene],
+  scene: [BootScene, PreloadScene, MenuScene, AreaPaisScene, SelecaoReceitaScene, CozinhaScene, FornoScene, ConfeitarScene, ResultadoScene, GaleriaScene, PausaScene],
   render: { antialias: true, roundPixels: false, preserveDrawingBuffer: false },
 });
 

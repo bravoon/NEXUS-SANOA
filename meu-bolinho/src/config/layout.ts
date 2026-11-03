@@ -26,8 +26,29 @@ export const AREA_MEXER = {
 } as const;
 
 export const MESA_Y = 600;
-export const POSICOES_RECIPIENTES = [100, 225, 350, 475] as const;
 export const RECIPIENTE = { largura: 84, altura: 104, y: 540 } as const;
+/** Faixa da mesa (x) reservada aos recipientes, à esquerda da tigela. */
+export const FAIXA_RECIPIENTES = { x0: 100, x1: 475 } as const;
+/** Prateleira de trás usada quando a receita tem mais de 4 recipientes. */
+export const PRATELEIRA = { y: 400, tabuaY: 452 } as const;
+export const MAX_RECIPIENTES = 8;
+
+/**
+ * Posições dos recipientes na mesa para n ingredientes (receitas data-driven):
+ * até 4 numa fileira; de 5 a 8, fileira da frente + prateleira de trás.
+ * Espaçamento sempre ≥ largura + 24 px (alvos de toque não se sobrepõem).
+ */
+export function posicoesRecipientes(n: number): { x: number; y: number }[] {
+  if (n < 0 || n > MAX_RECIPIENTES) throw new Error(`receita com ${n} recipientes (máx. ${MAX_RECIPIENTES})`);
+  const fileira = (qtd: number, y: number) =>
+    Array.from({ length: qtd }, (_, i) => ({
+      x: qtd === 1 ? (FAIXA_RECIPIENTES.x0 + FAIXA_RECIPIENTES.x1) / 2 : FAIXA_RECIPIENTES.x0 + (i * (FAIXA_RECIPIENTES.x1 - FAIXA_RECIPIENTES.x0)) / Math.max(3, qtd - 1),
+      y,
+    }));
+  if (n <= 4) return fileira(n, RECIPIENTE.y);
+  const frente = Math.ceil(n / 2);
+  return [...fileira(frente, RECIPIENTE.y), ...fileira(n - frente, PRATELEIRA.y)];
+}
 
 export const PRATINHO_DESCARTE = { x: 1150, y: 545, raio: 60 } as const;
 export const DESCANSO_COLHER = { x: 1150, y: 400 } as const;

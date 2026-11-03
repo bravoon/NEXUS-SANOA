@@ -13,7 +13,7 @@ export class PauseButton extends Phaser.GameObjects.Container {
   constructor(
     scene: Phaser.Scene,
     private readonly aoPausar: () => void,
-    opcoes: { x?: number; y?: number; icone?: 'pausa' | 'cadeado' } = {},
+    opcoes: { x?: number; y?: number; icone?: 'pausa' | 'cadeado' | 'lixeira' } = {},
   ) {
     super(scene, opcoes.x ?? BOTAO_PAUSA.x, opcoes.y ?? BOTAO_PAUSA.y);
     const g = scene.add.graphics();
@@ -25,6 +25,10 @@ export class PauseButton extends Phaser.GameObjects.Container {
     if ((opcoes.icone ?? 'pausa') === 'pausa') {
       g.fillRoundedRect(-12, -14, 9, 28, 3);
       g.fillRoundedRect(3, -14, 9, 28, 3);
+    } else if (opcoes.icone === 'lixeira') {
+      g.fillRoundedRect(-11, -8, 22, 24, 3);
+      g.fillRect(-15, -14, 30, 5);
+      g.fillRect(-5, -19, 10, 5);
     } else {
       // cadeado (área dos pais)
       g.fillRoundedRect(-13, -4, 26, 20, 4);

@@ -1,0 +1,21 @@
+{
+  "id": "chocolate",
+  "nome": "Bolo de Chocolate",
+  "corMassa": "#7A4A2E",
+  "etapas": [
+    { "tipo": "despejar", "item": "farinha", "alvo": "tigela", "quantidade": 1.0 },
+    { "tipo": "despejar", "item": "chocolate_po", "alvo": "tigela", "quantidade": 0.75 },
+    { "tipo": "despejar", "item": "acucar", "alvo": "tigela", "quantidade": 0.5, "apenas": "confeiteiro" },
+    { "tipo": "quebrar_ovo", "quantidade": 3 },
+    { "tipo": "despejar", "item": "leite", "alvo": "tigela", "quantidade": 1.0 },
+    { "tipo": "despejar", "item": "manteiga", "alvo": "tigela", "quantidade": 0.25, "apenas": "confeiteiro" },
+    { "tipo": "despejar", "item": "fermento", "alvo": "tigela", "quantidade": 0.25, "apenas": "confeiteiro" },
+    { "tipo": "mexer", "voltas": 6, "apenas": "facil" },
+    { "tipo": "mexer", "apenas": "confeiteiro" },
+    { "tipo": "untar", "alvo": "forma" },
+    { "tipo": "despejar_massa", "alvo": "forma" },
+    { "tipo": "forno", "tempoSegundos": 25 },
+    { "tipo": "desenformar" },
+    { "tipo": "decorar", "corCobertura": "#F8BBD0" }
+  ]
+}

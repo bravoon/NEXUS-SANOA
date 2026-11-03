@@ -11,12 +11,11 @@ import { FORMA } from '../config/layout';
 import type { Retangulo } from '../systems/coverage/CoverageGrid';
 import type { EstadoForma } from '../systems/recipe/Sessao';
 import { clamp, distancia, type Ponto } from '../utils/math';
-import { clarear, escurecer, misturarCor } from '../utils/desenho';
+import { clarear, corAssada, escurecer, misturarCor } from '../utils/desenho';
 
 const COR_METAL = 0x9aa4ad;
 const COR_FUNDO = 0xc4ccd3;
 const COR_MANTEIGA = 0xf7dc6f;
-const COR_ASSADO = 0xc68642;
 /** Massa (xícaras) que cobre todo o fundo. */
 const MASSA_CHEIA = 2;
 
@@ -155,7 +154,7 @@ export class PanView {
     const rx = FORMA.rxInterno * (0.25 + 0.75 * k);
     const ry = FORMA.ryInterno * (0.25 + 0.75 * k);
     const subida = e.assado * FORMA.parede * 0.9;
-    const cor = misturarCor(this.corMassa, COR_ASSADO, clamp(e.assado * 1.2, 0, 1));
+    const cor = misturarCor(this.corMassa, corAssada(this.corMassa), clamp(e.assado * 1.2, 0, 1));
     if (e.assado > 0) {
       // lateral do bolo crescendo acima da borda
       g.fillStyle(escurecer(cor, 0.2), 1);

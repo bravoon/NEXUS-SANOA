@@ -1,9 +1,14 @@
-/** Resultado: a foto do bolo decorado pela criança, com festa. Galeria entra no Milestone 4. */
+/**
+ * Resultado: a foto do bolo decorado pela criança, com festa. O bolo é guardado na galeria
+ * automaticamente (a criança não perde o bolo por esquecer de salvar) e o progresso é contado.
+ */
 import Phaser from 'phaser';
 import { ALTURA, CORES, LARGURA } from '../config/layout';
 import type { Sessao } from '../systems/recipe/Sessao';
 import { botaoGrande } from './ui';
 import { AudioSystem } from '../systems/audio/AudioSystem';
+import { registrarConclusao, salvarBolo } from '../systems/save/Galeria';
+import { armazenamentoLocal } from '../systems/save/Preferencias';
 
 export class ResultadoScene extends Phaser.Scene {
   private sessao!: Sessao;
@@ -62,7 +67,34 @@ export class ResultadoScene extends Phaser.Scene {
     const audio = AudioSystem.get();
     audio?.efeito('festa');
     audio?.falar('resultado');
-    botaoGrande(this, LARGURA / 2 - 180, ALTURA - 80, '↻ De novo', CORES.sucesso, () => this.scene.start('SelecaoReceita'));
-    botaoGrande(this, LARGURA / 2 + 180, ALTURA - 80, '⌂ Início', 0x0072b2, () => this.scene.start('Menu'));
+    this.guardar();
+    botaoGrande(this, LARGURA / 2 - 330, ALTURA - 80, '↻ De novo', CORES.sucesso, () => this.scene.start('SelecaoReceita'), 280);
+    botaoGrande(this, LARGURA / 2, ALTURA - 80, '▦ Galeria', 0xcc79a7, () => this.scene.start('Galeria'), 280);
+    botaoGrande(this, LARGURA / 2 + 330, ALTURA - 80, '⌂ Início', 0x0072b2, () => this.scene.start('Menu'), 280);
+  }
+
+  private guardar(): void {
+    const s = this.sessao;
+    if (s.guardado) return;
+    s.guardado = true;
+    const arm = armazenamentoLocal();
+    registrarConclusao(arm, s.receita.id, s.receita.dificuldade);
+    if (!s.fotoUrl) return;
+    const r = salvarBolo(arm, {
+      id: `${s.receita.id}-${Date.now()}`,
+      receitaId: s.receita.id,
+      nomeReceita: s.receita.nome,
+      dificuldade: s.receita.dificuldade,
+      criadoEm: new Date().toISOString(),
+      foto: s.fotoUrl,
+      enfeites: s.enfeites,
+    });
+    if (!r.ok) return;
+    const selo = this.add
+      .text(LARGURA / 2 + 250, 520, '⭐ Guardado na galeria!', { fontFamily: 'Arial Rounded MT Bold, Arial, sans-serif', fontSize: '24px', color: '#ffffff', backgroundColor: '#cc79a7', padding: { x: 14, y: 8 } })
+      .setOrigin(0.5)
+      .setAngle(-6)
+      .setScale(0);
+    this.tweens.add({ targets: selo, scale: 1, duration: 400, delay: 700, ease: 'Back.Out' });
   }
 }

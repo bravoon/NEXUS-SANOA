@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "roteiro": "node scripts/roteiro.mjs"
+    "roteiro": "node scripts/roteiro.mjs",
+    "e2e": "node tests/e2e/aceite.cjs"
   },
   "dependencies": {
     "phaser": "3.90.0"

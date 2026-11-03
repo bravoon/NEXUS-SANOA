@@ -9,6 +9,8 @@ import { corHex, desenharSetaCircular, desenharSimbolo } from '../utils/desenho'
 
 const TAM = 64;
 const ESPACO = 10;
+/** Largura máxima do cartão (até o mascote). */
+const LARGURA_MAX_CARTAO = 1060;
 
 /** 0.5 → "½", 0.75 → "¾", 1 → "1". */
 export function fracaoLegivel(q: number): string {
@@ -129,6 +131,8 @@ export class RecipeCard extends Phaser.GameObjects.Container {
       this.desenharMoldura(i, 'pendente');
     });
 
+    // receitas longas: o cartão encolhe para não invadir o mascote (não é alvo de toque)
+    if (largura > LARGURA_MAX_CARTAO) this.setScale(LARGURA_MAX_CARTAO / largura);
     this.setDepth(60);
     scene.add.existing(this);
   }

@@ -17,6 +17,22 @@ npm test           # testes unitários (Node, sem navegador)
 npm run build      # typecheck + build de produção em dist/
 ```
 
+## Status: Milestone 4 (segunda receita, Confeiteiro, galeria e testes) — completo
+
+- Duas receitas: **Bolo Fofinho** e **Bolo de Chocolate**, cada uma nos modos Fácil e Confeiteiro.
+- **Galeria** (botão ▦ no menu): todo bolo pronto é guardado com foto; toque para ampliar;
+  segure a lixeira 2 s para apagar. Estrelas no cartão da receita mostram em que modo ela já
+  foi feita.
+- **Testes**: `npm test` (131 unitários) e `npm run e2e` (aceite no navegador). O mapa
+  critério → evidência está em [`docs/ACEITE.md`](docs/ACEITE.md).
+
+### Adicionar uma receita
+
+1. Crie `src/data/recipes/<id>.json` (formato e campos em `docs/ARQUITETURA.md` §6).
+2. Ingrediente novo? Adicione-o em `src/data/ingredients.json` (com símbolo de forma única) e as
+   falas `despejar.<id>` e `rejeicao.<id>` em `src/data/falas.json`; rode `npm run roteiro`.
+3. `npm test` valida a receita e a joga do início ao fim nos dois modos.
+
 ## Status: Milestone 3 (arte, animações, sons, narração e dicas)
 
 - **Arte**: cenários da cozinha, do forno, do confeitar e do menu; sombras; mascote animado

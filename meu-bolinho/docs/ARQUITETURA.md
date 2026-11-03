@@ -362,3 +362,22 @@ leva uma cópia translúcida do objeto (o real não se move).
 música liga/desliga, salvos em `localStorage` (leitura tolerante a dado corrompido e a storage
 bloqueado). Botões só disparam se o toque começou neles (um dedo que chega "solto" de outra
 tela não aciona nada).
+
+## 14. Milestone 4: segunda receita, Confeiteiro, galeria e testes
+
+- **Bolo de Chocolate** (`data/recipes/chocolate.json`): entrou só com dados. Fácil tem 4
+  ingredientes (farinha, chocolate, ovo, leite) e 6 voltas; Confeiteiro tem 7 (+ açúcar,
+  manteiga, fermento), 10 voltas, tolerância ±8% e casca de ovo. Ingrediente novo (manteiga) =
+  entrada em `ingredients.json` + 2 falas em `falas.json`.
+- Para isso, duas suposições fixas viraram dados: a mesa calcula as posições para 1–8 potes
+  (`posicoesRecipientes`, com prateleira de trás acima de 4) e a cor do bolo assado deriva de
+  `corMassa`. O cartão da receita encolhe quando há muitas etapas.
+- **Galeria** (`systems/save/Galeria.ts`, puro): o Resultado guarda o bolo automaticamente
+  (foto JPEG ~12–40 KB), no máximo 30 (os mais antigos saem; com o armazenamento cheio, saem até
+  caber). Apagar na galeria exige segurar a lixeira 2 s. **Progresso**: receitas concluídas por
+  modo, mostradas como estrelas no cartão de cada receita.
+- **Aceite**: `docs/ACEITE.md` liga cada critério da especificação à sua evidência.
+- **Tempo de relógio**: dicas (6/12/20 s) e cozimento usam `performance.now()` (limitado a 1 s
+  por frame e zerado ao sair da pausa). O delta do Phaser é suavizado e o da física é limitado a
+  50 ms; em aparelho lento eles atrasariam as dicas e o forno em relação ao tempo real.
+- **Validação de ordem** das etapas no carregamento da receita (ver `validarOrdem`).

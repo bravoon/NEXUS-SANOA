@@ -1,41 +1,35 @@
 {
   "boas_vindas": "Oi! Eu sou o Bolinho. Vamos fazer um bolo juntos?",
   "escolher_receita": "Escolha o seu bolo!",
-
   "despejar.farinha": "Agora a farinha! Leve até a tigela e incline.",
   "despejar.acucar": "Agora o açúcar! Leve até a tigela e incline.",
   "despejar.leite": "Agora o leite! Leve até a tigela e incline.",
   "despejar.chocolate_po": "Agora o chocolate! Leve até a tigela e incline.",
   "despejar.fermento": "Agora o fermento! Só um pouquinho.",
+  "despejar.manteiga": "Agora a manteiga derretida! Só um pouquinho.",
   "despejar.dica": "Pegue o pote que está balançando, leve até em cima da tigela e mova o dedo para o lado, devagar, para virar.",
-
   "rejeicao.farinha": "Ainda não! Agora é a vez da farinha.",
   "rejeicao.acucar": "Ainda não! Agora é a vez do açúcar.",
   "rejeicao.leite": "Ainda não! Agora é a vez do leite.",
   "rejeicao.chocolate_po": "Ainda não! Agora é a vez do chocolate.",
   "rejeicao.fermento": "Ainda não! Agora é a vez do fermento.",
+  "rejeicao.manteiga": "Ainda não! Agora é a vez da manteiga.",
   "rejeicao.generica": "Esse agora não!",
-
   "excesso": "Opa, colocou demais! Tire um pouco com a colher.",
   "excesso.ok": "Isso! Agora está certinho. Pode soltar a colher.",
   "excesso.dica": "Pegue a colher, coloque dentro da tigela e depois leve até o pratinho.",
-
   "ovo.inicio": "Leve o ovo até a beirada da tigela e dê dois toquinhos nele!",
   "ovo.na_borda": "Agora dê dois toquinhos no ovo!",
   "ovo.outro": "Isso! Agora o outro ovo.",
   "ovo.dica": "Arraste o ovo até a beirada da tigela. Depois toque nele duas vezes: toc, toc!",
   "casca": "Caiu casquinha! Pegue com a colher.",
   "casca.ok": "Sem casquinha! Pode soltar a colher.",
-
   "mexer.inicio": "Hora de mexer! Gire o dedo dentro da tigela.",
   "mexer.dica": "Encoste o dedo na massa e faça rodinhas, sem parar, como se estivesse desenhando um círculo.",
-
   "untar.inicio": "Passe manteiga na forma toda, com o dedo!",
   "untar.dica": "Esfregue o dedo na forma, de um lado para o outro, até ela ficar toda amarelinha.",
-
   "massa.inicio": "Leve a tigela até a forma e incline. Despeje tudo!",
   "massa.dica": "Pegue a tigela, leve para cima da forma e mova o dedo para o lado para virar.",
-
   "forno.colocar": "Coloque a forma dentro do forno!",
   "forno.fechar": "Agora feche a porta do forno.",
   "forno.timer": "Agora gire o botão uma volta inteira!",
@@ -53,7 +47,6 @@
   "forno.dica_abrir": "Toque na porta para abrir o forno.",
   "forno.dica_luva": "Arraste a luva azul até a forma.",
   "forno.dica_retirar": "Arraste a forma para fora do forno, até a bancada.",
-
   "desenformar.prato": "Coloque o prato em cima da forma.",
   "desenformar.puxar": "Agora puxe para baixo, rapidinho!",
   "desenformar.lento": "Mais rápido! Puxe para baixo.",
@@ -61,13 +54,11 @@
   "desenformar.ok": "Uau, saiu inteirinho!",
   "desenformar.dica_prato": "Arraste o prato até em cima da forma.",
   "desenformar.dica_puxar": "Encoste no prato e puxe o dedo para baixo, bem rápido, como um escorregador.",
-
   "decorar.cobertura": "Passe a cobertura no bolo todo!",
   "decorar.liberado": "Que lindo! Agora enfeite do seu jeito. Quando acabar, toque em Pronto!",
   "decorar.cheio": "O bolo já está cheio de enfeites!",
   "decorar.dica_cobertura": "Esfregue o dedo em cima do bolo até ele ficar todo coberto.",
   "decorar.dica_enfeites": "Arraste os enfeites até o bolo. Para o granulado, segure o pote e sacuda!",
-
   "elogio.1": "Muito bem!",
   "elogio.2": "Isso aí!",
   "elogio.3": "Que capricho!",

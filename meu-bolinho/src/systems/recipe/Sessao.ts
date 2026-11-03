@@ -41,6 +41,12 @@ export class Sessao {
   mistura = 0;
   /** Chave da textura com a foto do bolo pronto (Resultado / galeria). */
   fotoBolo: string | null = null;
+  /** Foto em JPEG (data URL, pequena) para salvar na galeria. */
+  fotoUrl: string | null = null;
+  /** Quantidade de enfeites no bolo pronto. */
+  enfeites = 0;
+  /** O bolo desta sessão já foi guardado (evita duplicar ao revisitar o Resultado). */
+  guardado = false;
 
   constructor(
     readonly receita: ReceitaResolvida,

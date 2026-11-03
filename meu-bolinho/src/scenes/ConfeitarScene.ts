@@ -74,7 +74,7 @@ export class ConfeitarScene extends CenaEtapas {
 
     const etapa = this.runner.etapa;
     const cor = etapa?.tipo === 'decorar' ? Number.parseInt(etapa.corCobertura.slice(1), 16) : 0x5a3220;
-    this.bolo = new CakeView(this, cor);
+    this.bolo = new CakeView(this, cor, Number.parseInt(this.sessao.receita.corMassa.slice(1), 16));
     this.espatula = new Ferramenta(this, 'espatula', { x: BOLO.cx + BOLO.rx + 110, y: BOLO.topoY + 40 });
     this.barra = new ProgressBar(this, BARRA_MEXER.x - 120, 130, BARRA_MEXER.largura, BARRA_MEXER.altura, 'nenhum');
 
@@ -261,6 +261,8 @@ export class ConfeitarScene extends CenaEtapas {
         const registrar = () => {
           if (!this.textures.exists(chave)) this.textures.addImage(chave, img);
           this.sessao.fotoBolo = chave;
+          this.sessao.fotoUrl = fotoJpeg(img);
+          this.sessao.enfeites = this.decor?.decoracao.total ?? 0;
           depois();
         };
         if (img.complete) registrar();
@@ -328,5 +330,22 @@ export class ConfeitarScene extends CenaEtapas {
       `Decorar: cobertura ${(d.cobertura.cobertura * 100).toFixed(1)}% / meta ${(d.cobertura.meta * 100).toFixed(0)}%  liberado ${this.liberado}`,
       `  enfeites ${d.decoracao.total}/${d.decoracao.maxItens}  sacudir vx ${this.sacudir.velocidadeX.toFixed(2)} inv ${this.sacudir.inversoesNaJanela}`,
     ];
+  }
+}
+
+/** Reduz a foto para JPEG pequeno (~20–40 KB) — cabe dezenas na galeria do localStorage. */
+function fotoJpeg(img: HTMLImageElement, largura = 360): string | null {
+  try {
+    const c = document.createElement('canvas');
+    c.width = largura;
+    c.height = Math.round((largura * img.height) / img.width);
+    const ctx = c.getContext('2d');
+    if (!ctx) return null;
+    ctx.fillStyle = '#ffeef4';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.82);
+  } catch {
+    return null;
   }
 }
