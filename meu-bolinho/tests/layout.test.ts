@@ -23,3 +23,20 @@ describe('layout dos recipientes (receitas data-driven)', () => {
     expect(() => posicoesRecipientes(MAX_RECIPIENTES + 1)).toThrow();
   });
 });
+
+import { acaoVoltar } from '../src/plataforma/voltar';
+
+describe('botão voltar do sistema (Android)', () => {
+  it('em partida: pausa (nunca sai do jogo sem querer)', () => {
+    expect(acaoVoltar(['Cozinha'])).toEqual({ tipo: 'pausar', cena: 'Cozinha' });
+    expect(acaoVoltar(['Forno'])).toEqual({ tipo: 'pausar', cena: 'Forno' });
+  });
+  it('na pausa: continua', () => {
+    expect(acaoVoltar(['Pausa', 'Confeitar'])).toEqual({ tipo: 'continuar' });
+  });
+  it('nas telas de menu: volta ao início; no início: sai', () => {
+    expect(acaoVoltar(['Galeria'])).toEqual({ tipo: 'menu' });
+    expect(acaoVoltar(['AreaPais'])).toEqual({ tipo: 'menu' });
+    expect(acaoVoltar(['Menu'])).toEqual({ tipo: 'sair' });
+  });
+});

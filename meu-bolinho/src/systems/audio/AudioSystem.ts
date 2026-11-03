@@ -213,6 +213,19 @@ export class AudioSystem {
     if (this.p.musica && this.ctx?.state === 'running') this.musica?.iniciar();
   }
 
+  /** App em segundo plano: silencia tudo (música, contínuos, fala). */
+  suspender(): void {
+    this.synth?.silenciarContinuos();
+    this.musica?.parar();
+    this.fila.parar();
+    if (this.ctx?.state === 'running') void this.ctx.suspend();
+  }
+
+  /** App de volta ao primeiro plano. */
+  retomar(): void {
+    if (this.ctx && this.ctx.state === 'suspended') void this.ctx.resume().then(() => this.iniciarMusica());
+  }
+
   /** O navegador libera o áudio só depois de um toque: chamar no primeiro input. */
   desbloquear(): void {
     if (this.ctx && this.ctx.state !== 'running') void this.ctx.resume().then(() => this.iniciarMusica());

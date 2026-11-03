@@ -15,7 +15,7 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["vite/client", "node"],
+    "types": ["vite/client", "node", "vite-plugin-pwa/client"],
     "noEmit": true
   },
   "include": ["src", "tests", "vite.config.ts"]

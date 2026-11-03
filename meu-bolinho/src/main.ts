@@ -2,6 +2,7 @@
 import Phaser from 'phaser';
 import { ALTURA, CORES, LARGURA } from './config/layout';
 import { AudioSystem } from './systems/audio/AudioSystem';
+import { iniciarPlataforma } from './plataforma/Plataforma';
 import { AreaPaisScene } from './scenes/AreaPaisScene';
 import { BootScene } from './scenes/BootScene';
 import { GaleriaScene } from './scenes/GaleriaScene';
@@ -22,7 +23,6 @@ const jogo = new Phaser.Game({
   height: ALTURA,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   input: { activePointers: 1 },
-  fps: { target: 60, min: 20 },
   // celular: sem menu de contexto no toque longo (segurar o cadeado/pausa)
   disableContextMenu: true,
   scene: [BootScene, PreloadScene, MenuScene, AreaPaisScene, SelecaoReceitaScene, CozinhaScene, FornoScene, ConfeitarScene, ResultadoScene, GaleriaScene, PausaScene],
@@ -37,6 +37,12 @@ const aplicarOrientacao = (): void => {
 };
 retrato.addEventListener('change', aplicarOrientacao);
 jogo.events.once(Phaser.Core.Events.READY, aplicarOrientacao);
+const plataforma = iniciarPlataforma(jogo);
+
+// PWA: service worker só no navegador (offline + instalação). Apps nativos já carregam local.
+if ((plataforma === 'web' || plataforma === 'pwa') && 'serviceWorker' in navigator && import.meta.env.PROD) {
+  void import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true }));
+}
 
 // Acesso para testes de ponta a ponta e inspeção manual (somente com ?debug na URL).
 if (import.meta.env.DEV || new URLSearchParams(location.search).has('debug')) {

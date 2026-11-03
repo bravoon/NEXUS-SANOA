@@ -56,7 +56,8 @@ export class MenuScene extends Phaser.Scene {
 
     new PauseButton(this, () => this.scene.start('AreaPais'), { x: 60, y: ALTURA - 56, icone: 'cadeado' });
     this.add.text(110, ALTURA - 56, 'pais: segure 2 s', { fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#9c8a7e' }).setOrigin(0, 0.5);
-    this.add.text(LARGURA - 20, ALTURA - 20, 'Tecla D: modo debug', { fontFamily: 'Arial, sans-serif', fontSize: '15px', color: '#b0a49a' }).setOrigin(1, 1);
+    if (import.meta.env.DEV || new URLSearchParams(location.search).has('debug'))
+      this.add.text(LARGURA - 20, ALTURA - 20, 'Tecla D: modo debug', { fontFamily: 'Arial, sans-serif', fontSize: '15px', color: '#b0a49a' }).setOrigin(1, 1);
 
     audio?.falar('boas_vindas');
   }

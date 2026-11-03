@@ -54,7 +54,13 @@ const PASTA = process.argv[2] || null;
     await esperar((s) => s.sub === 'aguardando' && (s.tipo !== antes.tipo || s.cena !== antes.cena || s.item !== antes.item) && s.cena === s.cenas.split(',').find((c) => ['Cozinha', 'Forno', 'Confeitar'].includes(c)), 20000);
     await p.waitForTimeout(400);
   };
-  const pularAte = async (tipo) => { for (let i = 0; i < 30 && (await st()).tipo !== tipo; i++) await pular(); };
+  const pularAte = async (tipo) => {
+    for (let i = 0; i < 40 && (await st()).tipo !== tipo; i++) await pular();
+    const s = await st();
+    if (s.tipo !== tipo) console.log(`  (não chegou em ${tipo}: ${JSON.stringify(s)})`);
+    // espera a cena da etapa estar ativa e aceitando input
+    await esperar((x) => x.tipo === tipo && x.sub === 'aguardando' && x.cena === x.cenas.split(',').find((c) => ['Cozinha', 'Forno', 'Confeitar'].includes(c)), 20000);
+  };
 
   await p.goto(BASE); await p.waitForTimeout(1500);
   await p.evaluate(() => localStorage.clear());
