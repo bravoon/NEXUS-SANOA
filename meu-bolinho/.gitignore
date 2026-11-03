@@ -1,7 +1,7 @@
 node_modules/
-dist/
-coverage/
-release/
+/dist/
+/coverage/
+/release/
 android/app/build/
 android/.gradle/
 ios/App/build/
