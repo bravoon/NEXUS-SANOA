@@ -12,6 +12,10 @@ import type { Retangulo } from '../systems/coverage/CoverageGrid';
 import type { EstadoForma } from '../systems/recipe/Sessao';
 import { clamp, distancia, type Ponto } from '../utils/math';
 import { clarear, corAssada, escurecer, misturarCor } from '../utils/desenho';
+import { CacheGrafico, imagemVetorial, type Caixa } from '../utils/CacheGrafico';
+
+/** Retângulo local da forma (metal + bolo crescendo acima da borda). */
+const CAIXA_FORMA: Caixa = { x: -FORMA.rx - 6, y: -FORMA.ry - FORMA.parede - 8, largura: FORMA.rx * 2 + 12, altura: FORMA.ry * 2 + FORMA.parede * 1.6 + 16 };
 
 const COR_METAL = 0x9aa4ad;
 const COR_FUNDO = 0xc4ccd3;
@@ -20,9 +24,9 @@ const COR_MANTEIGA = 0xf7dc6f;
 const MASSA_CHEIA = 2;
 
 export class PanView {
-  private readonly metal: Phaser.GameObjects.Graphics;
-  private readonly conteudo: Phaser.GameObjects.Graphics;
-  private readonly frente: Phaser.GameObjects.Graphics;
+  private readonly metal: Phaser.GameObjects.Image;
+  private readonly conteudo: CacheGrafico;
+  private readonly frente: Phaser.GameObjects.Image;
   private manteiga: Phaser.GameObjects.RenderTexture | null = null;
   private mascara: Phaser.GameObjects.Graphics | null = null;
   /** Pincel reaproveitado em todos os carimbos (sem criar objetos por frame). */
@@ -44,10 +48,11 @@ export class PanView {
     this.y = y;
     this.escala = escala;
     this.pincel = scene.make.image({ key: 'pincel', add: false }).setTint(COR_MANTEIGA);
-    this.metal = scene.add.graphics().setDepth(profundidade);
-    this.conteudo = scene.add.graphics().setDepth(profundidade + 2);
-    this.frente = scene.add.graphics().setDepth(profundidade + 3);
-    this.desenharMetal();
+    // metal e borda: texturas estáticas; massa/bolo: cache redesenhado só quando o estado muda
+    this.metal = imagemVetorial(scene, 'forma:metal', CAIXA_FORMA, (g) => this.desenharMetal(g)).setDepth(profundidade);
+    this.conteudo = new CacheGrafico(scene, CAIXA_FORMA);
+    this.conteudo.imagem.setOrigin(-CAIXA_FORMA.x / CAIXA_FORMA.largura, -CAIXA_FORMA.y / CAIXA_FORMA.altura).setDepth(profundidade + 2);
+    this.frente = imagemVetorial(scene, 'forma:frente', CAIXA_FORMA, (g) => this.desenharFrente(g)).setDepth(profundidade + 3);
     this.aplicarTransformacao();
   }
 
@@ -89,9 +94,7 @@ export class PanView {
     this.manteiga?.setVisible(false);
   }
 
-  private desenharMetal(): void {
-    const g = this.metal;
-    g.clear();
+  private desenharMetal(g: Phaser.GameObjects.Graphics): void {
     // parede externa (sombra) + borda
     g.fillStyle(escurecer(COR_METAL, 0.25), 1);
     g.fillEllipse(0, FORMA.parede * 0.5, FORMA.rx * 2, FORMA.ry * 2);
@@ -100,8 +103,9 @@ export class PanView {
     g.fillEllipse(0, 0, FORMA.rx * 2, FORMA.ry * 2);
     g.fillStyle(COR_FUNDO, 1);
     g.fillEllipse(0, 0, FORMA.rxInterno * 2, FORMA.ryInterno * 2);
-    const f = this.frente;
-    f.clear();
+  }
+
+  private desenharFrente(f: Phaser.GameObjects.Graphics): void {
     f.lineStyle(4, escurecer(COR_METAL, 0.45), 1);
     f.strokeEllipse(0, 0, FORMA.rx * 2, FORMA.ry * 2);
     // reflexo na borda interna (segue a elipse, não um círculo)
@@ -114,8 +118,13 @@ export class PanView {
     f.strokePoints(reflexo, false);
   }
 
+  /** Objetos exibidos e a escala-base de cada um (o cache é desenhado em 2×). */
+  private get partes(): Array<[Phaser.GameObjects.Image | Phaser.GameObjects.RenderTexture, number]> {
+    return [[this.metal, 1], [this.conteudo.imagem, 0.5], [this.frente, 1]];
+  }
+
   private aplicarTransformacao(): void {
-    for (const g of [this.metal, this.conteudo, this.frente]) g.setPosition(this.x, this.y).setScale(this.escala);
+    for (const [o, base] of this.partes) o.setPosition(this.x, this.y).setScale(this.escala * base);
   }
 
   /** Move a forma (forno, bancada). A camada de manteiga não acompanha (só existe na estação de untar). */
@@ -128,27 +137,29 @@ export class PanView {
 
   /** Vira a forma (desenformar): fator 1 → normal, -1 → de cabeça para baixo. */
   virar(fatorY: number): void {
-    for (const g of [this.metal, this.conteudo, this.frente]) g.setScale(this.escala, this.escala * fatorY);
+    for (const [o, base] of this.partes) o.setScale(this.escala * base, this.escala * base * fatorY);
   }
 
   setVisible(v: boolean): void {
-    for (const g of [this.metal, this.conteudo, this.frente]) g.setVisible(v);
+    for (const [o] of this.partes) o.setVisible(v);
   }
 
   setAlpha(a: number): void {
-    for (const g of [this.metal, this.conteudo, this.frente]) g.setAlpha(a);
+    for (const [o] of this.partes) o.setAlpha(a);
   }
 
-  get objetos(): Phaser.GameObjects.Graphics[] {
-    return [this.metal, this.conteudo, this.frente];
+  get objetos(): Array<Phaser.GameObjects.Image | Phaser.GameObjects.RenderTexture> {
+    return this.partes.map(([o]) => o);
   }
 
   desenhar(e: EstadoForma): void {
     const chave = `${e.massa.toFixed(4)}|${e.assado.toFixed(3)}`;
     if (chave === this.ultimaChave) return;
     this.ultimaChave = chave;
-    const g = this.conteudo;
-    g.clear();
+    this.conteudo.desenhar((g) => this.pintarConteudo(g, e));
+  }
+
+  private pintarConteudo(g: Phaser.GameObjects.Graphics, e: EstadoForma): void {
     if (e.massa <= 1e-4) return;
     const k = clamp(Math.sqrt(e.massa / MASSA_CHEIA), 0, 1);
     const rx = FORMA.rxInterno * (0.25 + 0.75 * k);

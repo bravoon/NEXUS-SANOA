@@ -5,6 +5,7 @@
  * encerra a parte criativa (não executa nada no bolo).
  */
 import Phaser from 'phaser';
+import { assarGraphics } from '../utils/CacheGrafico';
 import { CONFIG_DECORACAO } from '../config/gameplay';
 import { BANDEJA_Y, BARRA_MEXER, BOLO, CORES } from '../config/layout';
 import { CakeView } from '../entities/Cake';
@@ -21,6 +22,7 @@ import type { EtapaResolvida } from '../systems/recipe/recipeTypes';
 import { DecorStep } from '../systems/steps/DecorStep';
 import { type Ponto } from '../utils/math';
 import { CenaEtapas } from './CenaEtapas';
+import { Qualidade } from '../utils/Qualidade';
 import { desenharGrade } from './CozinhaScene';
 
 type Arrasto =
@@ -45,7 +47,7 @@ export class ConfeitarScene extends CenaEtapas {
   private bandeja!: Phaser.GameObjects.Container;
   private botaoDesfazer!: Phaser.GameObjects.Container;
   private botaoPronto!: Phaser.GameObjects.Container;
-  private pote!: Phaser.GameObjects.Graphics;
+  private pote!: Phaser.GameObjects.Image;
   private readonly sacudir = new ShakeRecognizer();
   private arrasto: Arrasto | null = null;
   private liberado = false;
@@ -83,13 +85,16 @@ export class ConfeitarScene extends CenaEtapas {
     fundo.fillStyle(0xffffff, 0.85);
     fundo.fillRoundedRect(BANDEJA[0]!.x - 60, BANDEJA_Y - 52, BANDEJA[BANDEJA.length - 1]!.x - BANDEJA[0]!.x + 120, 104, 24);
     this.bandeja.add(fundo);
+    assarGraphics(this, fundo, 'bandeja:fundo', { x: BANDEJA[0]!.x - 64, y: BANDEJA_Y - 56, largura: BANDEJA[BANDEJA.length - 1]!.x - BANDEJA[0]!.x + 128, altura: 112 });
     for (const b of BANDEJA) {
       const ic = this.add.graphics();
       desenharIconeEnfeite(ic, b.tipo, b.x, BANDEJA_Y);
       this.bandeja.add(ic);
+      assarGraphics(this, ic, `bandeja:${b.tipo}`, { x: b.x - 48, y: BANDEJA_Y - 90, largura: 96, altura: 140 });
     }
-    this.pote = this.add.graphics().setDepth(70).setVisible(false);
-    desenharIconeEnfeite(this.pote, 'granulado', 0, 0);
+    const pote = this.add.graphics().setDepth(70).setVisible(false);
+    desenharIconeEnfeite(pote, 'granulado', 0, 0);
+    this.pote = assarGraphics(this, pote, 'pote:granulado', { x: -30, y: -38, largura: 60, altura: 70 });
 
     this.botaoDesfazer = this.add.container(DESFAZER.x, DESFAZER.y).setDepth(55).setAlpha(0.3);
     const gd = this.add.graphics();
@@ -104,6 +109,7 @@ export class ConfeitarScene extends CenaEtapas {
     gd.fillStyle(CORES.texto, 1);
     gd.fillTriangle(-26, -2, -10, -2, -18, 12);
     this.botaoDesfazer.add(gd);
+    assarGraphics(this, gd, 'botao:desfazer', { x: -DESFAZER.raio - 4, y: -DESFAZER.raio - 4, largura: DESFAZER.raio * 2 + 8, altura: DESFAZER.raio * 2 + 8 });
 
     this.botaoPronto = this.add.container(PRONTO.x, PRONTO.y).setDepth(55).setVisible(false);
     const gp = this.add.graphics();
@@ -113,6 +119,7 @@ export class ConfeitarScene extends CenaEtapas {
     gp.strokeRoundedRect(-PRONTO.largura / 2, -PRONTO.altura / 2, PRONTO.largura, PRONTO.altura, PRONTO.altura / 2);
     const tp = this.add.text(0, 0, '✓ Pronto!', { fontFamily: 'Arial Rounded MT Bold, Arial, sans-serif', fontSize: '34px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     this.botaoPronto.add([gp, tp]);
+    assarGraphics(this, gp, 'botao:pronto', { x: -PRONTO.largura / 2 - 4, y: -PRONTO.altura / 2 - 4, largura: PRONTO.largura + 8, altura: PRONTO.altura + 8 });
   }
 
   protected prepararEtapa(_indice: number, etapa: EtapaResolvida): void {
@@ -233,7 +240,7 @@ export class ConfeitarScene extends CenaEtapas {
         const destino = { x: a.x + (Math.random() - 0.5) * 120, y: a.y + 40 + Math.random() * 70 };
         const cor = CORES_CONFEITO[(i + this.contadorCor) % CORES_CONFEITO.length]!;
         const rot = Math.random() * Math.PI;
-        this.granuloCaindo(a, destino, cor, rot);
+        if (!Qualidade.leve || i % 3 === 0) this.granuloCaindo(a, destino, cor, rot);
         if (this.bolo.noTopo(destino, 0.97)) {
           const rel = this.bolo.paraRelativo(destino);
           novos.push({ tipo: 'granulado', x: rel.x, y: rel.y, rot, cor });

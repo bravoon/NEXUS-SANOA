@@ -13,11 +13,14 @@ import type { BocaAlvo } from '../systems/fill/pourFlow';
 import { RAIO_NORMALIZADO } from '../systems/steps/StirStep';
 import { clamp, grausParaRad, rotacionar, smoothstep, type Ponto } from '../utils/math';
 import { clarear, escurecer } from '../utils/desenho';
+import { CacheGrafico, imagemVetorial, type Caixa } from '../utils/CacheGrafico';
 
 const PREENCHIMENTO_MAX = 0.85;
 const R = TIGELA.raio;
 const D = TIGELA.profundidade;
 const RY = R * TIGELA.achatamento;
+/** Retângulo local que contém toda a tigela (vidro + conteúdo). */
+const CAIXA: Caixa = { x: -R - 12, y: -RY - 14, largura: 2 * R + 24, altura: D + RY + 28 };
 
 /** Grumos com posições fixas (polar, raio normalizado), para não "piscar" entre frames. */
 const GRUMOS = Array.from({ length: 16 }, (_, i) => ({
@@ -35,9 +38,7 @@ const CASCAS = [
 ];
 
 export class BowlView extends Phaser.GameObjects.Container {
-  private readonly fundo: Phaser.GameObjects.Graphics;
-  private readonly massa: Phaser.GameObjects.Graphics;
-  private readonly frente: Phaser.GameObjects.Graphics;
+  private readonly massa: CacheGrafico;
   /** Boca da tigela na posição de casa (despejar ingredientes). */
   private ultimaChave = '';
   readonly boca: BocaAlvo = { cx: TIGELA.cx, bordaY: TIGELA.bordaY, meiaLargura: R * 0.85, alturaMax: 360 };
@@ -47,12 +48,12 @@ export class BowlView extends Phaser.GameObjects.Container {
     private readonly corMassa: number,
   ) {
     super(scene, TIGELA.cx, TIGELA.bordaY);
-    this.fundo = scene.add.graphics();
-    this.massa = scene.add.graphics();
-    this.frente = scene.add.graphics();
-    this.add([this.fundo, this.massa, this.frente]);
+    // vidro: 2 texturas estáticas (desenhadas uma vez por jogo); conteúdo: cache redesenhado só ao mudar
+    const fundo = imagemVetorial(scene, 'tigela:fundo', CAIXA, (g) => this.desenharFundo(g));
+    this.massa = new CacheGrafico(scene, CAIXA, false);
+    const frente = imagemVetorial(scene, 'tigela:frente', CAIXA, (g) => this.desenharFrente(g));
+    this.add([fundo, this.massa.imagem, frente]);
     this.setDepth(10);
-    this.desenharVidro();
     scene.add.existing(this);
   }
 
@@ -86,16 +87,14 @@ export class BowlView extends Phaser.GameObjects.Container {
     return pts;
   }
 
-  private desenharVidro(): void {
-    const g = this.fundo;
-    g.clear();
+  private desenharFundo(g: Phaser.GameObjects.Graphics): void {
     g.fillStyle(CORES.vidro, 0.35);
     g.fillPoints(this.faixa(0, D), true);
     g.fillStyle(CORES.vidro, 0.55);
     g.fillEllipse(0, 0, R * 2, RY * 2);
+  }
 
-    const f = this.frente;
-    f.clear();
+  private desenharFrente(f: Phaser.GameObjects.Graphics): void {
     f.lineStyle(5, CORES.vidroBorda, 1);
     f.strokeEllipse(0, 0, R * 2, RY * 2);
     f.strokePoints(this.faixa(0, D), false);
@@ -122,8 +121,18 @@ export class BowlView extends Phaser.GameObjects.Container {
     const chave = `${total.toFixed(4)}|${conteudo.lista.length}|${mistura.toFixed(3)}|${redemoinho.toFixed(2)}|${cascas}`;
     if (chave === this.ultimaChave) return; // nada mudou: não redesenha (desempenho)
     this.ultimaChave = chave;
-    const g = this.massa;
-    g.clear();
+    this.massa.desenhar((g) => this.pintarMassa(g, conteudo, cores, mistura, redemoinho, cascas));
+  }
+
+  private pintarMassa(
+    g: Phaser.GameObjects.Graphics,
+    conteudo: BowlContents,
+    cores: Readonly<Record<string, number>>,
+    mistura: number,
+    redemoinho: number,
+    cascas: number,
+  ): void {
+    const total = conteudo.total;
     if (total <= 1e-6) return;
 
     const hTotal = this.alturaDe(total);

@@ -20,6 +20,7 @@ import { UnmoldStep } from '../systems/steps/UnmoldStep';
 import { corAssada, corHex, escurecer } from '../utils/desenho';
 import { amortecer, distancia } from '../utils/math';
 import { CenaEtapas } from './CenaEtapas';
+import { Qualidade } from '../utils/Qualidade';
 
 type Arrasto =
   | { tipo: 'forma' }
@@ -100,6 +101,10 @@ export class FornoScene extends CenaEtapas {
       this.tweens.add({ targets: this.prato, alpha: 1, duration: 300 });
       this.falar('desenformar.prato');
     }
+  }
+
+  protected override aoModoLeve(): void {
+    this.vapor.stop();
   }
 
   protected override aoErro(erro: TipoErro): void {
@@ -317,7 +322,7 @@ export class FornoScene extends CenaEtapas {
       const fechado = !(ctrl.fase === 'colocar' || ctrl.fase === 'fechar' || ctrl.fase === 'retirar' || ctrl.fase === 'concluido');
       const ligado = ctrl.fase === 'assando';
       if (ligado) this.somContinuo('forno', 1);
-      if (ligado !== this.vapor.emitting) {
+      if (ligado !== this.vapor.emitting && !(ligado && Qualidade.leve)) {
         if (ligado) this.vapor.start();
         else this.vapor.stop();
       }

@@ -22,8 +22,11 @@ const jogo = new Phaser.Game({
   height: ALTURA,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   input: { activePointers: 1 },
+  fps: { target: 60, min: 20 },
+  // celular: sem menu de contexto no toque longo (segurar o cadeado/pausa)
+  disableContextMenu: true,
   scene: [BootScene, PreloadScene, MenuScene, AreaPaisScene, SelecaoReceitaScene, CozinhaScene, FornoScene, ConfeitarScene, ResultadoScene, GaleriaScene, PausaScene],
-  render: { antialias: true, roundPixels: false, preserveDrawingBuffer: false },
+  render: { antialias: true, roundPixels: false, preserveDrawingBuffer: false, powerPreference: 'high-performance' },
 });
 
 // Modo retrato em telas pequenas: o CSS mostra "gire o celular" e o jogo dorme.

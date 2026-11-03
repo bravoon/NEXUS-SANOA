@@ -1,5 +1,6 @@
 /** Menu inicial: botões grandes, sem depender de leitura. Cadeado (segurar 2 s) → área dos pais. */
 import Phaser from 'phaser';
+import { assarGraphics } from '../utils/CacheGrafico';
 import { TEXTURAS } from '../art/ArteProcedural';
 import { ALTURA, LARGURA } from '../config/layout';
 import { CORES } from '../config/layout';
@@ -37,6 +38,7 @@ export class MenuScene extends Phaser.Scene {
     g.slice(0, -20, 18, 0.1 * Math.PI, 0.9 * Math.PI, false);
     g.fillPath();
     c.add(g);
+    assarGraphics(this, g, 'menu:bolinho', { x: -120, y: -150, largura: 240, altura: 270 });
     this.tweens.add({ targets: c, scaleY: 1.04, scaleX: 0.97, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
 
     this.add.text(LARGURA / 2, 100, 'Meu Bolinho', { ...ESTILO_TITULO, stroke: '#ffffff', strokeThickness: 10 }).setOrigin(0.5);

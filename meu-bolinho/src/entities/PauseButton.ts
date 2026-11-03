@@ -3,6 +3,7 @@
  * soltou antes → o anel zera). Evita saídas acidentais.
  */
 import Phaser from 'phaser';
+import { assarGraphics } from '../utils/CacheGrafico';
 import { BOTAO_PAUSA, CORES } from '../config/layout';
 
 export class PauseButton extends Phaser.GameObjects.Container {
@@ -39,6 +40,7 @@ export class PauseButton extends Phaser.GameObjects.Container {
     }
     this.anel = scene.add.graphics();
     this.add([g, this.anel]);
+    assarGraphics(scene, g, `botao-segurar:${opcoes.icone ?? 'pausa'}`, { x: -40, y: -40, largura: 80, altura: 80 });
     this.setSize(BOTAO_PAUSA.raio * 2, BOTAO_PAUSA.raio * 2).setInteractive({ useHandCursor: true });
     this.setDepth(90);
     this.on('pointerdown', () => {

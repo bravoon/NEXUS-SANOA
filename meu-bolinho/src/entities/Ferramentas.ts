@@ -1,5 +1,6 @@
 /** Objetos simples arrastáveis: luva, prato, tablete de manteiga, espátula de cobertura. */
 import Phaser from 'phaser';
+import { assarGraphics } from '../utils/CacheGrafico';
 import { CONFIG_ARRASTAR } from '../config/gameplay';
 import { ALVO_TOQUE_MIN } from '../config/layout';
 import { amortecer, type Ponto } from '../utils/math';
@@ -19,6 +20,7 @@ export class Ferramenta extends Phaser.GameObjects.Container {
     this.g = scene.add.graphics();
     this.add(this.g);
     this.desenhar();
+    assarGraphics(scene, this.g, `ferramenta:${tipo}`, { x: -122, y: -114, largura: 244, altura: 170 });
     this.setDepth(50);
     scene.add.existing(this);
   }

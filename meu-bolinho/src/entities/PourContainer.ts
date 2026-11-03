@@ -11,6 +11,7 @@ import { ALVO_TOQUE_MIN, CORES, RECIPIENTE } from '../config/layout';
 import type { IngredienteDef } from '../systems/recipe/recipeTypes';
 import { amortecer, type Ponto } from '../utils/math';
 import { clarear, corHex, desenharSimbolo, escurecer } from '../utils/desenho';
+import { CacheGrafico } from '../utils/CacheGrafico';
 
 export type EstadoRecipiente = 'mesa' | 'arrastando' | 'voltando' | 'usado';
 
@@ -24,8 +25,8 @@ export interface DadosMedidor {
 
 export class PourContainer extends Phaser.GameObjects.Container {
   estado: EstadoRecipiente = 'mesa';
-  private readonly corpo: Phaser.GameObjects.Graphics;
-  private readonly medidor: Phaser.GameObjects.Graphics;
+  /** Corpo + medidor numa única textura, redesenhada só quando o medidor muda (desempenho). */
+  private readonly visual: CacheGrafico;
   readonly cor: number;
   readonly corConteudo: number;
   readonly largura = RECIPIENTE.largura;
@@ -40,18 +41,16 @@ export class PourContainer extends Phaser.GameObjects.Container {
     super(scene, descanso.x, descanso.y);
     this.cor = corHex(def.corRecipiente);
     this.corConteudo = corHex(def.corConteudo);
-    this.corpo = scene.add.graphics();
-    this.medidor = scene.add.graphics();
-    this.add([this.corpo, this.medidor]);
+    const w = RECIPIENTE.largura, h = RECIPIENTE.altura;
+    this.visual = new CacheGrafico(scene, { x: -w / 2 - 8, y: -h / 2 - 14, largura: w + 24, altura: h + 22 }, false);
+    this.add(this.visual.imagem);
     this.setDepth(20);
-    this.desenharCorpo(1);
+    this.atualizarMedidor(null);
     scene.add.existing(this);
   }
 
-  private desenharCorpo(fracaoConteudo: number): void {
-    const g = this.corpo;
+  private desenharCorpo(g: Phaser.GameObjects.Graphics, fracaoConteudo: number): void {
     const w = this.largura, h = this.altura;
-    g.clear();
     // conteúdo visível no topo (diminui conforme despeja)
     g.fillStyle(escurecer(this.cor, 0.35), 1);
     g.fillRoundedRect(-w / 2 - 4, -h / 2 - 4, w + 8, h + 8, 14);
@@ -79,10 +78,16 @@ export class PourContainer extends Phaser.GameObjects.Container {
 
   /** Mostra o medidor (só no recipiente da etapa atual). */
   atualizarMedidor(m: DadosMedidor | null): void {
-    const g = this.medidor;
-    g.clear();
-    if (!m) return;
-    this.desenharCorpo(m.disponivel / m.capacidade);
+    const chave = m
+      ? `${(m.disponivel / m.capacidade).toFixed(3)}|${m.despejado.toFixed(3)}|${m.limiteInferior}|${m.limiteSuperior}`
+      : 'sem-medidor';
+    this.visual.desenhar((g) => {
+      this.desenharCorpo(g, m ? m.disponivel / m.capacidade : 1);
+      if (m) this.desenharMedidor(g, m);
+    }, chave);
+  }
+
+  private desenharMedidor(g: Phaser.GameObjects.Graphics, m: DadosMedidor): void {
     const x = this.largura / 2 - 22;
     const yBase = this.altura / 2 - 8;
     const alt = this.altura - 34;

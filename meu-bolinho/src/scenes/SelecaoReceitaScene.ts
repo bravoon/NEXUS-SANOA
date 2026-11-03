@@ -1,5 +1,6 @@
 /** Escolha da receita (descoberta automaticamente em data/recipes) e da dificuldade. */
 import Phaser from 'phaser';
+import { assarGraphics } from '../utils/CacheGrafico';
 import { ALTURA, CORES, LARGURA } from '../config/layout';
 import { carregarReceita, RECEITAS } from '../data/registry';
 import { Sessao } from '../systems/recipe/Sessao';
@@ -67,6 +68,7 @@ export class SelecaoReceitaScene extends Phaser.Scene {
       g.fillCircle(0, -36, 14);
       const nome = this.add.text(0, 105, r.nome, { fontFamily: 'Arial Rounded MT Bold, Arial, sans-serif', fontSize: '25px', color: '#3b2a20', fontStyle: 'bold' }).setOrigin(0.5);
       c.add([g, nome]);
+      assarGraphics(this, g, `cartao-receita:${r.id}`, { x: -134, y: -154, largura: 268, altura: 308 });
       // progresso: estrela acesa = já fez neste modo (1 estrela Fácil, 2 estrelas Confeiteiro)
       const feito = progresso[r.id];
       const estrela = (x: number, acesa: boolean) => this.add.image(x, -118, 'estrela').setScale(1.3).setTint(acesa ? CORES.destaque : 0xd8cfc6);

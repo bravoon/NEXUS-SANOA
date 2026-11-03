@@ -6,11 +6,21 @@ import Phaser from 'phaser';
 import { CORES } from '../config/layout';
 import type { EtapaResolvida, IngredienteDef, ReceitaResolvida } from '../systems/recipe/recipeTypes';
 import { corHex, desenharSetaCircular, desenharSimbolo } from '../utils/desenho';
+import { assarGraphics, imagemVetorial, trocarTextura } from '../utils/CacheGrafico';
 
 const TAM = 64;
 const ESPACO = 10;
 /** Largura máxima do cartão (até o mascote). */
 const LARGURA_MAX_CARTAO = 1060;
+
+const CAIXA_FICHA = { x: -TAM / 2 - 4, y: -TAM / 2 - 4, largura: TAM + 8, altura: TAM + 8 };
+
+function pintarMoldura(m: Phaser.GameObjects.Graphics, tipo: 'pendente' | 'atual' | 'feita'): void {
+  m.fillStyle(tipo === 'atual' ? CORES.destaque : 0xfdf6ee, 1);
+  m.fillRoundedRect(-TAM / 2, -TAM / 2, TAM, TAM, 12);
+  m.lineStyle(tipo === 'atual' ? 5 : 3, tipo === 'feita' ? CORES.sucesso : CORES.mesaBorda, 1);
+  m.strokeRoundedRect(-TAM / 2, -TAM / 2, TAM, TAM, 12);
+}
 
 /** 0.5 → "½", 0.75 → "¾", 1 → "1". */
 export function fracaoLegivel(q: number): string {
@@ -91,10 +101,10 @@ export function desenharIconeEtapa(
 
 export class RecipeCard extends Phaser.GameObjects.Container {
   private readonly fichas: Phaser.GameObjects.Container[] = [];
-  private readonly molduras: Phaser.GameObjects.Graphics[] = [];
+  private readonly molduras: Phaser.GameObjects.Image[] = [];
   private readonly checks: Phaser.GameObjects.Text[] = [];
   private pulso: Phaser.Tweens.Tween | null = null;
-  private readonly brilho: Phaser.GameObjects.Graphics;
+  private readonly brilho: Phaser.GameObjects.Image;
   private tweenBrilho: Phaser.Tweens.Tween | null = null;
 
   constructor(scene: Phaser.Scene, x: number, y: number, receita: ReceitaResolvida, ingredientes: Record<string, IngredienteDef>) {
@@ -106,14 +116,21 @@ export class RecipeCard extends Phaser.GameObjects.Container {
     fundo.lineStyle(4, CORES.mesaBorda, 1);
     fundo.strokeRoundedRect(0, 0, largura, TAM + ESPACO * 2, 16);
     this.add(fundo);
-    this.brilho = scene.add.graphics().setVisible(false);
+    assarGraphics(scene, fundo, `cartao:fundo:${receita.etapas.length}`, { x: -4, y: -4, largura: largura + 8, altura: TAM + ESPACO * 2 + 8 });
+    const lb = TAM + 24;
+    this.brilho = imagemVetorial(scene, 'cartao:brilho', { x: -lb / 2, y: -lb / 2, largura: lb, altura: lb }, (g) => {
+      g.fillStyle(CORES.destaque, 0.55);
+      g.fillRoundedRect(-TAM / 2 - 8, -TAM / 2 - 8, TAM + 16, TAM + 16, 18);
+      g.lineStyle(4, 0xffffff, 1);
+      g.strokeRoundedRect(-TAM / 2 - 8, -TAM / 2 - 8, TAM + 16, TAM + 16, 18);
+    }).setVisible(false);
     this.add(this.brilho);
 
     receita.etapas.forEach((etapa, i) => {
       const cx = ESPACO + i * (TAM + ESPACO) + TAM / 2;
       const cy = ESPACO + TAM / 2;
       const ficha = scene.add.container(cx, cy);
-      const moldura = scene.add.graphics();
+      const moldura = imagemVetorial(scene, 'moldura:pendente', CAIXA_FICHA, (m) => pintarMoldura(m, 'pendente'));
       const g = scene.add.graphics();
       const numero = desenharIconeEtapa(g, etapa, ingredientes, -6, -4);
       const txt = scene.add
@@ -124,6 +141,7 @@ export class RecipeCard extends Phaser.GameObjects.Container {
         .setOrigin(0.5)
         .setVisible(false);
       ficha.add([moldura, g, txt, check]);
+      assarGraphics(scene, g, `icone:${JSON.stringify(etapa)}`, CAIXA_FICHA);
       this.add(ficha);
       this.fichas.push(ficha);
       this.molduras.push(moldura);
@@ -141,11 +159,7 @@ export class RecipeCard extends Phaser.GameObjects.Container {
     const m = this.molduras[i];
     const f = this.fichas[i];
     if (!m || !f) return;
-    m.clear();
-    m.fillStyle(tipo === 'atual' ? CORES.destaque : 0xfdf6ee, 1);
-    m.fillRoundedRect(-TAM / 2, -TAM / 2, TAM, TAM, 12);
-    m.lineStyle(tipo === 'atual' ? 5 : 3, tipo === 'feita' ? CORES.sucesso : CORES.mesaBorda, 1);
-    m.strokeRoundedRect(-TAM / 2, -TAM / 2, TAM, TAM, 12);
+    trocarTextura(m, this.scene, `moldura:${tipo}`, CAIXA_FICHA, (g) => pintarMoldura(g, tipo));
     f.setAlpha(tipo === 'pendente' ? 0.6 : 1);
   }
 
@@ -181,12 +195,7 @@ export class RecipeCard extends Phaser.GameObjects.Container {
     const f = this.fichas[indice];
     if (!f) return;
     const g = this.brilho;
-    g.clear();
-    g.fillStyle(CORES.destaque, 0.55);
-    g.fillRoundedRect(f.x - TAM / 2 - 8, f.y - TAM / 2 - 8, TAM + 16, TAM + 16, 18);
-    g.lineStyle(4, 0xffffff, 1);
-    g.strokeRoundedRect(f.x - TAM / 2 - 8, f.y - TAM / 2 - 8, TAM + 16, TAM + 16, 18);
-    g.setVisible(true).setAlpha(1);
+    g.setPosition(f.x, f.y).setVisible(true).setAlpha(1);
     this.tweenBrilho?.stop();
     this.tweenBrilho = this.scene.tweens.add({ targets: g, alpha: 0.2, duration: 500, yoyo: true, repeat: -1 });
   }

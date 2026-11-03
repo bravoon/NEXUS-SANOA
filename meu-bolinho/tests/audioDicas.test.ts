@@ -175,3 +175,37 @@ describe('catálogo de falas', () => {
     for (const id of ids) expect(roteiro, `roteiro sem "${id}" (rode npm run roteiro)`).toContain(`\`${id}\``);
   });
 });
+
+import { DetectorDesempenho } from '../src/utils/Qualidade';
+
+describe('Qualidade adaptativa', () => {
+  it('60 fps estáveis: nunca entra no modo leve', () => {
+    const d = new DetectorDesempenho();
+    for (let i = 0; i < 2000; i++) expect(d.quadro(16.7)).toBe(false);
+    expect(d.modoLeve).toBe(false);
+  });
+
+  it('aparelho lento (25 fps) por mais de 3 s: entra no modo leve uma vez', () => {
+    const d = new DetectorDesempenho();
+    let entradas = 0;
+    for (let i = 0; i < 400; i++) if (d.quadro(40)) entradas++;
+    expect(d.modoLeve).toBe(true);
+    expect(entradas).toBe(1);
+  });
+
+  it('engasgo curto (carregamento, 1 s lento) não derruba a qualidade', () => {
+    const d = new DetectorDesempenho();
+    for (let i = 0; i < 200; i++) d.quadro(16.7);
+    for (let i = 0; i < 10; i++) d.quadro(100); // 1 s ruim
+    for (let i = 0; i < 2000; i++) d.quadro(16.7);
+    expect(d.modoLeve).toBe(false);
+  });
+
+  it('aquecimento: lentidão logo após trocar de cena é ignorada', () => {
+    const d = new DetectorDesempenho();
+    for (let i = 0; i < 40; i++) d.quadro(50); // 2 s de carregamento lento
+    d.reiniciarAquecimento();
+    for (let i = 0; i < 1000; i++) d.quadro(16.7);
+    expect(d.modoLeve).toBe(false);
+  });
+});

@@ -4,6 +4,7 @@
  * Todas as animações aqui são cosméticas.
  */
 import Phaser from 'phaser';
+import { assarGraphics } from '../utils/CacheGrafico';
 import { CORES } from '../config/layout';
 import type { EventBus, MapaEventos } from '../systems/events/EventBus';
 import { escurecer } from '../utils/desenho';
@@ -64,6 +65,8 @@ export class Mascot extends Phaser.GameObjects.Container {
     corpo.fillEllipse(-30, -6, 16, 9);
     corpo.fillEllipse(30, -6, 16, 9);
 
+    const corpoImg = assarGraphics(scene, corpo, 'mascote:corpo', { x: -62, y: -92, largura: 124, altura: 160 });
+
     const og = scene.add.graphics();
     for (const lado of [-1, 1]) {
       og.fillStyle(CORES.texto, 1);
@@ -72,8 +75,9 @@ export class Mascot extends Phaser.GameObjects.Container {
       og.fillCircle(lado * 15 - 2, -3, 3);
     }
     this.olhos = scene.add.container(0, -20, [og]);
+    assarGraphics(scene, og, 'mascote:olhos', { x: -26, y: -12, largura: 52, altura: 24 });
     this.boca = scene.add.graphics();
-    this.boneco = scene.add.container(0, 0, [corpo, this.olhos, this.boca]);
+    this.boneco = scene.add.container(0, 0, [corpoImg, this.olhos, this.boca]);
     this.add(this.boneco);
     this.desenharBoca('feliz');
 

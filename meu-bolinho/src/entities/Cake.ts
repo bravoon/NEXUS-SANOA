@@ -10,13 +10,22 @@ import type { Decoracao } from '../systems/decoration/Decoracao';
 import { distancia, type Ponto } from '../utils/math';
 import { clarear, corAssada, escurecer } from '../utils/desenho';
 import { desenharEnfeite } from './Enfeites';
+import { assarGraphics, CacheGrafico, type Caixa } from '../utils/CacheGrafico';
+
+/** Prato + bolo + velas (mundo). */
+const CAIXA_BOLO: Caixa = {
+  x: BOLO.cx - BOLO.pratoRx - 10,
+  y: BOLO.topoY - BOLO.ry - 90,
+  largura: BOLO.pratoRx * 2 + 20,
+  altura: BOLO.ry + 90 + BOLO.alturaLateral + BOLO.pratoRy + 40,
+};
 
 
 export class CakeView {
   private readonly base: Phaser.GameObjects.Graphics;
   private readonly cobertura: Phaser.GameObjects.RenderTexture;
   private readonly mascara: Phaser.GameObjects.Graphics;
-  private readonly enfeites: Phaser.GameObjects.Graphics;
+  private readonly enfeites: CacheGrafico;
   /** Pincel reaproveitado em todos os carimbos. */
   private readonly pincel: Phaser.GameObjects.Image;
 
@@ -27,13 +36,16 @@ export class CakeView {
     this.pincel = scene.make.image({ key: 'pincel', add: false }).setTint(corCobertura);
     this.base = scene.add.graphics().setDepth(10);
     this.desenharBase();
+    // base do bolo + prato: textura estática por cor de massa
+    assarGraphics(scene, this.base, `bolo:base:${this.corMassa}`, CAIXA_BOLO);
     const a = this.areaTopo;
     this.cobertura = scene.add.renderTexture(a.x, a.y, Math.ceil(a.largura), Math.ceil(a.altura)).setOrigin(0, 0).setDepth(11);
     this.mascara = scene.make.graphics({}, false);
     this.mascara.fillStyle(0xffffff, 1);
     this.mascara.fillEllipse(BOLO.cx, BOLO.topoY, BOLO.rx * 2, BOLO.ry * 2);
     this.cobertura.setMask(this.mascara.createGeometryMask());
-    this.enfeites = scene.add.graphics().setDepth(12);
+    this.enfeites = new CacheGrafico(scene, CAIXA_BOLO);
+    this.enfeites.imagem.setDepth(12);
   }
 
   get areaTopo(): Retangulo {
@@ -96,8 +108,9 @@ export class CakeView {
   }
 
   desenharEnfeites(d: Decoracao): void {
-    const g = this.enfeites;
-    g.clear();
-    for (const e of d.itens) desenharEnfeite(g, { ...e, x: BOLO.cx + e.x, y: BOLO.topoY + e.y });
+    // redesenha só quando a decoração muda (um enfeite novo, desfazer, porção de granulado)
+    this.enfeites.desenhar((g) => {
+      for (const e of d.itens) desenharEnfeite(g, { ...e, x: BOLO.cx + e.x, y: BOLO.topoY + e.y });
+    });
   }
 }

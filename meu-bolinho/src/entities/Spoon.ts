@@ -3,6 +3,7 @@
  * A posição do GameObject é a cabeça da colher.
  */
 import Phaser from 'phaser';
+import { assarGraphics } from '../utils/CacheGrafico';
 import { CONFIG_ARRASTAR } from '../config/gameplay';
 import { ALVO_TOQUE_MIN } from '../config/layout';
 import { amortecer, type Ponto } from '../utils/math';
@@ -29,6 +30,7 @@ export class Spoon extends Phaser.GameObjects.Container {
     g.strokeEllipse(0, 0, 58, 44);
     this.carga = scene.add.ellipse(0, -2, 40, 26, 0xffffff).setVisible(false);
     this.add([g, this.carga]);
+    assarGraphics(scene, g, 'colher', { x: -32, y: -26, largura: 64, altura: 158 });
     this.setScale(escala).setDepth(45);
     scene.add.existing(this);
   }

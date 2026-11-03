@@ -1,5 +1,6 @@
 /** Botões grandes reutilizáveis (alvo ≥ 64 px, rótulo com ícone). */
 import Phaser from 'phaser';
+import { assarGraphics } from '../utils/CacheGrafico';
 import { CORES } from '../config/layout';
 import { escurecer } from '../utils/desenho';
 
@@ -23,6 +24,7 @@ export function botaoGrande(
     .text(0, 0, rotulo, { fontFamily: 'Arial Rounded MT Bold, Arial, sans-serif', fontSize: '36px', color: '#ffffff', fontStyle: 'bold', stroke: escurecerCss(cor), strokeThickness: 4 })
     .setOrigin(0.5);
   c.add([g, t]);
+  assarGraphics(cena, g, `botao:${cor}:${largura}x${altura}`, { x: -largura / 2 - 4, y: -altura / 2 - 4, largura: largura + 8, altura: altura + 8 });
   c.setSize(largura, altura).setInteractive({ useHandCursor: true });
   // Só dispara se o toque COMEÇOU neste botão: um dedo que chega solto de outra tela
   // (ex.: depois de segurar o cadeado) não aciona o botão por acidente.

@@ -7,6 +7,7 @@
  * Tweens aqui são só cosméticos (voltar à mesa, trocar de estação, cascas se abrindo).
  */
 import Phaser from 'phaser';
+import { assarGraphics } from '../utils/CacheGrafico';
 import { CONFIG_DESPEJAR, CONFIG_OVO, VAZAO, type Material } from '../config/gameplay';
 import {
   AREA_MEXER,
@@ -47,6 +48,7 @@ import { RAIO_NORMALIZADO, StirStep } from '../systems/steps/StirStep';
 import { corHex } from '../utils/desenho';
 import { amortecer, clamp, distancia, type Ponto } from '../utils/math';
 import { CenaEtapas } from './CenaEtapas';
+import { Qualidade } from '../utils/Qualidade';
 
 type Arrasto =
   | { tipo: 'recipiente'; r: PourContainer; daEtapa: boolean }
@@ -73,12 +75,12 @@ export class CozinhaScene extends CenaEtapas {
   private colherMexer!: Spoon;
   private pratinho!: Phaser.GameObjects.Container;
   private barra!: ProgressBar;
-  private guiaMexer!: Phaser.GameObjects.Graphics;
+  private guiaMexer!: Phaser.GameObjects.Image;
   private particulas!: Phaser.GameObjects.Particles.ParticleEmitter;
   private poeira!: Phaser.GameObjects.Particles.ParticleEmitter;
   private sombraTigela!: Phaser.GameObjects.Image;
   private oitavoMexer = 0;
-  private caixaOvos: Phaser.GameObjects.Graphics | null = null;
+  private caixaOvos: Phaser.GameObjects.Image | null = null;
   private ovos: EggView[] = [];
   private ovoNaBorda: EggView | null = null;
   private forma: PanView | null = null;
@@ -143,8 +145,9 @@ export class CozinhaScene extends CenaEtapas {
     this.colher = new Spoon(this, DESCANSO_COLHER).setVisible(false);
     this.colherMexer = new Spoon(this, { x: TIGELA.cx + 40, y: TIGELA.bordaY - 10 }, 1.15).setVisible(false);
     this.barra = new ProgressBar(this, BARRA_MEXER.x, BARRA_MEXER.y, BARRA_MEXER.largura, BARRA_MEXER.altura).setVisible(false);
-    this.guiaMexer = this.add.graphics().setDepth(31).setVisible(false);
-    this.desenharGuiaMexer();
+    const guia = this.add.graphics().setDepth(31).setVisible(false);
+    this.desenharGuiaMexer(guia);
+    this.guiaMexer = assarGraphics(this, guia, 'guia:mexer', { x: AREA_MEXER.cx - 140, y: AREA_MEXER.cy - 100, largura: 280, altura: 200 });
 
     this.particulas = this.add.particles(0, 0, 'gota', {
       emitting: false,
@@ -309,7 +312,7 @@ export class CozinhaScene extends CenaEtapas {
     g.fillRoundedRect(CAIXA_OVOS.x - largura / 2, CAIXA_OVOS.y - 4, largura, 50, 10);
     g.lineStyle(3, 0x8a6a3a, 1);
     g.strokeRoundedRect(CAIXA_OVOS.x - largura / 2, CAIXA_OVOS.y - 4, largura, 50, 10);
-    this.caixaOvos = g;
+    this.caixaOvos = assarGraphics(this, g, `caixa-ovos:${n}`, { x: CAIXA_OVOS.x - largura / 2 - 4, y: CAIXA_OVOS.y - 8, largura: largura + 8, altura: 58 });
     this.ovos = Array.from({ length: n }, (_, i) => new EggView(this, { x: CAIXA_OVOS.x + (i - (n - 1) / 2) * CAIXA_OVOS.espaco, y: CAIXA_OVOS.y - 6 }));
   }
 
@@ -568,7 +571,7 @@ export class CozinhaScene extends CenaEtapas {
       const ySup = this.tigela.ySuperficie(this.sessao.tigela.total);
       this.emitirParticulas(this.bico, q, r.corConteudo, ctrl.params.material, ySup);
       this.somContinuo(ctrl.params.material, ctrl.vazaoAtual / VAZAO[ctrl.params.material].vazaoMax);
-      if (ctrl.params.material === 'po' && Math.random() < 0.3) this.poeira.emitParticleAt(this.bico.x + (Math.random() - 0.5) * 30, ySup, 1);
+      if (ctrl.params.material === 'po' && !Qualidade.leve && Math.random() < 0.3) this.poeira.emitParticleAt(this.bico.x + (Math.random() - 0.5) * 30, ySup, 1);
       this.runner.notificarProgresso();
     }
     if (ctrl.emExcesso) this.runner.reportarErro('excesso');
@@ -631,7 +634,7 @@ export class CozinhaScene extends CenaEtapas {
   }
 
   private emitirParticulas(bico: Ponto, q: number, cor: number, material: Material, ySuperficie: number): void {
-    this.particulasPendentes += q * PARTICULAS_POR_XICARA;
+    this.particulasPendentes += q * PARTICULAS_POR_XICARA * Qualidade.particulas;
     const n = Math.floor(this.particulasPendentes);
     if (n <= 0) return;
     this.particulasPendentes -= n;
@@ -660,6 +663,7 @@ export class CozinhaScene extends CenaEtapas {
     g.lineStyle(4, CORES.vidroBorda, 1);
     g.strokeEllipse(0, 0, PRATINHO_DESCARTE.raio * 2, PRATINHO_DESCARTE.raio * 0.9);
     c.add([g, this.add.graphics().setName('montes')]);
+    assarGraphics(this, g, 'pratinho', { x: -PRATINHO_DESCARTE.raio - 4, y: -PRATINHO_DESCARTE.raio * 0.45 - 4, largura: PRATINHO_DESCARTE.raio * 2 + 8, altura: PRATINHO_DESCARTE.raio * 0.9 + 8 });
     return c;
   }
 
@@ -674,8 +678,7 @@ export class CozinhaScene extends CenaEtapas {
     m.strokeEllipse(-20 + (i % 3) * 20, -4 - Math.floor(i / 3) * 6, 26, 14);
   }
 
-  private desenharGuiaMexer(): void {
-    const g = this.guiaMexer;
+  private desenharGuiaMexer(g: Phaser.GameObjects.Graphics): void {
     g.lineStyle(5, 0xffffff, 0.7);
     const rx = AREA_MEXER.rx * 0.62, ry = AREA_MEXER.ry * 0.62;
     const pts: Ponto[] = [];

@@ -5,26 +5,31 @@
 import Phaser from 'phaser';
 import { CORES, FORNO } from '../config/layout';
 import type { Ponto } from '../utils/math';
+import { CacheGrafico, imagemVetorial, type Caixa } from '../utils/CacheGrafico';
+
+const CAIXA_CORPO: Caixa = { x: FORNO.x - 10, y: FORNO.y - 10, largura: FORNO.largura + 20, altura: FORNO.altura + 40 };
+const CAIXA_PORTA: Caixa = { x: FORNO.porta.x - 14, y: FORNO.porta.y - 14, largura: FORNO.porta.largura + 28, altura: FORNO.porta.altura + 80 };
+const CAIXA_PAINEL: Caixa = { x: FORNO.luz.x - 80, y: FORNO.luz.y - 30, largura: 160, altura: FORNO.botao.y + FORNO.botao.raio + 40 - (FORNO.luz.y - 30) };
 
 export class OvenView {
-  private readonly corpo: Phaser.GameObjects.Graphics;
-  private readonly porta: Phaser.GameObjects.Graphics;
-  private readonly painel: Phaser.GameObjects.Graphics;
+  private readonly porta: CacheGrafico;
+  private readonly painel: CacheGrafico;
   private aberta = true;
   private chavePorta = '';
   private chavePainel = '';
 
   constructor(private readonly scene: Phaser.Scene) {
-    this.corpo = scene.add.graphics().setDepth(5);
-    this.porta = scene.add.graphics().setDepth(20);
-    this.painel = scene.add.graphics().setDepth(21);
-    this.desenharCorpo();
+    // corpo: textura estática; porta e painel: caches redesenhados só quando o estado muda
+    imagemVetorial(scene, 'forno:corpo', CAIXA_CORPO, (g) => this.desenharCorpo(g)).setPosition(0, 0).setDepth(5);
+    this.porta = new CacheGrafico(scene, CAIXA_PORTA);
+    this.porta.imagem.setDepth(20);
+    this.painel = new CacheGrafico(scene, CAIXA_PAINEL);
+    this.painel.imagem.setDepth(21);
     this.desenharPorta(true, false, 0);
     this.desenharPainel(0, false, false, 0);
   }
 
-  private desenharCorpo(): void {
-    const g = this.corpo;
+  private desenharCorpo(g: Phaser.GameObjects.Graphics): void {
     g.fillStyle(0xe4572e, 1);
     g.fillRoundedRect(FORNO.x, FORNO.y, FORNO.largura, FORNO.altura, 26);
     g.lineStyle(6, 0x8f2d14, 1);
@@ -43,13 +48,17 @@ export class OvenView {
 
   /** @param brilho 0..1 luz interna (assando) */
   desenharPorta(aberta: boolean, ligado: boolean, brilho: number): void {
-    const chave = `${aberta}|${ligado}|${ligado ? brilho.toFixed(2) : 0}`;
+    // brilho quantizado em 8 níveis: a luz pulsa sem redesenhar a cada quadro
+    const nivel = ligado ? Math.round(brilho * 8) / 8 : 0;
+    const chave = `${aberta}|${ligado}|${nivel}`;
     if (chave === this.chavePorta) return;
     this.chavePorta = chave;
     this.aberta = aberta;
-    const g = this.porta;
+    this.porta.desenhar((g) => this.pintarPorta(g, aberta, ligado, nivel));
+  }
+
+  private pintarPorta(g: Phaser.GameObjects.Graphics, aberta: boolean, ligado: boolean, brilho: number): void {
     const p = FORNO.porta;
-    g.clear();
     if (aberta) {
       // porta caída para baixo (aberta), vista de frente como uma faixa
       g.fillStyle(0xc8471f, 1);
@@ -85,12 +94,14 @@ export class OvenView {
    * @param restante 0..1 tempo restante (arco do timer)
    */
   desenharPainel(voltas: number, ligado: boolean, apito: boolean, restante: number): void {
-    const chave = `${voltas.toFixed(3)}|${ligado}|${apito}|${restante.toFixed(3)}`;
+    const chave = `${voltas.toFixed(3)}|${ligado}|${apito}|${restante.toFixed(2)}`;
     if (chave === this.chavePainel) return;
     this.chavePainel = chave;
-    const g = this.painel;
+    this.painel.desenhar((g) => this.pintarPainel(g, voltas, ligado, apito, Math.round(restante * 100) / 100));
+  }
+
+  private pintarPainel(g: Phaser.GameObjects.Graphics, voltas: number, ligado: boolean, apito: boolean, restante: number): void {
     const b = FORNO.botao;
-    g.clear();
     // luz
     g.fillStyle(apito ? CORES.destaque : ligado ? 0xff7a00 : 0x5c4033, 1);
     g.fillCircle(FORNO.luz.x, FORNO.luz.y, 18);
@@ -143,10 +154,12 @@ export class OvenView {
   }
 
   get profundidadePorta(): number {
-    return this.porta.depth;
+    return this.porta.imagem.depth;
   }
 
   sacudir(): void {
-    this.scene.tweens.add({ targets: this.painel, x: { from: -4, to: 4 }, duration: 60, yoyo: true, repeat: 5, onComplete: () => this.painel.setX(0) });
+    const img = this.painel.imagem;
+    const x0 = CAIXA_PAINEL.x;
+    this.scene.tweens.add({ targets: img, x: { from: x0 - 4, to: x0 + 4 }, duration: 60, yoyo: true, repeat: 5, onComplete: () => img.setX(x0) });
   }
 }

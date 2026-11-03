@@ -3,25 +3,30 @@ import Phaser from 'phaser';
 import { CONFIG_ARRASTAR } from '../config/gameplay';
 import { ALVO_TOQUE_MIN, OVO } from '../config/layout';
 import { amortecer, type Ponto } from '../utils/math';
+import { imagemVetorial, trocarTextura, type Caixa } from '../utils/CacheGrafico';
+
+const CAIXA_OVO: Caixa = { x: -OVO.largura / 2 - 4, y: -OVO.altura / 2 - 4, largura: OVO.largura + 8, altura: OVO.altura + 8 };
 
 export class EggView extends Phaser.GameObjects.Container {
-  private readonly g: Phaser.GameObjects.Graphics;
+  private readonly img: Phaser.GameObjects.Image;
 
   constructor(
     scene: Phaser.Scene,
     readonly descanso: Ponto,
   ) {
     super(scene, descanso.x, descanso.y);
-    this.g = scene.add.graphics();
-    this.add(this.g);
-    this.desenhar('inteiro');
+    this.img = imagemVetorial(scene, 'ovo:inteiro', CAIXA_OVO, (g) => this.pintar(g, 'inteiro'));
+    this.add(this.img);
     this.setDepth(35);
     scene.add.existing(this);
   }
 
+  /** Troca para a textura do estado (cada estado é desenhado uma vez por jogo). */
   desenhar(estado: 'inteiro' | 'trincado'): void {
-    const g = this.g;
-    g.clear();
+    trocarTextura(this.img, this.scene, `ovo:${estado}`, CAIXA_OVO, (g) => this.pintar(g, estado));
+  }
+
+  private pintar(g: Phaser.GameObjects.Graphics, estado: 'inteiro' | 'trincado'): void {
     g.fillStyle(0xfff8e7, 1);
     g.lineStyle(3, 0xc9a66b, 1);
     g.fillEllipse(0, 0, OVO.largura, OVO.altura);

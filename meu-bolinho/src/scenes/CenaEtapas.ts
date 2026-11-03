@@ -24,6 +24,7 @@ import { DebugOverlay } from '../utils/DebugOverlay';
 import { AudioSystem, FALAS } from '../systems/audio/AudioSystem';
 import type { Continuo, Efeito } from '../systems/audio/Sintetizador';
 import { FeedbackSystem } from '../systems/feedback/FeedbackSystem';
+import { Qualidade } from '../utils/Qualidade';
 import { HintTimer } from '../systems/hint/HintTimer';
 import { HintPresenter, type DicaEtapa } from '../entities/HintPresenter';
 import type { Ponto } from '../utils/math';
@@ -79,6 +80,7 @@ export abstract class CenaEtapas extends Phaser.Scene {
     this.apresentador = new HintPresenter(this, this.cartao, (id) => this.falar(id));
     this.dicas.atividade();
     this.ultimoRelogio = 0;
+    Qualidade.detector.reiniciarAquecimento();
     // voltar da pausa não pode contar o tempo pausado (forno, dicas)
     this.events.on('resume', () => (this.ultimoRelogio = 0));
 
@@ -123,6 +125,10 @@ export abstract class CenaEtapas extends Phaser.Scene {
     const agora = performance.now();
     this.dtRealMs = this.ultimoRelogio === 0 ? 0 : Math.min(1000, agora - this.ultimoRelogio);
     this.ultimoRelogio = agora;
+    if (Qualidade.detector.quadro(this.dtRealMs)) {
+      console.info(`[qualidade] modo leve (média ${Qualidade.detector.fpsMedio.toFixed(0)} fps)`);
+      this.aoModoLeve();
+    }
     if (!this.saindo) this.atualizar(dt);
     this.audio?.atualizar();
     // inatividade é medida no relógio do sistema (6 s de verdade), não no delta do Phaser,
@@ -183,6 +189,8 @@ export abstract class CenaEtapas extends Phaser.Scene {
   /** Visual específico após uma etapa concluída (ex.: aposentar o recipiente). */
   protected aoConcluirEtapa(_indice: number, _etapa: EtapaResolvida): void {}
   protected aoErro(_erro: TipoErro): void {}
+  /** O aparelho não sustenta a fluidez: reduzir efeitos visuais desta cena. */
+  protected aoModoLeve(): void {}
   /** Receita terminou nesta cena. Padrão: ir ao Resultado. */
   protected aoFinal(): void {
     this.trocarCena('Resultado');
