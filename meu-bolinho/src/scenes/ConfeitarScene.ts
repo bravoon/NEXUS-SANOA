@@ -1,14 +1,16 @@
 /**
- * Confeitar: cobertura com o dedo (CoverageStep dentro do DecorStep), depois enfeites
- * arrastados um a um (presos ao topo do bolo, em camadas) e granulado sacudindo o pote.
- * "Desfazer" remove a última ação. "Pronto!" aparece só após a cobertura mínima e apenas
- * encerra a parte criativa (não executa nada no bolo).
+ * Confeitar:
+ * - [rechear] espalhar o recheio na camada de baixo e assentar a camada de cima com o dedo;
+ * - [decorar] cobertura com o dedo → [glacê: seguir o desenho pontilhado] → enfeites
+ *   arrastados um a um (presos ao topo do bolo, em camadas) e granulado sacudindo o pote.
+ * "Desfazer" remove a última ação. "Pronto!" aparece só depois das partes obrigatórias e
+ * apenas encerra a parte criativa (não executa nada no bolo).
  */
 import Phaser from 'phaser';
 import { assarGraphics } from '../utils/CacheGrafico';
 import { CONFIG_DECORACAO } from '../config/gameplay';
 import { BANDEJA_Y, BARRA_MEXER, BOLO, CORES } from '../config/layout';
-import { CakeView } from '../entities/Cake';
+import { CakeView, DESCANSO_CAMADA } from '../entities/Cake';
 import { sombra, TEXTURAS } from '../art/ArteProcedural';
 import type { DicaEtapa } from '../entities/HintPresenter';
 import { CORES_CONFEITO, desenharEnfeite, desenharIconeEnfeite } from '../entities/Enfeites';
@@ -20,6 +22,10 @@ import type { AmostraPonteiro } from '../systems/gesture/GestureSystem';
 import { ShakeRecognizer } from '../systems/gesture/recognizers/ShakeRecognizer';
 import type { EtapaResolvida } from '../systems/recipe/recipeTypes';
 import { DecorStep } from '../systems/steps/DecorStep';
+import { FillLayerStep } from '../systems/steps/FillLayerStep';
+import { gerarDesenho } from '../systems/steps/TraceStep';
+import { CONFIG_GLACE } from '../config/gameplay';
+import { corHex } from '../utils/desenho';
 import { type Ponto } from '../utils/math';
 import { CenaEtapas } from './CenaEtapas';
 import { Qualidade } from '../utils/Qualidade';
@@ -27,6 +33,9 @@ import { desenharGrade } from './CozinhaScene';
 
 type Arrasto =
   | { tipo: 'cobrir' }
+  | { tipo: 'recheio' }
+  | { tipo: 'camada'; offset: Ponto }
+  | { tipo: 'glace' }
   | { tipo: 'enfeite'; enfeite: TipoEnfeite; g: Phaser.GameObjects.Graphics; cor: number }
   | { tipo: 'granulado' }
   | { tipo: 'pronto' };
@@ -51,6 +60,8 @@ export class ConfeitarScene extends CenaEtapas {
   private readonly sacudir = new ShakeRecognizer();
   private arrasto: Arrasto | null = null;
   private liberado = false;
+  private saco: Ferramenta | null = null;
+  private avisouCamada = false;
   private contadorCor = 0;
 
   constructor() {
@@ -61,6 +72,8 @@ export class ConfeitarScene extends CenaEtapas {
     super.init(dados);
     this.arrasto = null;
     this.liberado = false;
+    this.avisouCamada = false;
+    this.saco = null;
     this.contadorCor = 0;
     this.sacudir.parar();
   }
@@ -74,9 +87,14 @@ export class ConfeitarScene extends CenaEtapas {
     this.add.image(0, 0, TEXTURAS.fundoConfeitar).setOrigin(0).setDepth(0);
     sombra(this, BOLO.cx, BOLO.topoY + BOLO.alturaLateral + 40, BOLO.pratoRx * 2.2, 1);
 
-    const etapa = this.runner.etapa;
-    const cor = etapa?.tipo === 'decorar' ? Number.parseInt(etapa.corCobertura.slice(1), 16) : 0x5a3220;
-    this.bolo = new CakeView(this, cor, Number.parseInt(this.sessao.receita.corMassa.slice(1), 16));
+    const etapas = this.sessao.receita.etapas;
+    const decorar = etapas.find((e) => e.tipo === 'decorar');
+    const rechear = etapas.find((e) => e.tipo === 'rechear');
+    const cor = decorar?.tipo === 'decorar' ? corHex(decorar.corCobertura) : 0x5a3220;
+    this.bolo = new CakeView(this, cor, corHex(this.sessao.receita.corMassa), {
+      camadas: rechear !== undefined,
+      corRecheio: rechear?.tipo === 'rechear' ? corHex(rechear.corRecheio) : undefined,
+    });
     this.espatula = new Ferramenta(this, 'espatula', { x: BOLO.cx + BOLO.rx + 110, y: BOLO.topoY + 40 });
     this.barra = new ProgressBar(this, BARRA_MEXER.x - 120, 130, BARRA_MEXER.largura, BARRA_MEXER.altura, 'nenhum');
 
@@ -122,18 +140,52 @@ export class ConfeitarScene extends CenaEtapas {
     assarGraphics(this, gp, 'botao:pronto', { x: -PRONTO.largura / 2 - 4, y: -PRONTO.altura / 2 - 4, largura: PRONTO.largura + 8, altura: PRONTO.altura + 8 });
   }
 
+  private get rechear(): FillLayerStep | null {
+    const c = this.runner.controlador;
+    return c instanceof FillLayerStep ? c : null;
+  }
+
   protected prepararEtapa(_indice: number, etapa: EtapaResolvida): void {
+    if (etapa.tipo === 'rechear') {
+      this.rechear?.recheio.definirSuperficie(this.bolo.areaRecheio, mascaraElipse(this.bolo.areaRecheio));
+      this.espatula.setPosition(BOLO.cx + BOLO.rx + 110, BOLO.topoY + 80);
+      this.falar('rechear.inicio');
+      return;
+    }
     if (etapa.tipo !== 'decorar') return;
-    const d = this.decor;
-    d?.cobertura.definirSuperficie(this.bolo.areaTopo, mascaraElipse(this.bolo.areaTopo));
+    this.barra.setVisible(true);
+    this.bolo.prepararCobertura();
+    this.decor?.cobertura.definirSuperficie(this.bolo.areaTopo, mascaraElipse(this.bolo.areaTopo));
     this.falar('decorar.cobertura');
   }
 
   // ================================================================ input
 
   protected aoTocar(a: AmostraPonteiro): void {
+    if (this.arrasto) return;
+    const rec = this.rechear;
+    if (rec) {
+      const camada = this.bolo.camadaSuperior;
+      if (!rec.recheioOk && this.bolo.noRecheio(a, 1.15)) {
+        this.arrasto = { tipo: 'recheio' };
+        this.runner.inicioDoGesto();
+        this.espalharRecheio(a);
+      } else if (rec.recheioOk && camada && Math.abs(a.x - camada.x) <= BOLO.rx * camada.scaleX + 20 && Math.abs(a.y - camada.y - 20) <= BOLO.ry * camada.scaleY + 50) {
+        this.arrasto = { tipo: 'camada', offset: { x: camada.x - a.x, y: camada.y - a.y } };
+        this.tweens.add({ targets: camada, scale: 1, duration: 200 }); // cresce ao pegar (cosmético)
+        this.som('pop');
+        this.runner.inicioDoGesto();
+      }
+      return;
+    }
     const d = this.decor;
-    if (this.arrasto || !d) return;
+    if (!d) return;
+    if (d.fase === 'glace' && this.bolo.noTopo(a, 1.2)) {
+      this.arrasto = { tipo: 'glace' };
+      this.runner.inicioDoGesto();
+      this.tracarGlace(a);
+      return;
+    }
 
     if (this.botaoPronto.visible && Math.abs(a.x - PRONTO.x) <= PRONTO.largura / 2 && Math.abs(a.y - PRONTO.y) <= PRONTO.altura / 2) {
       this.arrasto = { tipo: 'pronto' };
@@ -166,7 +218,7 @@ export class ConfeitarScene extends CenaEtapas {
         return;
       }
     }
-    if (this.bolo.noTopo(a, 1.15)) {
+    if (d.fase !== 'glace' && this.bolo.noTopo(a, 1.15)) {
       this.arrasto = { tipo: 'cobrir' };
       this.runner.inicioDoGesto();
       this.cobrir(a);
@@ -177,16 +229,32 @@ export class ConfeitarScene extends CenaEtapas {
     const arr = this.arrasto;
     if (arr?.tipo === 'cobrir') this.cobrir(a);
     if (arr?.tipo === 'granulado') this.sacudirPote(a);
+    if (arr?.tipo === 'recheio') this.espalharRecheio(a);
+    if (arr?.tipo === 'glace') this.tracarGlace(a);
   }
 
   protected aoSoltar(a: AmostraPonteiro): void {
     const arr = this.arrasto;
     this.arrasto = null;
+    if (!arr) return;
+    const rec = this.rechear;
+    if (rec && (arr.tipo === 'recheio' || arr.tipo === 'camada')) {
+      if (arr.tipo === 'recheio') this.espatula.voltar();
+      else this.soltarCamada(rec);
+      this.runner.fimDoGesto();
+      return;
+    }
     const d = this.decor;
-    if (!arr || !d) return;
+    if (!d) return;
     switch (arr.tipo) {
       case 'cobrir':
         this.espatula.voltar();
+        break;
+      case 'glace':
+        this.saco?.voltar();
+        break;
+      case 'recheio':
+      case 'camada':
         break;
       case 'granulado':
         this.pote.setVisible(false);
@@ -211,6 +279,7 @@ export class ConfeitarScene extends CenaEtapas {
       case 'pronto':
         this.botaoPronto.setScale(1);
         if (Math.abs(a.x - PRONTO.x) <= PRONTO.largura / 2 + 20 && Math.abs(a.y - PRONTO.y) <= PRONTO.altura / 2 + 20 && d.finalizar()) {
+          this.sessao.coberturaFinal = d.cobertura.cobertura;
           this.tirarFoto(() => this.runner.fimDoGesto());
           return;
         }
@@ -227,6 +296,52 @@ export class ConfeitarScene extends CenaEtapas {
     this.bolo.pintar(seg.x0, seg.y0, seg.x1, seg.y1, d.cobertura.raioPincel);
     this.somContinuo('pincel', Math.min(1, Math.hypot(seg.x1 - seg.x0, seg.y1 - seg.y0) / 20));
     this.runner.notificarProgresso();
+  }
+
+  private espalharRecheio(a: Ponto): void {
+    const rec = this.rechear;
+    if (!rec) return;
+    const seg = rec.recheio.pintar(a.x, a.y);
+    if (!seg) return;
+    this.bolo.pintarRecheio(seg.x0, seg.y0, seg.x1, seg.y1, rec.recheio.raioPincel);
+    this.somContinuo('pincel', Math.min(1, Math.hypot(seg.x1 - seg.x0, seg.y1 - seg.y0) / 20));
+    this.runner.notificarProgresso();
+  }
+
+  /** A criança soltou a camada de cima: assenta onde caiu (se perto do bolo) ou volta. */
+  private soltarCamada(rec: FillLayerStep): void {
+    const c = this.bolo.camadaSuperior;
+    if (!c) return;
+    if (rec.soltarCamada(c.x - BOLO.cx, c.y - BOLO.topoY)) {
+      this.bolo.assentarCamada(c.x, c.y);
+      this.som('tum');
+      this.estrelas(c.x, c.y - 30, 8);
+      this.falar('rechear.ok');
+    } else {
+      this.tweens.add({ targets: c, x: DESCANSO_CAMADA.x, y: DESCANSO_CAMADA.y, scale: DESCANSO_CAMADA.escala, duration: 350, ease: 'Back.Out' });
+      this.falar('rechear.longe', 'neutro');
+    }
+  }
+
+  private tracarGlace(a: Ponto): void {
+    const d = this.decor;
+    const traco = d?.tracoGlace;
+    if (!d || !d.glace || !traco) return;
+    const antes = traco.fracao;
+    const seg = traco.tracar(a.x, a.y);
+    this.bolo.pintarGlace(corHex(d.glace.cor), seg.x0, seg.y0, seg.x1, seg.y1, CONFIG_GLACE.raioTracoPx);
+    this.somContinuo('pincel', Math.min(1, Math.hypot(seg.x1 - seg.x0, seg.y1 - seg.y0) / 20));
+    if (traco.fracao > antes) this.runner.notificarProgresso();
+  }
+
+  /** Cobertura pronta e a receita pede glacê: monta o desenho no topo do bolo. */
+  private prepararGlace(d: DecorStep): void {
+    if (!d.glace || d.tracoGlace) return;
+    const t = this.bolo.topo;
+    d.definirGlace(gerarDesenho(d.glace.desenho, t.x, t.y, BOLO.rx, BOLO.ry));
+    this.saco = new Ferramenta(this, 'saco', { x: BOLO.cx + BOLO.rx + 110, y: BOLO.topoY + 60 });
+    this.espatula.setVisible(false);
+    this.falar('glace.inicio');
   }
 
   private sacudirPote(a: AmostraPonteiro): void {
@@ -286,15 +401,44 @@ export class ConfeitarScene extends CenaEtapas {
     if (arr?.tipo === 'cobrir') this.espatula.seguir({ x: this.dedo.x + 10, y: this.dedo.y + 30 }, dt);
     if (arr?.tipo === 'enfeite') arr.g.setPosition(this.dedo.x, this.dedo.y - 10);
     if (arr?.tipo === 'granulado') this.pote.setPosition(this.dedo.x, this.dedo.y);
+    if (arr?.tipo === 'recheio') this.espatula.seguir({ x: this.dedo.x + 10, y: this.dedo.y + 30 }, dt);
+    if (arr?.tipo === 'glace') this.saco?.seguir(this.dedo, dt);
+    if (arr?.tipo === 'camada' && this.bolo.camadaSuperior) {
+      const c = this.bolo.camadaSuperior;
+      const k = 1 - Math.exp(-18 * (dt / 1000));
+      c.x += (this.dedo.x + arr.offset.x - c.x) * k;
+      c.y += (this.dedo.y + arr.offset.y - c.y) * k;
+    }
+
+    const rec = this.rechear;
+    if (rec) {
+      this.barra.definir(rec.progresso, 0);
+      if (rec.recheioOk && !this.avisouCamada) {
+        this.avisouCamada = true;
+        this.falar('rechear.camada');
+        const c = this.bolo.camadaSuperior;
+        if (c) this.tweens.add({ targets: c, angle: { from: -5, to: 5 }, duration: 120, yoyo: true, repeat: 2, onComplete: () => c.setAngle(0) });
+      }
+      return;
+    }
     if (!d) return;
-    this.barra.definir(d.cobertura.progresso, 0);
-    if (d.coberturaOk && !this.liberado) {
+    this.barra.definir(d.progresso, 0);
+    if (d.coberturaOk && d.glace && !d.tracoGlace) this.prepararGlace(d);
+    const traco = d.tracoGlace;
+    if (traco && d.fase === 'glace') this.bolo.desenharGuia(traco.pontos, (i) => traco.ehVisitado(i), traco.fracao.toFixed(3));
+    if (d.fase === 'enfeitar' && !this.liberado) {
       this.liberado = true;
       this.barra.setVisible(false);
+      this.bolo.apagarGuia();
+      this.saco?.setVisible(false);
+      this.espatula.setVisible(true);
       this.tweens.add({ targets: [this.bandeja, this.botaoDesfazer], alpha: 1, duration: 300 });
       this.botaoPronto.setVisible(true).setScale(0.3);
       this.tweens.add({ targets: this.botaoPronto, scale: 1, duration: 400, ease: 'Back.Out' });
-      this.falar('decorar.liberado');
+      if (d.glace) {
+        this.som('sucesso');
+        this.falar('glace.ok');
+      } else this.falar('decorar.liberado');
     }
   }
 
@@ -308,7 +452,24 @@ export class ConfeitarScene extends CenaEtapas {
 
   protected dicaAtual(): DicaEtapa | null {
     const ficha = this.runner.estado.indice;
-    const topo = { x: BOLO.cx, y: BOLO.topoY };
+    const topo = this.bolo.topo;
+    const rec = this.rechear;
+    if (rec) {
+      const baixo = { x: BOLO.cx, y: this.bolo.areaRecheio.y + BOLO.ry };
+      if (!rec.recheioOk) return { ficha, destaques: [baixo], demo: { tipo: 'esfregar', centro: baixo, largura: BOLO.rx * 1.4, altura: BOLO.ry * 1.2 }, fala: 'rechear.dica_recheio' };
+      const de = { x: DESCANSO_CAMADA.x, y: DESCANSO_CAMADA.y };
+      return {
+        ficha,
+        destaques: [de],
+        demo: { tipo: 'arrastar', de, para: { x: BOLO.cx, y: BOLO.topoY }, fantasma: (g) => { g.fillStyle(0xd9a05b, 1); g.fillEllipse(0, 0, BOLO.rx * 2, BOLO.ry * 2); } },
+        fala: 'rechear.dica_camada',
+      };
+    }
+    const d = this.decor;
+    if (d?.fase === 'glace' && d.tracoGlace) {
+      const pts = d.tracoGlace.pontos.filter((_, i) => i % 4 === 0);
+      return { ficha, destaques: [topo], demo: { tipo: 'caminho', pontos: pts }, fala: 'glace.dica' };
+    }
     if (!this.liberado) return { ficha, destaques: [topo], demo: { tipo: 'esfregar', centro: topo, largura: BOLO.rx * 1.4, altura: BOLO.ry * 1.2 }, fala: 'decorar.dica_cobertura' };
     const vela = BANDEJA.find((b) => b.tipo === 'vela')!;
     const pote = BANDEJA.find((b) => b.tipo === 'granulado')!;

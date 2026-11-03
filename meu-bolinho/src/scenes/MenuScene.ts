@@ -46,7 +46,7 @@ export class MenuScene extends Phaser.Scene {
       audio?.desbloquear();
       audio?.efeito('pop');
       audio?.falar('escolher_receita');
-      this.scene.start('SelecaoReceita');
+      this.scene.start('Trilha');
     }, 320, 110);
     botaoGrande(this, LARGURA / 2 + 190, 570, '▦', 0xcc79a7, () => {
       audio?.desbloquear();

@@ -121,3 +121,24 @@ export const CONFIG_DECORACAO = {
   maxItens: 120,
   granulosPorPorcao: 10,
 } as const;
+
+/** Bater claras (batedor em vai e vem). */
+export const CONFIG_BATER = {
+  /** Um movimento (de uma ponta à outra) precisa ter pelo menos isto (px). */
+  amplitudeMin: 40,
+  /** Velocidade média mínima do movimento (px/ms): devagar demais não "bate". */
+  velocidadeMin: 0.35,
+  /** Duas batidas não contam em menos de (ms): evita contar 2× um traço na diagonal. */
+  intervaloMinMs: 110,
+} as const;
+
+/** Rechear: tolerância (px) para assentar a camada de cima sobre a de baixo. */
+export const CONFIG_RECHEAR = {
+  toleranciaCamadaPx: 36,
+} as const;
+
+/** Escrever com glacê: espaçamento (px) dos pontos de controle do desenho. */
+export const CONFIG_GLACE = {
+  espacamentoPx: 10,
+  raioTracoPx: 7,
+} as const;

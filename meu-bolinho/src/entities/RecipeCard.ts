@@ -86,7 +86,30 @@ export function desenharIconeEtapa(
       g.fillStyle(t, 1);
       g.fillTriangle(x - 7, y - 10, x + 7, y - 10, x, y - 2);
       return '';
+    case 'bater':
+      // batedor de arame
+      g.lineStyle(3, 0x8a96a3, 1);
+      g.strokeEllipse(x, y - 6, 18, 30);
+      g.strokeEllipse(x, y - 6, 8, 30);
+      g.fillStyle(0x8a6440, 1);
+      g.fillRect(x - 3, y + 8, 6, 14);
+      return String(etapa.batidas);
+    case 'rechear':
+      // duas camadas com recheio no meio
+      g.fillStyle(0xd9a05b, 1);
+      g.fillRect(x - 18, y + 4, 36, 10);
+      g.fillRect(x - 18, y - 14, 36, 10);
+      g.fillStyle(corHex(etapa.corRecheio), 1);
+      g.fillRect(x - 18, y - 4, 36, 8);
+      return '';
     case 'decorar':
+      if (etapa.glace) {
+        // saco de confeitar
+        g.fillStyle(0xffffff, 1);
+        g.lineStyle(2, 0x6b5a4e, 1);
+        g.fillTriangle(x + 6, y - 22, x + 22, y - 10, x + 10, y - 4);
+        g.strokeTriangle(x + 6, y - 22, x + 22, y - 10, x + 10, y - 4);
+      }
       g.fillStyle(0xd9a05b, 1);
       g.fillRect(x - 18, y - 2, 36, 16);
       g.fillStyle(corHex(etapa.corCobertura), 1);

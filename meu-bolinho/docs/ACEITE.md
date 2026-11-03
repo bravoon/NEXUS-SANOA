@@ -20,6 +20,8 @@ Como verificar tudo: `npm test` (unitários, Node) e `npm run e2e` (navegador; v
 | Narração em fila, sem sobreposição | FilaNarracao: nunca 2 simultâneas, sem eco, prioridade | `tests/audioDicas.test.ts` |
 | Galeria e progresso em localStorage, sem quebrar | Limite de 30 bolos, cota cheia, dado corrompido, storage bloqueado; navegador: bolo salvo e sobrevive ao recarregar | `tests/galeria.test.ts`, e2e "Galeria e progresso" |
 | Alvos de toque ≥ 64 px, acessível a daltonismo | Layout testado para 1–8 potes; cada ingrediente tem forma única (não depende de cor) | `tests/layout.test.ts`, `tests/recipeLoader.test.ts` |
+| Trilha: fase seguinte só libera ao terminar a anterior; estrelas sem punição | `montarTrilha`/`avaliar` testados com a `trilha.json` real; navegador: fase 2 abre e fase 3 continua trancada após a fase 1; 3 estrelas no Bolo de Aniversário | `tests/fases.test.ts`, `tests/e2e/fases.cjs` |
+| Mecânicas novas sem auto-complete (bater, rechear, glacê) | Linha reta/parado = 0 batidas e parar congela a espuma; camada solta longe volta, perto assenta onde caiu; rabisco fora do desenho = 0% e "Pronto!" só depois do glacê | `tests/fases.test.ts`, `tests/e2e/fases.cjs` |
 | Sem backend, sem coleta de dados, sem anúncios, sem compras | Nenhuma chamada de rede no código (só arquivos do próprio build); dados só no localStorage | revisão de código, `src/systems/save` |
 
 ## Desempenho

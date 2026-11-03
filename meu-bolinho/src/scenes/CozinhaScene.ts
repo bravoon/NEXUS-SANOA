@@ -43,6 +43,7 @@ import type { EtapaResolvida } from '../systems/recipe/recipeTypes';
 import { CoverageStep } from '../systems/steps/CoverageStep';
 import { EggStep } from '../systems/steps/EggStep';
 import { PourOutStep } from '../systems/steps/PourOutStep';
+import { BeatStep } from '../systems/steps/BeatStep';
 import { PourStep } from '../systems/steps/PourStep';
 import { RAIO_NORMALIZADO, StirStep } from '../systems/steps/StirStep';
 import { corHex } from '../utils/desenho';
@@ -57,7 +58,8 @@ type Arrasto =
   | { tipo: 'ovo'; ovo: EggView }
   | { tipo: 'tocar_ovo' }
   | { tipo: 'untar' }
-  | { tipo: 'tigela'; offset: Ponto };
+  | { tipo: 'tigela'; offset: Ponto }
+  | { tipo: 'bater' };
 
 type Estacao = 'tigela' | 'forma';
 
@@ -85,6 +87,7 @@ export class CozinhaScene extends CenaEtapas {
   private ovoNaBorda: EggView | null = null;
   private forma: PanView | null = null;
   private manteiga: Ferramenta | null = null;
+  private batedor: Ferramenta | null = null;
 
   private readonly cores: Record<string, number> = {};
   private readonly inclinacao = new TiltRecognizer();
@@ -220,6 +223,12 @@ export class CozinhaScene extends CenaEtapas {
         this.falar('massa.inicio');
         this.tweens.add({ targets: this.tigela, angle: { from: -6, to: 6 }, duration: 120, yoyo: true, repeat: 2, onComplete: () => this.tigela.setAngle(0) });
         break;
+      case 'bater':
+        this.irParaEstacao('tigela');
+        this.batedor = new Ferramenta(this, 'batedor', { x: TIGELA.cx + TIGELA.raio + 70, y: TIGELA.bordaY + 40 });
+        this.barra.setVisible(true);
+        this.falar('bater.inicio');
+        break;
       default:
         break;
     }
@@ -247,6 +256,12 @@ export class CozinhaScene extends CenaEtapas {
         break;
       case 'despejar_massa':
         this.barra.setVisible(false);
+        break;
+      case 'bater':
+        this.batedor?.destroy();
+        this.batedor = null;
+        this.barra.setVisible(false);
+        this.falar('bater.ok');
         break;
       default:
         break;
@@ -370,6 +385,13 @@ export class CozinhaScene extends CenaEtapas {
       return;
     }
 
+    if (etapa?.tipo === 'bater' && (this.tigela.dentroAreaMexer(a.x, a.y) || this.batedor?.contem(a))) {
+      this.arrasto = { tipo: 'bater' };
+      this.runner.inicioDoGesto();
+      this.alimentarBater(a);
+      return;
+    }
+
     if (etapa?.tipo === 'despejar_massa' && this.tigela.contemPonto(a.x, a.y)) {
       this.tweens.killTweensOf(this.tigela);
       this.arrasto = { tipo: 'tigela', offset: { x: this.tigela.x - a.x, y: this.tigela.y - a.y } };
@@ -382,6 +404,7 @@ export class CozinhaScene extends CenaEtapas {
     const arr = this.arrasto;
     if (arr?.tipo === 'mexer') this.alimentarMexer(a);
     if (arr?.tipo === 'untar') this.pintarManteiga(a);
+    if (arr?.tipo === 'bater') this.alimentarBater(a);
   }
 
   protected aoSoltar(): void {
@@ -414,6 +437,10 @@ export class CozinhaScene extends CenaEtapas {
         this.runner.fimDoGesto();
         break;
       }
+      case 'bater':
+        this.batedor?.voltar();
+        this.runner.fimDoGesto();
+        break;
       case 'tocar_ovo':
       case 'colher':
       case 'mexer':
@@ -480,6 +507,19 @@ export class CozinhaScene extends CenaEtapas {
     }
   }
 
+  private alimentarBater(a: AmostraPonteiro): void {
+    const ctrl = this.runner.controlador;
+    if (!(ctrl instanceof BeatStep)) return;
+    const dentro = this.tigela.dentroAreaMexer(a.x, a.y);
+    if (dentro) this.somContinuo('mexer', 0.8);
+    if (ctrl.amostra(a.x, a.y, a.t, dentro) > 0) {
+      this.runner.notificarProgresso();
+      if (ctrl.batidas % 2 === 0) this.som('colher');
+      // a tigela sacode a cada batida (cosmético, só acontece com input)
+      this.tigela.angle = ctrl.batidas % 2 ? 2 : -2;
+    }
+  }
+
   private pintarManteiga(a: AmostraPonteiro): void {
     const ctrl = this.runner.controlador;
     if (!(ctrl instanceof CoverageStep) || !this.forma) return;
@@ -518,6 +558,7 @@ export class CozinhaScene extends CenaEtapas {
     if (arr?.tipo === 'ovo') arr.ovo.seguir(this.dedo, dt);
     if (arr?.tipo === 'untar') this.manteiga?.seguir({ x: this.dedo.x, y: this.dedo.y + 10 }, dt);
     if (arr?.tipo === 'tigela') this.atualizarTigela(arr.offset, dt);
+    if (arr?.tipo === 'bater') this.batedor?.seguir(this.dedo, dt);
 
     const ctrl = this.runner.controlador;
     let redemoinho = 0;
@@ -525,11 +566,14 @@ export class CozinhaScene extends CenaEtapas {
       this.sessao.mistura = ctrl.progresso;
       redemoinho = ctrl.acumulador.anguloAtual;
       this.barra.definir(ctrl.progresso, ctrl.progressoPendente);
+    } else if (ctrl instanceof BeatStep) {
+      this.sessao.espuma = Math.max(this.sessao.espuma, ctrl.progresso);
+      this.barra.definir(ctrl.progresso, 0);
     } else if (ctrl instanceof CoverageStep || ctrl instanceof PourOutStep) {
       this.barra.definir(ctrl.progresso, 0);
     }
     const cascas = ctrl instanceof EggStep ? ctrl.cascasNaTigela : 0;
-    this.tigela.desenhar(this.sessao.tigela, this.cores, this.sessao.mistura, redemoinho, cascas);
+    this.tigela.desenhar(this.sessao.tigela, this.cores, this.sessao.mistura, redemoinho, cascas, this.sessao.espuma);
     this.forma?.desenhar(this.sessao.forma);
   }
 
@@ -774,6 +818,13 @@ export class CozinhaScene extends CenaEtapas {
           },
           fala: 'massa.dica',
         };
+      case 'bater':
+        return {
+          ficha,
+          destaques: [{ x: TIGELA.cx, y: TIGELA.bordaY + 30 }],
+          demo: { tipo: 'sacudir', ponto: { x: TIGELA.cx - 40, y: TIGELA.bordaY + 30 } },
+          fala: 'bater.dica',
+        };
       default:
         return null;
     }
@@ -847,6 +898,9 @@ export class CozinhaScene extends CenaEtapas {
     if (ctrl instanceof CoverageStep) {
       linhas.push(`Untar: cobertura ${(ctrl.cobertura * 100).toFixed(1)}% / meta ${(ctrl.meta * 100).toFixed(0)}%`);
       desenharGrade(g, ctrl);
+    }
+    if (ctrl instanceof BeatStep) {
+      linhas.push(`Bater: ${ctrl.batidas}/${ctrl.meta} batidas  espuma ${(this.sessao.espuma * 100).toFixed(0)}%`);
     }
     if (ctrl instanceof PourOutStep) {
       linhas.push(

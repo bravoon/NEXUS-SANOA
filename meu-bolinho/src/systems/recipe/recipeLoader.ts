@@ -7,8 +7,10 @@
  */
 import { CONFIG_DESPEJAR_MASSA, CONFIG_FORNO } from '../../config/gameplay';
 import {
+  DESENHOS_GLACE,
   DIFICULDADES,
   TIPOS_ETAPA,
+  type DesenhoGlace,
   type Dificuldade,
   type EtapaJson,
   type EtapaResolvida,
@@ -55,7 +57,7 @@ export function validarReceita(bruto: unknown): ReceitaJson {
     if (e['apenas'] !== undefined && !DIFICULDADES.includes(e['apenas'] as Dificuldade)) {
       throw new ErroReceita(id, `etapa ${i}: "apenas" inválido`);
     }
-    for (const campo of ['quantidade', 'tolerancia', 'voltas', 'cobertura', 'tempoSegundos', 'restanteMax'] as const) {
+    for (const campo of ['quantidade', 'tolerancia', 'voltas', 'cobertura', 'tempoSegundos', 'restanteMax', 'batidas'] as const) {
       const v = e[campo];
       if (v !== undefined && (typeof v !== 'number' || !(v > 0))) {
         throw new ErroReceita(id, `etapa ${i}: "${campo}" deve ser número > 0`);
@@ -65,8 +67,11 @@ export function validarReceita(bruto: unknown): ReceitaJson {
       const v = e[campo];
       if (typeof v === 'number' && v > 1) throw new ErroReceita(id, `etapa ${i}: "${campo}" deve ser ≤ 1`);
     }
-    if (e['corCobertura'] !== undefined && !ehCor(e['corCobertura'])) {
-      throw new ErroReceita(id, `etapa ${i}: "corCobertura" deve ser #RRGGBB`);
+    for (const campo of ['corCobertura', 'corRecheio', 'corGlace'] as const) {
+      if (e[campo] !== undefined && !ehCor(e[campo])) throw new ErroReceita(id, `etapa ${i}: "${campo}" deve ser #RRGGBB`);
+    }
+    if (e['glace'] !== undefined && !DESENHOS_GLACE.includes(e['glace'] as DesenhoGlace)) {
+      throw new ErroReceita(id, `etapa ${i}: "glace" deve ser um de ${DESENHOS_GLACE.join(', ')}`);
     }
     switch (tipo) {
       case 'despejar':
@@ -113,7 +118,11 @@ function validarOrdem(id: string, etapas: EtapaResolvida[]): void {
         exigir(i, e.tipo, ['forno'], 'o bolo ainda não foi assado');
         break;
       case 'decorar':
+      case 'rechear':
         exigir(i, e.tipo, ['desenformar'], 'o bolo ainda está na forma');
+        break;
+      case 'bater':
+        exigir(i, e.tipo, ['despejar', 'quebrar_ovo'], 'a tigela ainda está vazia');
         break;
       default:
         break;
@@ -159,8 +168,19 @@ export function resolverReceita(
         return { tipo: 'forno', tempoSegundos: e.tempoSegundos ?? CONFIG_FORNO.tempoPadraoSeg };
       case 'desenformar':
         return { tipo: 'desenformar' };
+      case 'bater':
+        return { tipo: 'bater', batidas: e.batidas ?? padrao.batidas };
+      case 'rechear':
+        return { tipo: 'rechear', cobertura: e.cobertura ?? padrao.cobertura, corRecheio: e.corRecheio ?? '#E57373' };
       case 'decorar':
-        return { tipo: 'decorar', cobertura: e.cobertura ?? padrao.cobertura, corCobertura: e.corCobertura ?? '#5A3220' };
+        return {
+          tipo: 'decorar',
+          cobertura: e.cobertura ?? padrao.cobertura,
+          corCobertura: e.corCobertura ?? '#5A3220',
+          glace: e.glace
+            ? { desenho: e.glace as DesenhoGlace, cor: e.corGlace ?? '#FFFFFF', tracado: padrao.tracado, tolerancia: padrao.toleranciaGlace }
+            : null,
+        };
     }
   });
 

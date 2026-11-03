@@ -19,6 +19,9 @@ import { PourOutStep } from '../src/systems/steps/PourOutStep';
 import { PourStep } from '../src/systems/steps/PourStep';
 import { StirStep } from '../src/systems/steps/StirStep';
 import { UnmoldStep } from '../src/systems/steps/UnmoldStep';
+import { BeatStep } from '../src/systems/steps/BeatStep';
+import { FillLayerStep } from '../src/systems/steps/FillLayerStep';
+import { gerarDesenho, reamostrar } from '../src/systems/steps/TraceStep';
 import { circulo } from './helpers';
 
 const dirReceitas = join(__dirname, '../src/data/recipes');
@@ -117,9 +120,33 @@ function jogar(dificuldade: Dificuldade, rng: () => number, bruto: unknown = jso
       c.moverSwipe(0, 100, t + 100);
       c.terminarSwipe(0, 200, t + 200);
       r.fimDoGesto();
+    } else if (c instanceof BeatStep) {
+      // vai e vem rápido; um gesto curto não termina, parar no meio congela
+      const bater = (n: number) => {
+        c.amostra(0, 0, (t += 1000), true);
+        for (let i = 0; i < n; i++) for (let k = 1; k <= 6; k++) c.amostra((i % 2 === 0 ? k : 6 - k) * 15, 0, (t += 20), true);
+      };
+      gestoIncompleto(() => bater(3));
+      r.inicioDoGesto();
+      while (!c.metaAtingida()) bater(4);
+      r.fimDoGesto();
+    } else if (c instanceof FillLayerStep) {
+      c.recheio.definirSuperficie(area, () => true);
+      gestoIncompleto(() => pintarTudo(c.recheio));
+      gestoIncompleto(() => expect(c.soltarCamada(200, 0)).toBe(false)); // longe: não assenta
+      r.inicioDoGesto();
+      expect(c.soltarCamada(4, 2)).toBe(true);
+      r.fimDoGesto();
     } else if (c instanceof DecorStep) {
       c.cobertura.definirSuperficie(area, () => true);
       gestoIncompleto(() => pintarTudo(c.cobertura));
+      if (c.glace) {
+        expect(c.finalizar()).toBe(false); // sem o glacê, "Pronto!" não vale
+        const caminho = gerarDesenho(c.glace.desenho, 100, 100, 100, 100);
+        c.definirGlace(caminho);
+        gestoIncompleto(() => c.tracoGlace!.tracar(caminho[0]!.x, caminho[0]!.y));
+        gestoIncompleto(() => { for (const p of reamostrar(caminho, 3)) c.tracoGlace!.tracar(p.x, p.y); });
+      }
       gestoIncompleto(() => c.decoracao.adicionar([{ tipo: 'vela', x: 0, y: 0, rot: 0, cor: 0 }]));
       r.inicioDoGesto();
       expect(c.finalizar()).toBe(true);
@@ -154,7 +181,7 @@ describe('receita completa (fofinho.json)', () => {
 
 describe('toda receita em data/recipes joga do início ao fim só com input (adicionar receita = adicionar JSON)', () => {
   const arquivos = readdirSync(dirReceitas).filter((f) => f.endsWith('.json'));
-  it('há pelo menos 2 receitas', () => expect(arquivos.length).toBeGreaterThanOrEqual(2));
+  it('há as 8 receitas da trilha', () => expect(arquivos.length).toBeGreaterThanOrEqual(8));
   for (const arq of arquivos) {
     for (const d of ['facil', 'confeiteiro'] as const) {
       it(`${arq} [${d}]`, () => {

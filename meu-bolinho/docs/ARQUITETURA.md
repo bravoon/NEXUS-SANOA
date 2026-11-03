@@ -24,7 +24,7 @@ corre por tempo, mas só depois que a criança fechou a porta e girou o timer; e
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │ Cenas Phaser (apresentação)                                   │
-│ Boot → Preload → Menu → SelecaoReceita → Cozinha → Forno      │
+│ Boot → Preload → Menu → Trilha → Cozinha → Forno              │
 │        → Confeitar → Resultado → Galeria                      │
 ├───────────────────────────────────────────────────────────────┤
 │ RecipeRunner (FSM data-driven)  ←  recipes/*.json + difficulty│
@@ -72,15 +72,16 @@ stateDiagram-v2
     [*] --> Boot
     Boot --> Preload : config + dispositivo detectado
     Preload --> Menu : atlas/áudio carregados
-    Menu --> SelecaoReceita : tocar "Jogar"
+    Menu --> Trilha : tocar "Jogar"
     Menu --> Galeria : tocar "Galeria"
     Menu --> AreaPais : segurar 2 s (cadeado)
     AreaPais --> Menu
-    SelecaoReceita --> Cozinha : receita + dificuldade escolhidas
+    Trilha --> Cozinha : fase liberada + dificuldade escolhidas
     Cozinha --> Forno : próxima etapa é "forno"
     Forno --> Confeitar : próxima etapa é "decorar"
     Confeitar --> Resultado : criança toca "Pronto!" (só aparece após cobertura ≥ meta)
     Resultado --> Galeria : salvar bolo
+    Resultado --> Trilha : estrelas registradas; próxima fase liberada
     Resultado --> Menu
     Galeria --> Menu
 
@@ -381,3 +382,31 @@ tela não aciona nada).
   por frame e zerado ao sair da pausa). O delta do Phaser é suavizado e o da física é limitado a
   50 ms; em aparelho lento eles atrasariam as dicas e o forno em relação ao tempo real.
 - **Validação de ordem** das etapas no carregamento da receita (ver `validarOrdem`).
+
+## 15. Trilha de fases, estrelas e mecânicas novas
+
+- **Trilha** (`systems/progresso/Trilha.ts`, puro): a ordem vem de `src/data/trilha.json`
+  (receitas fora da lista entram no fim). `montarTrilha` calcula, para cada fase, se está
+  liberada (fase 1 sempre; as demais quando a anterior tem ≥ 1 estrela, ou com a preferência
+  `liberarFases` da área dos pais), as estrelas e as **novidades** (mecânicas que aparecem pela
+  primeira vez nela, via `mecanicasDa`). Estrelas ficam em `meu-bolinho:trilha:v1`; registrar
+  guarda sempre o melhor resultado (nunca diminui).
+- **Avaliação** (`systems/progresso/Avaliacao.ts`): 1 estrela por terminar, +1 se
+  `sessao.excessos === 0` (contado pelo evento `etapa:erro` de excesso), +1 se cobertura final
+  ≥ 0,95 e ≥ 3 enfeites. Não há perda de estrela nem fase "reprovada".
+- **Etapas novas** (dados: `tipo` no JSON da receita; parâmetros em `difficulty.json`):
+  - `bater` → `BeatStep` + `WhiskRecognizer`: conta inversões de direção por eixo com amplitude
+    ≥ 40 px, velocidade ≥ 0,35 px/ms e ≥ 110 ms entre batidas; meta `batidas` (12 / 20). Requer
+    ovo ou líquido antes (validarOrdem).
+  - `rechear` → `FillLayerStep`: espalhar o recheio (`CoverageGrid`, meta de cobertura) e soltar a
+    camada de cima; `soltarCamada(dx, dy)` só assenta dentro de 36 px e guarda o deslocamento real
+    (sem snap). Requer `desenformar` antes. Cena: Confeitar.
+  - `decorar` com `glace` → `DecorStep` em três fases: `cobrir` → `glace` → `enfeitar`.
+    `TraceStep` reamostra o desenho (`coracao`, `estrela`, `circulo`, `onda`) a cada 10 px; um
+    ponto só conta quando o dedo passa a ≤ tolerância (28 / 18 px); meta `tracado` (80% / 92%).
+    O botão "Pronto!" só existe na fase `enfeitar`.
+- **Cenas**: `TrilhaScene` (caminho em serpentina, cadeados, estrelas, selo NOVO com ícone da
+  mecânica, popup Fácil/Confeiteiro) substitui a antiga SelecaoReceita; o Resultado anima as
+  estrelas ganhas e o selo "Fase N liberada!".
+- **Testes**: `tests/fases.test.ts` (reconhecedor, controladores, avaliação, trilha real) e
+  `tests/e2e/fases.cjs` (liberação, bater, rechear, glacê e estrelas no navegador).

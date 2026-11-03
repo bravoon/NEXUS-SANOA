@@ -47,5 +47,19 @@
     "corConteudo": "#F7DC6F",
     "corRecipiente": "#F0E442",
     "simbolo": "tablete"
+  },
+  "suco_laranja": {
+    "nome": "suco de laranja",
+    "material": "liquido",
+    "corConteudo": "#F9B233",
+    "corRecipiente": "#E67E22",
+    "simbolo": "hexagono"
+  },
+  "cenoura": {
+    "nome": "cenoura",
+    "material": "po",
+    "corConteudo": "#F08A24",
+    "corRecipiente": "#D35400",
+    "simbolo": "folha"
   }
 }

@@ -13,7 +13,7 @@ import { FornoScene } from './scenes/FornoScene';
 import { MenuScene } from './scenes/MenuScene';
 import { PausaScene } from './scenes/PausaScene';
 import { ResultadoScene } from './scenes/ResultadoScene';
-import { SelecaoReceitaScene } from './scenes/SelecaoReceitaScene';
+import { TrilhaScene } from './scenes/TrilhaScene';
 
 const jogo = new Phaser.Game({
   type: Phaser.AUTO,
@@ -25,7 +25,7 @@ const jogo = new Phaser.Game({
   input: { activePointers: 1 },
   // celular: sem menu de contexto no toque longo (segurar o cadeado/pausa)
   disableContextMenu: true,
-  scene: [BootScene, PreloadScene, MenuScene, AreaPaisScene, SelecaoReceitaScene, CozinhaScene, FornoScene, ConfeitarScene, ResultadoScene, GaleriaScene, PausaScene],
+  scene: [BootScene, PreloadScene, MenuScene, AreaPaisScene, TrilhaScene, CozinhaScene, FornoScene, ConfeitarScene, ResultadoScene, GaleriaScene, PausaScene],
   render: { antialias: true, roundPixels: false, preserveDrawingBuffer: false, powerPreference: 'high-performance' },
 });
 

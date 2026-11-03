@@ -25,8 +25,9 @@ const path = require('path');
   await w.screenshot({ path: process.argv[2] ? `${process.argv[2]}/desktop-menu.png` : 'desktop-menu.png' });
   // jogar um pouco: entra numa receita
   await w.mouse.click(530, 570); await w.waitForTimeout(800);
-  const x = await w.evaluate(() => window.__jogo.scene.getScene('SelecaoReceita').children.getByName('fofinho').x);
-  await w.mouse.click(x, 300); await w.waitForTimeout(2000);
+  const c = await w.evaluate(() => { const o = window.__jogo.scene.getScene('Trilha').children.getByName('fofinho'); return { x: o.x, y: o.y }; });
+  await w.mouse.click(c.x, c.y); await w.waitForTimeout(500);
+  await w.mouse.click(470, 400); await w.waitForTimeout(2000); // Fácil
   const cena = await w.evaluate(() => window.__jogo.scene.getScenes(true).map((s) => s.scene.key).join(','));
   ok(cena.includes('Cozinha'), `cozinha abriu (${cena})`);
   const render = await w.evaluate(() => new Promise((res) => { const g = window.__jogo; let n = 0, t = 0, i = 0; const a = () => (i = performance.now()), z = () => { t += performance.now() - i; n++; };

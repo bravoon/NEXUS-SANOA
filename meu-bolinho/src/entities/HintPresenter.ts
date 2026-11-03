@@ -18,7 +18,8 @@ export type Demo =
   | { tipo: 'tocar'; ponto: Ponto; vezes: number }
   | { tipo: 'esfregar'; centro: Ponto; largura: number; altura: number }
   | { tipo: 'deslizar'; de: Ponto; distancia: number }
-  | { tipo: 'sacudir'; ponto: Ponto };
+  | { tipo: 'sacudir'; ponto: Ponto }
+  | { tipo: 'caminho'; pontos: Ponto[] };
 
 export interface DicaEtapa {
   /** Fichas do cartão a brilhar (normalmente a etapa atual). */
@@ -153,6 +154,25 @@ export class HintPresenter {
         t.chain({ targets: m, tweens: [{ scale: 0.9, duration: 200 }, { y: demo.de.y + demo.distancia, duration: 260, ease: 'Quad.In' }, { scale: 1, duration: 200 }] });
         repetir(1600);
         break;
+      case 'caminho': {
+        const pts = demo.pontos;
+        if (pts.length < 2) break;
+        const estado = { k: 0 };
+        m.setPosition(pts[0]!.x, pts[0]!.y).setScale(1);
+        t.add({
+          targets: estado,
+          k: pts.length - 1,
+          duration: 2600,
+          onUpdate: () => {
+            const i = Math.floor(estado.k);
+            const a = pts[i]!, b = pts[Math.min(i + 1, pts.length - 1)]!;
+            const f = estado.k - i;
+            m.setPosition(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f);
+          },
+        });
+        repetir(3200);
+        break;
+      }
       case 'sacudir':
         m.setPosition(demo.ponto.x, demo.ponto.y).setScale(1);
         t.add({ targets: m, x: demo.ponto.x + 50, duration: 90, yoyo: true, repeat: 7 });

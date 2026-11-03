@@ -8,6 +8,8 @@ export interface Preferencias {
   volumeEfeitos: number;
   narracao: boolean;
   musica: boolean;
+  /** Área dos pais: todas as fases da trilha liberadas. */
+  liberarFases: boolean;
 }
 
 export const PREFERENCIAS_PADRAO: Readonly<Preferencias> = {
@@ -16,6 +18,7 @@ export const PREFERENCIAS_PADRAO: Readonly<Preferencias> = {
   volumeEfeitos: 0.8,
   narracao: true,
   musica: true,
+  liberarFases: false,
 };
 
 export interface Armazenamento {
@@ -43,6 +46,7 @@ export function carregarPreferencias(armazenamento: Armazenamento | null): Prefe
       volumeEfeitos: volume(o['volumeEfeitos'], p.volumeEfeitos),
       narracao: booleano(o['narracao'], p.narracao),
       musica: booleano(o['musica'], p.musica),
+      liberarFases: booleano(o['liberarFases'], p.liberarFases),
     };
   } catch {
     return p;

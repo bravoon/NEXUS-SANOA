@@ -12,6 +12,8 @@ import { PourOutStep } from '../steps/PourOutStep';
 import { PourStep } from '../steps/PourStep';
 import { StirStep } from '../steps/StirStep';
 import { UnmoldStep } from '../steps/UnmoldStep';
+import { BeatStep } from '../steps/BeatStep';
+import { FillLayerStep } from '../steps/FillLayerStep';
 import {
   estadoInicial,
   transicao,
@@ -29,6 +31,8 @@ export type ControladorEtapa =
   | PourOutStep
   | OvenStep
   | UnmoldStep
+  | BeatStep
+  | FillLayerStep
   | DecorStep;
 
 /** Estado compartilhado de que alguns controladores precisam ao serem criados. */
@@ -60,8 +64,12 @@ export function criarControlador(etapa: EtapaResolvida, ctx: ContextoEtapas): Co
       return new OvenStep(etapa.tempoSegundos);
     case 'desenformar':
       return new UnmoldStep();
+    case 'bater':
+      return new BeatStep(etapa.batidas);
+    case 'rechear':
+      return new FillLayerStep(etapa.cobertura, Number.parseInt(etapa.corRecheio.slice(1), 16));
     case 'decorar':
-      return new DecorStep(etapa.cobertura, Number.parseInt(etapa.corCobertura.slice(1), 16));
+      return new DecorStep(etapa.cobertura, Number.parseInt(etapa.corCobertura.slice(1), 16), etapa.glace);
   }
 }
 

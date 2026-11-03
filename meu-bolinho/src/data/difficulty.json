@@ -4,13 +4,19 @@
     "voltas": 5,
     "tolerancia": 0.2,
     "cascaDeOvo": false,
-    "cobertura": 0.8
+    "cobertura": 0.8,
+    "batidas": 12,
+    "tracado": 0.8,
+    "toleranciaGlace": 28
   },
   "confeiteiro": {
     "maxIngredientes": 7,
     "voltas": 10,
     "tolerancia": 0.08,
     "cascaDeOvo": true,
-    "cobertura": 0.9
+    "cobertura": 0.9,
+    "batidas": 20,
+    "tracado": 0.92,
+    "toleranciaGlace": 18
   }
 }

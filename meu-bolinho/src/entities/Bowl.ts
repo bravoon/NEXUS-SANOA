@@ -116,12 +116,13 @@ export class BowlView extends Phaser.GameObjects.Container {
     mistura: number,
     redemoinho: number,
     cascas = 0,
+    espuma = 0,
   ): void {
     const total = conteudo.total;
-    const chave = `${total.toFixed(4)}|${conteudo.lista.length}|${mistura.toFixed(3)}|${redemoinho.toFixed(2)}|${cascas}`;
+    const chave = `${total.toFixed(4)}|${conteudo.lista.length}|${mistura.toFixed(3)}|${redemoinho.toFixed(2)}|${cascas}|${espuma.toFixed(3)}`;
     if (chave === this.ultimaChave) return; // nada mudou: não redesenha (desempenho)
     this.ultimaChave = chave;
-    this.massa.desenhar((g) => this.pintarMassa(g, conteudo, cores, mistura, redemoinho, cascas));
+    this.massa.desenhar((g) => this.pintarMassa(g, conteudo, cores, mistura, redemoinho, cascas, espuma));
   }
 
   private pintarMassa(
@@ -131,6 +132,7 @@ export class BowlView extends Phaser.GameObjects.Container {
     mistura: number,
     redemoinho: number,
     cascas: number,
+    espuma: number,
   ): void {
     const total = conteudo.total;
     if (total <= 1e-6) return;
@@ -202,6 +204,26 @@ export class BowlView extends Phaser.GameObjects.Container {
       g.lineStyle(2, 0x6b5a4e, 1);
       g.fillTriangle(x - 14, y + 6, x + 4, y - 10, x + 14, y + 8);
       g.strokeTriangle(x - 14, y + 6, x + 4, y - 10, x + 14, y + 8);
+    }
+
+    // Claras em neve: nuvem de espuma que cresce com as batidas e some ao misturar a massa
+    const aEspuma = espuma * (1 - smoothstep(0.2, 0.9, mistura));
+    if (aEspuma > 0.01) {
+      const altura = espuma * 46;
+      g.fillStyle(0xffffff, 0.9 * aEspuma);
+      g.fillEllipse(0, ySup - altura * 0.35, wSup * 1.9 * (0.6 + 0.4 * espuma), rySup * 1.6 + altura * 0.4);
+      GRUMOS.forEach((gr, i) => {
+        if (i / GRUMOS.length > espuma + 0.1) return;
+        const x = Math.cos(gr.a) * gr.r * wSup * 0.8;
+        const y = ySup - altura * 0.4 + Math.sin(gr.a) * gr.r * rySup * 0.7;
+        const raio = 8 + espuma * 16 + (i % 3) * 3;
+        g.fillStyle(0xf3f3f8, aEspuma);
+        g.fillCircle(x + 2, y + 3, raio);
+        g.fillStyle(0xffffff, aEspuma);
+        g.fillCircle(x, y, raio);
+        // picos
+        if (espuma > 0.5) g.fillTriangle(x - 6, y - raio + 4, x + 6, y - raio + 4, x + 2, y - raio - 10 * espuma);
+      });
     }
   }
 

@@ -67,13 +67,16 @@ const PASTA = process.argv[2] || null;
   await p.reload(); await p.waitForTimeout(1500);
 
   console.log('Receitas e modo Confeiteiro');
-  await p.mouse.click(530, 570); await p.waitForTimeout(600); // Jogar
-  const nReceitas = await p.evaluate(() => window.__jogo.scene.getScene('SelecaoReceita').children.list.filter((o) => o.input && o.width === 260).length);
-  ok(nReceitas >= 2, `seleção mostra ${nReceitas} receitas (adicionadas só com JSON)`);
-  await foto('01-selecao');
-  await p.mouse.click(810, 610); await p.waitForTimeout(200); // Confeiteiro
-  const xChocolate = await p.evaluate(() => window.__jogo.scene.getScene('SelecaoReceita').children.getByName('chocolate').x);
-  await p.mouse.click(xChocolate, 300); await p.waitForTimeout(1500);
+  // a área dos pais libera a trilha toda (o Chocolate no Confeiteiro é a fase 2)
+  await p.evaluate(() => localStorage.setItem('meu-bolinho:preferencias:v1', JSON.stringify({ liberarFases: true })));
+  await p.reload(); await p.waitForTimeout(1500);
+  await p.mouse.click(530, 570); await p.waitForTimeout(800); // Jogar → Trilha
+  const nReceitas = await p.evaluate(() => window.__jogo.scene.getScene('Trilha').children.list.filter((o) => o.name && o.input).length);
+  ok(nReceitas >= 8, `trilha mostra ${nReceitas} fases (receitas adicionadas só com JSON)`);
+  await foto('01-trilha');
+  const cChocolate = await p.evaluate(() => { const o = window.__jogo.scene.getScene('Trilha').children.getByName('chocolate'); return { x: o.x, y: o.y }; });
+  await p.mouse.click(cChocolate.x, cChocolate.y); await p.waitForTimeout(500);
+  await p.mouse.click(810, 400); await p.waitForTimeout(1500); // Confeiteiro
   let s = await st();
   const receita = await p.evaluate(() => { const a = window.__jogo.scene.getScene('Cozinha').sessao.receita; return { id: a.id, d: a.dificuldade, n: a.recipientes.length, ing: a.ingredientes.length }; });
   ok(receita.d === 'confeiteiro' && receita.ing === 7, `receita ${receita.id} no Confeiteiro: ${receita.ing} ingredientes, ${receita.n} potes na mesa (2 fileiras)`);

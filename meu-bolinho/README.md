@@ -17,7 +17,36 @@ npm test           # testes unitários (Node, sem navegador)
 npm run build      # typecheck + build de produção em dist/
 ```
 
-## Status: Milestone 4 (segunda receita, Confeiteiro, galeria e testes) — completo
+## Status: Trilha de fases (8 receitas, estrelas e 3 mecânicas novas)
+
+Tocar **Jogar** abre a **Trilha do Confeiteiro**: 8 fases em sequência. Só a primeira começa
+aberta; terminar uma fase (em qualquer modo) libera a próxima. Cada fase dá até 3 estrelas,
+sem punição:
+
+| ⭐ | Como ganha |
+|---|---|
+| 1ª | Terminar o bolo (já libera a próxima fase) |
+| 2ª | Medidas certinhas: nenhum ingrediente passou da medida |
+| 3ª | Bolo caprichado: cobertura ≥ 95% e pelo menos 3 enfeites |
+
+| Fase | Receita | Novidade |
+|---|---|---|
+| 1 | Bolo Fofinho | o básico: despejar, mexer, forno, cobrir |
+| 2 | Bolo de Chocolate | quebrar ovo, manteiga |
+| 3 | Bolo de Laranja | suco de laranja |
+| 4 | Pão de Ló Nuvem | **bater claras**: vai e vem rápido com o batedor (parar = espuma para) |
+| 5 | Bolo de Morango | **rechear camadas**: espalhar o recheio e encaixar a camada de cima com o dedo |
+| 6 | Bolo de Aniversário | **escrever com glacê**: seguir o desenho (estrela) com o saco de confeitar |
+| 7 | Bolo de Cenoura | glacê em onda, cenoura |
+| 8 | Bolo Arco-íris | as três mecânicas juntas (glacê de coração) |
+
+As mecânicas novas seguem o ZERO AUTO-COMPLETE: o batedor só conta inversões rápidas e amplas
+(linha reta ou dedo parado = 0); a camada fica onde a criança solta (perto o bastante assenta,
+longe volta ao descanso — nunca é "puxada" para o centro); o glacê só pinta pontos do desenho
+que o dedo realmente visitou (rabisco fora não conta). Na **área dos pais** há "Liberar todas
+as fases da trilha". Testes: `npm test` (179 unitários) e `npm run e2e:fases` (navegador).
+
+## Milestone 4 (segunda receita, Confeiteiro, galeria e testes) — completo
 
 - Duas receitas: **Bolo Fofinho** e **Bolo de Chocolate**, cada uma nos modos Fácil e Confeiteiro.
 - **Galeria** (botão ▦ no menu): todo bolo pronto é guardado com foto; toque para ampliar;
@@ -67,7 +96,7 @@ Receita `Bolo Fofinho` (`src/data/recipes/fofinho.json`), do ingrediente ao bolo
 | Confeitar | cobertura · confeitos, morangos, velas, granulado (sacudir) · desfazer · Pronto! |
 | Resultado | foto do bolo decorado |
 
-Também: menu, seleção de receita e dificuldade, pausa protegida (segurar ⏸ 2 s), mascote com falas,
+Também: menu, trilha de fases e escolha de dificuldade, pausa protegida (segurar ⏸ 2 s), mascote com falas,
 modo debug (tecla **D**) em todas as cenas.
 
 ### Como testar à mão

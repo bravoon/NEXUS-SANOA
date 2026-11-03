@@ -62,7 +62,7 @@ export class GaleriaScene extends Phaser.Scene {
 
     if (this.bolos.length === 0) {
       this.grade.add(this.add.text(LARGURA / 2, 330, 'Ainda não tem bolo aqui.\nVamos fazer um?', { fontFamily: FONTE, fontSize: '38px', color: '#3b2a20', align: 'center' }).setOrigin(0.5));
-      this.grade.add(botaoGrande(this, LARGURA / 2, 500, '▶  Jogar', CORES.sucesso, () => this.scene.start('SelecaoReceita'), 320, 100));
+      this.grade.add(botaoGrande(this, LARGURA / 2, 500, '▶  Jogar', CORES.sucesso, () => this.scene.start('Trilha'), 320, 100));
       return;
     }
 

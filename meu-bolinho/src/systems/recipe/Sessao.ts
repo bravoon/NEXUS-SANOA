@@ -20,6 +20,8 @@ export const CENA_DA_ETAPA: Record<TipoEtapa, CenaJogo> = {
   despejar_massa: 'Cozinha',
   forno: 'Forno',
   desenformar: 'Forno',
+  bater: 'Cozinha',
+  rechear: 'Confeitar',
   decorar: 'Confeitar',
 };
 
@@ -39,6 +41,8 @@ export class Sessao {
   readonly runner: RecipeRunner;
   /** Mistura da massa (0..1), preservada entre estações. */
   mistura = 0;
+  /** Claras em neve (0..1), preservada até a massa ser misturada. */
+  espuma = 0;
   /** Chave da textura com a foto do bolo pronto (Resultado / galeria). */
   fotoBolo: string | null = null;
   /** Foto em JPEG (data URL, pequena) para salvar na galeria. */
@@ -47,12 +51,21 @@ export class Sessao {
   enfeites = 0;
   /** O bolo desta sessão já foi guardado (evita duplicar ao revisitar o Resultado). */
   guardado = false;
+  /** Quantas vezes foi preciso corrigir "colocou demais" (estrela de medidas certinhas). */
+  excessos = 0;
+  /** Cobertura final do bolo (estrela de capricho). */
+  coberturaFinal = 0;
+  /** Estrelas ganhas nesta partida (definidas no Resultado). */
+  estrelasGanhas = 0;
 
   constructor(
     readonly receita: ReceitaResolvida,
     rng: () => number = Math.random,
   ) {
     this.runner = new RecipeRunner(receita, this.bus, { rng, tigela: this.tigela });
+    this.bus.on('etapa:erro', (e) => {
+      if (e.erro === 'excesso') this.excessos++;
+    });
   }
 
   /** Cena da etapa atual (null quando a receita terminou). */

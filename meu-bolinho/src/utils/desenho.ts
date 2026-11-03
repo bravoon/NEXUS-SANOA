@@ -81,6 +81,18 @@ export function desenharSimbolo(
       g.strokeRoundedRect(x - h, y - h * 0.5, tam, h, 5);
       g.lineBetween(x + h * 0.35, y - h * 0.5, x + h * 0.35, y + h * 0.5);
       break;
+    case 'hexagono': {
+      const pts = Array.from({ length: 6 }, (_, i) => ({ x: x + Math.cos((i * Math.PI) / 3) * h, y: y + Math.sin((i * Math.PI) / 3) * h }));
+      g.fillPoints(pts, true);
+      g.strokePoints(pts, true);
+      break;
+    }
+    case 'folha':
+      // gota deitada com nervura (folhinha)
+      g.fillEllipse(x, y, tam, tam * 0.55);
+      g.strokeEllipse(x, y, tam, tam * 0.55);
+      g.lineBetween(x - h * 0.8, y, x + h * 0.8, y);
+      break;
     default: {
       // Exaustividade: um símbolo novo em IngredienteDef sem desenho aqui é erro de compilação.
       const nunca: never = simbolo;

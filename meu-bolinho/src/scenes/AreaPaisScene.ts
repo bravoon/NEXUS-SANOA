@@ -5,7 +5,7 @@
 import Phaser from 'phaser';
 import { ALTURA, CORES, LARGURA } from '../config/layout';
 import { AudioSystem } from '../systems/audio/AudioSystem';
-import type { Preferencias } from '../systems/save/Preferencias';
+import { PREFERENCIAS_PADRAO, type Preferencias } from '../systems/save/Preferencias';
 import { aoSoltarNoObjeto, botaoGrande } from './ui';
 
 const FONTE = 'Arial Rounded MT Bold, Arial, sans-serif';
@@ -20,20 +20,21 @@ export class AreaPaisScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0xf4efe9);
     this.add.text(LARGURA / 2, 50, 'Área dos pais', { fontFamily: FONTE, fontSize: '44px', color: '#3b2a20', fontStyle: 'bold' }).setOrigin(0.5);
 
-    const prefs = (): Readonly<Preferencias> => audio?.preferencias ?? { volumeGeral: 0, volumeMusica: 0, volumeEfeitos: 0, narracao: false, musica: false };
+    const prefs = (): Readonly<Preferencias> => audio?.preferencias ?? PREFERENCIAS_PADRAO;
     const mudar = (m: Partial<Preferencias>) => {
       audio?.atualizarPreferencias(m);
       audio?.efeito('pop');
     };
 
-    this.controleDeslizante(150, 'Volume geral', () => prefs().volumeGeral, (v) => mudar({ volumeGeral: v }));
-    this.controleDeslizante(240, 'Música', () => prefs().volumeMusica, (v) => mudar({ volumeMusica: v }));
-    this.controleDeslizante(330, 'Efeitos sonoros', () => prefs().volumeEfeitos, (v) => mudar({ volumeEfeitos: v }));
-    this.interruptor(430, 'Narração (voz do mascote)', () => prefs().narracao, (v) => mudar({ narracao: v }));
-    this.interruptor(510, 'Música de fundo', () => prefs().musica, (v) => mudar({ musica: v }));
+    this.controleDeslizante(130, 'Volume geral', () => prefs().volumeGeral, (v) => mudar({ volumeGeral: v }));
+    this.controleDeslizante(205, 'Música', () => prefs().volumeMusica, (v) => mudar({ volumeMusica: v }));
+    this.controleDeslizante(280, 'Efeitos sonoros', () => prefs().volumeEfeitos, (v) => mudar({ volumeEfeitos: v }));
+    this.interruptor(360, 'Narração (voz do mascote)', () => prefs().narracao, (v) => mudar({ narracao: v }));
+    this.interruptor(430, 'Música de fundo', () => prefs().musica, (v) => mudar({ musica: v }));
+    this.interruptor(500, 'Liberar todas as fases da trilha', () => prefs().liberarFases, (v) => mudar({ liberarFases: v }));
 
     this.add
-      .text(LARGURA / 2, 575, `Voz: ${audio?.fonteVoz ?? 'indisponível'}\nSem anúncios, sem compras e sem coleta de dados. As preferências e a galeria ficam só neste aparelho.`, {
+      .text(LARGURA / 2, 548, `Voz: ${audio?.fonteVoz ?? 'indisponível'}\nSem anúncios, sem compras e sem coleta de dados. As preferências e a galeria ficam só neste aparelho.`, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '17px',
         color: '#6b5a4e',

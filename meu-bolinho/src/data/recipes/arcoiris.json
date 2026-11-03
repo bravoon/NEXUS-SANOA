@@ -1,0 +1,67 @@
+{
+  "id": "arcoiris",
+  "nome": "Bolo Arco-íris",
+  "corMassa": "#F3E3FF",
+  "etapas": [
+    {
+      "tipo": "quebrar_ovo",
+      "quantidade": 3
+    },
+    {
+      "tipo": "bater"
+    },
+    {
+      "tipo": "despejar",
+      "item": "acucar",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "despejar",
+      "item": "farinha",
+      "alvo": "tigela",
+      "quantidade": 1.0
+    },
+    {
+      "tipo": "despejar",
+      "item": "leite",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "despejar",
+      "item": "fermento",
+      "alvo": "tigela",
+      "quantidade": 0.25,
+      "apenas": "confeiteiro"
+    },
+    {
+      "tipo": "mexer"
+    },
+    {
+      "tipo": "untar",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "despejar_massa",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "forno",
+      "tempoSegundos": 25
+    },
+    {
+      "tipo": "desenformar"
+    },
+    {
+      "tipo": "rechear",
+      "corRecheio": "#56B4E9"
+    },
+    {
+      "tipo": "decorar",
+      "corCobertura": "#F8BBD0",
+      "glace": "coracao",
+      "corGlace": "#FFFFFF"
+    }
+  ]
+}
