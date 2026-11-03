@@ -21,6 +21,11 @@ import type { EstadoReceita, TipoErro } from '../systems/recipe/recipeFsm';
 import type { EtapaResolvida } from '../systems/recipe/recipeTypes';
 import type { Sessao } from '../systems/recipe/Sessao';
 import { DebugOverlay } from '../utils/DebugOverlay';
+import { AudioSystem, FALAS } from '../systems/audio/AudioSystem';
+import type { Continuo, Efeito } from '../systems/audio/Sintetizador';
+import { FeedbackSystem } from '../systems/feedback/FeedbackSystem';
+import { HintTimer } from '../systems/hint/HintTimer';
+import { HintPresenter, type DicaEtapa } from '../entities/HintPresenter';
 import type { Ponto } from '../utils/math';
 
 export interface DadosCena {
@@ -40,6 +45,9 @@ export abstract class CenaEtapas extends Phaser.Scene {
   protected dedo: Ponto = { x: 0, y: 0 };
   private saindo = false;
   private desligar: Array<() => void> = [];
+  private readonly dicas = new HintTimer();
+  private apresentador!: HintPresenter;
+  protected audio: AudioSystem | null = null;
 
   protected get runner(): RecipeRunner {
     return this.sessao.runner;
@@ -61,11 +69,20 @@ export abstract class CenaEtapas extends Phaser.Scene {
     this.mascote = new Mascot(this, MASCOTE.x, MASCOTE.y, this.sessao.bus);
     this.pausa = new PauseButton(this, () => this.pausar());
     this.debug = new DebugOverlay(this, (g) => this.linhasDebug(g));
+    this.audio = AudioSystem.get();
+    this.audio?.limparFalas();
+    const feedback = new FeedbackSystem(this.sessao.bus, this.audio);
+    this.desligar.push(() => feedback.destruir());
+    this.apresentador = new HintPresenter(this, this.cartao, (id) => this.falar(id));
+    this.dicas.atividade();
 
     this.ouvir('fsm:mudou', (e) => this.mudouEstado(e.anterior, e.atual));
     this.ouvir('etapa:concluida', (e) => this.comemorar(e.indice));
     this.ouvir('etapa:erro', (e) => this.aoErro(e.erro));
     this.ouvir('receita:concluida', () => this.aoFinal());
+    // progresso e mudanças de estado também contam como atividade (sem dica enquanto progride)
+    this.ouvir('etapa:progresso', () => this.atividade());
+    this.ouvir('fsm:mudou', () => this.atividade());
     this.events.once('shutdown', () => {
       for (const d of this.desligar) d();
       this.desligar = [];
@@ -74,11 +91,14 @@ export abstract class CenaEtapas extends Phaser.Scene {
     this.gestos = new GestureSystem(this, {
       aoTocar: (a) => {
         this.dedo = { x: a.x, y: a.y };
+        this.audio?.desbloquear();
+        this.atividade();
         if (this.pausa.contem(a.x, a.y) || this.saindo || !this.runner.aceitaInput) return;
         this.aoTocar(a);
       },
       aoMover: (a) => {
         this.dedo = { x: a.x, y: a.y };
+        this.atividade();
         if (!this.saindo) this.aoMover(a);
       },
       aoSoltar: (a) => {
@@ -93,8 +113,42 @@ export abstract class CenaEtapas extends Phaser.Scene {
   }
 
   override update(_t: number, deltaMs: number): void {
-    if (!this.saindo) this.atualizar(Math.min(deltaMs, DT_MAX_MS));
+    const dt = Math.min(deltaMs, DT_MAX_MS);
+    if (!this.saindo) this.atualizar(dt);
+    this.audio?.atualizar();
+    this.atualizarDicas(dt);
     this.debug.atualizar();
+  }
+
+  // ------------------------------------------------------------ dicas
+
+  private atividade(): void {
+    if (this.dicas.atividade()) this.apresentador.limpar();
+  }
+
+  private atualizarDicas(dt: number): void {
+    const s = this.runner.estado;
+    const podeDar = !this.saindo && !this.runner.emGesto && (s.sub === 'aguardando' || s.sub === 'correcao');
+    const nivel = this.dicas.atualizar(dt, podeDar && this.dicaAtual() !== null);
+    if (!nivel) return;
+    const dica = this.dicaAtual();
+    if (dica) this.apresentador.mostrar(nivel, dica);
+  }
+
+  /** Nível de dica atual (debug). */
+  protected get nivelDica(): number {
+    return this.dicas.nivel;
+  }
+
+  // ------------------------------------------------------------ áudio (atalhos)
+
+  protected som(e: Efeito): void {
+    this.audio?.efeito(e);
+  }
+
+  /** Som contínuo proporcional ao input (silencia sozinho se não for chamado no frame). */
+  protected somContinuo(tipo: Continuo, intensidade: number): void {
+    if (intensidade > 0.01) this.audio?.continuo(tipo, intensidade);
   }
 
   // ------------------------------------------------------------ ganchos das subclasses
@@ -108,6 +162,11 @@ export abstract class CenaEtapas extends Phaser.Scene {
   protected abstract aoSoltar(a: AmostraPonteiro): void;
   protected abstract atualizar(dtMs: number): void;
   protected abstract infoDebug(g: Phaser.GameObjects.Graphics): string[];
+  /**
+   * O que a dica deve mostrar AGORA (objeto certo, gesto e fala), ou null quando não
+   * cabe dica (ex.: forno assando). Chamado só quando o nível de dica muda.
+   */
+  protected abstract dicaAtual(): DicaEtapa | null;
   /** Mudanças de estado da FSM específicas da cena (ex.: mostrar colher na correção). */
   protected aoMudarEstado(_anterior: EstadoReceita, _atual: EstadoReceita): void {}
   /** Visual específico após uma etapa concluída (ex.: aposentar o recipiente). */
@@ -124,8 +183,14 @@ export abstract class CenaEtapas extends Phaser.Scene {
     this.desligar.push(this.sessao.bus.on(evento, fn));
   }
 
-  protected falar(texto: string, humor: 'feliz' | 'surpreso' | 'neutro' = 'feliz'): void {
-    this.sessao.bus.emit('mascote:fala', { texto, humor });
+  /** Fala do mascote pelo id do catálogo (data/falas.json): balão + narração. */
+  protected falar(id: string, humor: 'feliz' | 'surpreso' | 'neutro' = 'feliz'): void {
+    const texto = FALAS[id];
+    if (!texto) {
+      if (import.meta.env.DEV) console.warn(`[falas] id sem texto: ${id}`);
+      return;
+    }
+    this.sessao.bus.emit('mascote:fala', { id, texto, humor });
   }
 
   private mudouEstado(anterior: EstadoReceita, atual: EstadoReceita): void {
@@ -147,7 +212,7 @@ export abstract class CenaEtapas extends Phaser.Scene {
     this.cartao.marcarFeita(indice);
     const etapa = this.sessao.receita.etapas[indice];
     if (etapa) this.aoConcluirEtapa(indice, etapa);
-    if (etapa?.tipo !== 'decorar') this.falar(['Muito bem!', 'Isso aí!', 'Que capricho!'][indice % 3] ?? 'Muito bem!');
+    if (etapa?.tipo !== 'decorar') this.falar(`elogio.${(indice % 3) + 1}`);
     this.estrelas(this.dedo.x, this.dedo.y - 30);
     this.time.delayedCall(COMEMORACAO_MS, () => this.runner.proxima());
   }
@@ -187,6 +252,7 @@ export abstract class CenaEtapas extends Phaser.Scene {
     return [
       `${this.scene.key} · ${this.sessao.receita.id} [${this.sessao.receita.dificuldade}]`,
       `FSM ${s.sub}  etapa ${s.indice + 1}/${s.total} (${etapa?.tipo ?? '-'})${s.erro ? `  erro=${s.erro}` : ''}`,
+      `Dica nível ${this.dicas.nivel}  inativo ${(this.dicas.inativoMs / 1000).toFixed(1)} s`,
       ...this.infoDebug(g),
     ];
   }

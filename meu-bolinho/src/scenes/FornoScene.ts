@@ -6,8 +6,10 @@
  * Sem luva a forma não pode ser pega (OvenStep.pegarForma → 'quente' → ERRO 'quente').
  */
 import Phaser from 'phaser';
-import { BANCADA_FORNO, CORES, FORNO, LUVA, MESA_Y, PRATO_DESENFORMAR, ALTURA, LARGURA } from '../config/layout';
+import { BANCADA_FORNO, FORNO, LUVA, MESA_Y, PRATO_DESENFORMAR, LARGURA } from '../config/layout';
 import { Ferramenta } from '../entities/Ferramentas';
+import { sombra, TEXTURAS } from '../art/ArteProcedural';
+import type { DicaEtapa } from '../entities/HintPresenter';
 import { OvenView } from '../entities/Oven';
 import { PanView } from '../entities/Pan';
 import type { AmostraPonteiro } from '../systems/gesture/GestureSystem';
@@ -39,6 +41,8 @@ export class FornoScene extends CenaEtapas {
   private trim: Phaser.GameObjects.Text | null = null;
   private arrasto: Arrasto | null = null;
   private faseAnterior: FaseForno | null = null;
+  private vapor!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private oitavoTimer = 0;
 
   constructor() {
     super('Forno');
@@ -53,15 +57,9 @@ export class FornoScene extends CenaEtapas {
   }
 
   protected criarCenario(): void {
-    const g = this.add.graphics().setDepth(0);
-    g.fillStyle(0xfde2c4, 1);
-    g.fillRect(0, 0, LARGURA, MESA_Y);
-    g.fillStyle(0xffffff, 0.3);
-    for (let x = 0; x < LARGURA; x += 60) g.fillRect(x, 0, 30, MESA_Y);
-    g.fillStyle(CORES.mesa, 1);
-    g.fillRect(0, MESA_Y, LARGURA, ALTURA - MESA_Y);
-    g.fillStyle(CORES.mesaBorda, 1);
-    g.fillRect(0, MESA_Y, LARGURA, 10);
+    this.add.image(0, 0, TEXTURAS.fundoForno).setOrigin(0).setDepth(0);
+    sombra(this, FORNO.x + FORNO.largura / 2, FORNO.y + FORNO.altura + 18, FORNO.largura * 1.05, 1);
+    const g = this.add.graphics().setDepth(1);
     // gancho da luva
     g.fillStyle(0x8a6440, 1);
     g.fillRect(LUVA.x - 40, LUVA.y - 60, 80, 10);
@@ -70,11 +68,23 @@ export class FornoScene extends CenaEtapas {
     this.forma = new PanView(this, BANCADA_FORNO.formaX, BANCADA_FORNO.formaY, BANCADA_FORNO.escala, corHex(this.sessao.receita.corMassa), 12);
     this.luva = new Ferramenta(this, 'luva', { x: LUVA.x, y: LUVA.y });
     this.prato = new Ferramenta(this, 'prato', { x: PRATO_DESENFORMAR.x, y: PRATO_DESENFORMAR.y }).setVisible(false);
+    // vapor saindo do forno enquanto assa (cosmético)
+    this.vapor = this.add.particles(FORNO.x + FORNO.largura / 2, FORNO.y + 6, TEXTURAS.vapor, {
+      emitting: false,
+      frequency: 260,
+      lifespan: 2200,
+      speedY: { min: -40, max: -24 },
+      speedX: { min: -14, max: 14 },
+      scale: { start: 0.6, end: 1.8 },
+      alpha: { start: 0.7, end: 0 },
+      maxAliveParticles: 20,
+    });
+    this.vapor.setDepth(4);
   }
 
   protected prepararEtapa(_indice: number, etapa: EtapaResolvida): void {
     if (etapa.tipo === 'forno') {
-      this.falar('Coloque a forma dentro do forno!');
+      this.falar('forno.colocar');
     } else if (etapa.tipo === 'desenformar') {
       this.forno.desenharPorta(true, false, 0);
       this.luva.setVisible(false);
@@ -88,13 +98,13 @@ export class FornoScene extends CenaEtapas {
       });
       this.prato.setVisible(true).setAlpha(0);
       this.tweens.add({ targets: this.prato, alpha: 1, duration: 300 });
-      this.falar('Coloque o prato em cima da forma.');
+      this.falar('desenformar.prato');
     }
   }
 
   protected override aoErro(erro: TipoErro): void {
     if (erro !== 'quente') return;
-    this.falar('Cuidado, está quente! Use a luva.', 'surpreso');
+    this.falar('forno.quente', 'surpreso');
     for (const o of this.forma.objetos) this.tweens.add({ targets: o, x: { from: o.x - 5, to: o.x + 5 }, duration: 50, yoyo: true, repeat: 3, onComplete: () => o.setX(this.forma.x) });
     this.tweens.add({ targets: this.luva, scale: 1.25, duration: 200, yoyo: true, repeat: 2 });
   }
@@ -117,6 +127,7 @@ export class FornoScene extends CenaEtapas {
       return;
     }
     if (f === 'colocar' && this.forma.contem(a)) {
+      this.som('pop');
       this.arrasto = { tipo: 'forma' };
       this.runner.inicioDoGesto();
       return;
@@ -125,8 +136,9 @@ export class FornoScene extends CenaEtapas {
       this.arrasto = { tipo: 'toque' };
       this.runner.inicioDoGesto();
       const r = ctrl.tocarPorta();
-      if (r === 'fechou') this.falar('Agora gire o botão uma volta inteira!');
-      if (r === 'abriu') this.falar(ctrl.comLuva ? 'Pegue a forma e leve até a bancada.' : 'Use a luva para pegar a forma!');
+      if (r !== 'nada') this.som('porta');
+      if (r === 'fechou') this.falar('forno.timer');
+      if (r === 'abriu') this.falar(ctrl.comLuva ? 'forno.abriu_com_luva' : 'forno.abriu_sem_luva');
       return;
     }
     if (f === 'timer' && this.forno.pontoNoBotao(a)) {
@@ -139,12 +151,13 @@ export class FornoScene extends CenaEtapas {
       const r = ctrl.pegarForma();
       this.runner.inicioDoGesto();
       if (r === 'ok') {
+        this.som('pop');
         this.arrasto = { tipo: 'forma' };
         this.forma.objetos.forEach((o) => o.setDepth(o.depth + 30));
       } else {
         this.arrasto = { tipo: 'toque' };
         if (r === 'quente') this.runner.reportarErro('quente');
-        if (r === 'fechado') this.falar('Primeiro abra a porta!');
+        if (r === 'fechado') this.falar('forno.primeiro_abrir');
       }
     }
   }
@@ -178,7 +191,8 @@ export class FornoScene extends CenaEtapas {
       if (arr.tipo === 'botao') ctrl.soltarTimer();
       if (arr.tipo === 'luva') {
         const perto = distancia(this.luva, this.forma) < 170 || this.forno.pontoNaCavidade(this.luva);
-        if (perto && ctrl.equiparLuva()) this.falar(ctrl.fase === 'apitou' ? 'Luva no lugar! Agora abra a porta.' : 'Luva no lugar! Pegue a forma.');
+        if (perto && ctrl.equiparLuva()) this.som('pop');
+        if (perto && ctrl.comLuva) this.falar(ctrl.fase === 'apitou' ? 'forno.luva_abrir' : 'forno.luva_pegar');
         else this.luva.voltar();
       }
     }
@@ -186,19 +200,23 @@ export class FornoScene extends CenaEtapas {
       if (arr.tipo === 'prato') {
         if (distancia(this.prato, this.forma) < 140) {
           ctrl.colocarPrato();
+          this.som('tum');
           this.prato.setPosition(this.forma.x, this.forma.y - 10).setDepth(40);
           this.prato.descanso = { x: this.prato.x, y: this.prato.y };
-          this.falar('Agora puxe para baixo, rapidinho!');
+          this.falar('desenformar.puxar');
         } else {
           this.prato.voltar();
         }
       }
       if (arr.tipo === 'virar') {
         const r = ctrl.terminarSwipe(a.x, a.y, a.t);
-        if (r === 'ok') this.mostrarBoloNoPrato();
+        if (r === 'ok') {
+          this.som('whoosh');
+          this.mostrarBoloNoPrato();
+        }
         else {
           this.desenharVirada(0);
-          this.falar(r === 'lento' ? 'Mais rápido! Puxe para baixo.' : 'Puxe bem para baixo!', 'neutro');
+          this.falar(r === 'lento' ? 'desenformar.lento' : 'desenformar.curto', 'neutro');
         }
       }
     }
@@ -210,7 +228,13 @@ export class FornoScene extends CenaEtapas {
     const antes = ctrl.fase;
     ctrl.girarTimer(n.x, n.y, a.t);
     this.runner.notificarProgresso();
-    if (antes === 'timer' && ctrl.fase === 'assando') this.falar('Forno ligado! Veja o bolo crescer.');
+    // tique do timer a cada 1/8 de volta (o som acompanha o giro da criança)
+    const oitavo = Math.floor(ctrl.voltasTimer * 8);
+    if (oitavo > this.oitavoTimer) {
+      this.oitavoTimer = oitavo;
+      this.som('clique');
+    }
+    if (antes === 'timer' && ctrl.fase === 'assando') this.falar('forno.ligado');
   }
 
   private soltarForma(ctrl: OvenStep): void {
@@ -218,7 +242,8 @@ export class FornoScene extends CenaEtapas {
     if (ctrl.fase === 'colocar') {
       if (this.forno.pontoNaCavidade(f) && ctrl.colocarForma()) {
         this.moverForma(FORNO.formaDentro.x, FORNO.formaDentro.y, FORNO.formaDentro.escala);
-        this.falar('Agora feche a porta do forno.');
+        this.som('tum');
+        this.falar('forno.fechar');
       } else {
         this.moverForma(BANCADA_FORNO.formaX, BANCADA_FORNO.formaY, BANCADA_FORNO.escala);
       }
@@ -228,6 +253,7 @@ export class FornoScene extends CenaEtapas {
     f.objetos.forEach((o) => o.setDepth(o.depth - 30));
     const naBancada = f.y > MESA_Y - 70 && !this.forno.pontoNaCavidade(f);
     ctrl.soltarForma(naBancada);
+    if (naBancada) this.som('tum');
     if (!naBancada) this.moverForma(FORNO.formaDentro.x, FORNO.formaDentro.y, FORNO.formaDentro.escala);
   }
 
@@ -265,7 +291,7 @@ export class FornoScene extends CenaEtapas {
     this.boloNoPrato = g;
     // a forma vazia é levantada (consequência visual do swipe já concluído)
     this.tweens.add({ targets: this.forma.objetos, y: '-=160', alpha: 0, duration: 500 });
-    this.falar('Uau, saiu inteirinho!');
+    this.falar('desenformar.ok');
   }
 
   // ================================================================ loop
@@ -290,6 +316,11 @@ export class FornoScene extends CenaEtapas {
       }
       const fechado = !(ctrl.fase === 'colocar' || ctrl.fase === 'fechar' || ctrl.fase === 'retirar' || ctrl.fase === 'concluido');
       const ligado = ctrl.fase === 'assando';
+      if (ligado) this.somContinuo('forno', 1);
+      if (ligado !== this.vapor.emitting) {
+        if (ligado) this.vapor.start();
+        else this.vapor.stop();
+      }
       this.forno.desenharPorta(!fechado, ligado, Math.sin(this.time.now / 300) * 0.5 + 0.5);
       this.forno.desenharPainel(ctrl.voltasTimer, ligado, ctrl.fase === 'apitou', ligado ? 1 - ctrl.progressoAssar : 0);
     }
@@ -306,9 +337,63 @@ export class FornoScene extends CenaEtapas {
         .setDepth(70);
       this.tweens.add({ targets: this.trim, angle: { from: -8, to: 8 }, duration: 90, yoyo: true, repeat: 7, onComplete: () => this.trim?.setAngle(0) });
       this.forno.sacudir();
-      this.falar('O bolo ficou pronto! Abra a porta e use a luva.');
+      this.som('apito');
+      this.falar('forno.apitou');
     }
     if (fase === 'retirar' || fase === 'concluido') this.trim?.setVisible(false);
+  }
+
+  // ================================================================ dicas
+
+  protected dicaAtual(): DicaEtapa | null {
+    const ctrl = this.runner.controlador;
+    const ficha = this.runner.estado.indice;
+    const porta = { x: FORNO.porta.x + FORNO.porta.largura / 2, y: FORNO.porta.y + FORNO.porta.altura / 2 };
+    const portaAberta = { x: porta.x, y: FORNO.porta.y + FORNO.porta.altura + 24 };
+    const forma = { x: this.forma.x, y: this.forma.y };
+    const fantasmaForma = (g: Phaser.GameObjects.Graphics) => {
+      g.fillStyle(0x9aa4ad, 1);
+      g.fillEllipse(0, 0, 175 * this.forma.escala * 2, 112 * this.forma.escala * 2);
+    };
+    if (ctrl instanceof OvenStep) {
+      switch (ctrl.fase) {
+        case 'colocar':
+          return { ficha, destaques: [forma], demo: { tipo: 'arrastar', de: forma, para: { x: FORNO.formaDentro.x, y: FORNO.formaDentro.y }, fantasma: fantasmaForma }, fala: 'forno.dica_colocar' };
+        case 'fechar':
+          return { ficha, destaques: [portaAberta], demo: { tipo: 'tocar', ponto: portaAberta, vezes: 1 }, fala: 'forno.dica_fechar' };
+        case 'timer':
+          return {
+            ficha,
+            destaques: [{ x: FORNO.botao.x, y: FORNO.botao.y }],
+            demo: { tipo: 'circular', centro: { x: FORNO.botao.x, y: FORNO.botao.y }, rx: 60, ry: 60 },
+            fala: 'forno.dica_timer',
+          };
+        case 'assando':
+        case 'concluido':
+          return null;
+        case 'apitou':
+        case 'retirar':
+          if (!ctrl.comLuva) {
+            const luva = { x: this.luva.x, y: this.luva.y };
+            return { ficha, destaques: [luva], demo: { tipo: 'arrastar', de: luva, para: forma }, fala: 'forno.dica_luva' };
+          }
+          if (ctrl.fase === 'apitou') return { ficha, destaques: [porta], demo: { tipo: 'tocar', ponto: porta, vezes: 1 }, fala: 'forno.dica_abrir' };
+          return { ficha, destaques: [forma], demo: { tipo: 'arrastar', de: forma, para: { x: BANCADA_FORNO.formaX - 60, y: BANCADA_FORNO.formaY }, fantasma: fantasmaForma }, fala: 'forno.dica_retirar' };
+      }
+    }
+    if (ctrl instanceof UnmoldStep) {
+      if (!ctrl.pratoColocado) {
+        const prato = { x: this.prato.x, y: this.prato.y };
+        return {
+          ficha,
+          destaques: [prato],
+          demo: { tipo: 'arrastar', de: prato, para: forma, fantasma: (g) => { g.fillStyle(0xdfe7ee, 1); g.fillEllipse(0, 0, 230, 90); } },
+          fala: 'desenformar.dica_prato',
+        };
+      }
+      return { ficha, destaques: [forma], demo: { tipo: 'deslizar', de: { x: forma.x - 150, y: forma.y - 60 }, distancia: 170 }, fala: 'desenformar.dica_puxar' };
+    }
+    return null;
   }
 
   // ================================================================ debug

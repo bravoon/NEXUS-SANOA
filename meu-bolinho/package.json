@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "roteiro": "node scripts/roteiro.mjs"
   },
   "dependencies": {
     "phaser": "3.90.0"

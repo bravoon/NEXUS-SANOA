@@ -5,7 +5,9 @@ import { carregarReceita, RECEITAS } from '../data/registry';
 import { Sessao } from '../systems/recipe/Sessao';
 import type { Dificuldade } from '../systems/recipe/recipeTypes';
 import { corHex, escurecer } from '../utils/desenho';
-import { botaoGrande } from './ui';
+import { aoSoltarNoObjeto, botaoGrande } from './ui';
+import { TEXTURAS } from '../art/ArteProcedural';
+import { AudioSystem } from '../systems/audio/AudioSystem';
 
 export class SelecaoReceitaScene extends Phaser.Scene {
   private dificuldade: Dificuldade = 'facil';
@@ -16,7 +18,7 @@ export class SelecaoReceitaScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.cameras.main.setBackgroundColor(CORES.fundo);
+    this.add.image(0, 0, TEXTURAS.fundoMenu).setOrigin(0);
     this.add.text(LARGURA / 2, 60, 'Qual bolo vamos fazer?', { fontFamily: 'Arial Rounded MT Bold, Arial, sans-serif', fontSize: '48px', color: '#3b2a20', fontStyle: 'bold' }).setOrigin(0.5);
 
     // dificuldade: 1 estrela (Fácil) ou 2 estrelas (Confeiteiro)
@@ -35,7 +37,7 @@ export class SelecaoReceitaScene extends Phaser.Scene {
       c.add([fundo, marca, rot]);
       for (let k = 0; k <= i; k++) c.add(this.add.image((k - i / 2) * 50, -20, 'estrela').setScale(2).setTint(CORES.destaque));
       c.setSize(300, 120).setInteractive({ useHandCursor: true });
-      c.on('pointerup', () => this.escolherDificuldade(d));
+      aoSoltarNoObjeto(c, () => this.escolherDificuldade(d));
     });
     this.marcadores = marcadores;
     this.escolherDificuldade(this.dificuldade);
@@ -65,13 +67,14 @@ export class SelecaoReceitaScene extends Phaser.Scene {
       c.setSize(260, 300).setInteractive({ useHandCursor: true });
       c.on('pointerdown', () => c.setScale(0.96));
       c.on('pointerout', () => c.setScale(1));
-      c.on('pointerup', () => this.comecar(r.id));
+      aoSoltarNoObjeto(c, () => this.comecar(r.id));
     });
 
     botaoGrande(this, 110, 60, '⌂', 0x0072b2, () => this.scene.start('Menu'), 120, 80);
   }
 
   private escolherDificuldade(d: Dificuldade): void {
+    if (this.marcadores && d !== this.dificuldade) AudioSystem.get()?.efeito('clique');
     this.dificuldade = d;
     if (!this.marcadores) return;
     for (const [k, g] of Object.entries(this.marcadores)) {
@@ -84,6 +87,7 @@ export class SelecaoReceitaScene extends Phaser.Scene {
   }
 
   private comecar(id: string): void {
+    AudioSystem.get()?.efeito('pop');
     const sessao = new Sessao(carregarReceita(id, this.dificuldade));
     sessao.runner.iniciar();
     this.scene.start(sessao.cenaAtual ?? 'Menu', { sessao });

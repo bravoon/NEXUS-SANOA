@@ -26,6 +26,10 @@ export class EggView extends Phaser.GameObjects.Container {
     g.lineStyle(3, 0xc9a66b, 1);
     g.fillEllipse(0, 0, OVO.largura, OVO.altura);
     g.strokeEllipse(0, 0, OVO.largura, OVO.altura);
+    g.fillStyle(0xe9d8b4, 0.6);
+    g.fillEllipse(6, 12, OVO.largura * 0.6, OVO.altura * 0.45);
+    g.fillStyle(0xffffff, 0.9);
+    g.fillEllipse(-10, -16, 12, 18);
     if (estado === 'trincado') {
       g.lineStyle(3, 0x6b5a4e, 1);
       g.strokePoints(

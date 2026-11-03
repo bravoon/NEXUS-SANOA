@@ -1,7 +1,10 @@
 /** Ponto de entrada: Phaser com Scale Manager FIT em 1280×720 lógicos, paisagem. */
 import Phaser from 'phaser';
 import { ALTURA, CORES, LARGURA } from './config/layout';
+import { AudioSystem } from './systems/audio/AudioSystem';
+import { AreaPaisScene } from './scenes/AreaPaisScene';
 import { BootScene } from './scenes/BootScene';
+import { PreloadScene } from './scenes/PreloadScene';
 import { ConfeitarScene } from './scenes/ConfeitarScene';
 import { CozinhaScene } from './scenes/CozinhaScene';
 import { FornoScene } from './scenes/FornoScene';
@@ -18,7 +21,7 @@ const jogo = new Phaser.Game({
   height: ALTURA,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   input: { activePointers: 1 },
-  scene: [BootScene, MenuScene, SelecaoReceitaScene, CozinhaScene, FornoScene, ConfeitarScene, ResultadoScene, PausaScene],
+  scene: [BootScene, PreloadScene, MenuScene, AreaPaisScene, SelecaoReceitaScene, CozinhaScene, FornoScene, ConfeitarScene, ResultadoScene, PausaScene],
   render: { antialias: true, roundPixels: false, preserveDrawingBuffer: false },
 });
 
@@ -34,4 +37,5 @@ jogo.events.once(Phaser.Core.Events.READY, aplicarOrientacao);
 // Acesso para testes de ponta a ponta e inspeção manual (somente com ?debug na URL).
 if (import.meta.env.DEV || new URLSearchParams(location.search).has('debug')) {
   (window as unknown as { __jogo: Phaser.Game }).__jogo = jogo;
+  Object.defineProperty(window, '__audio', { get: () => AudioSystem.get() });
 }

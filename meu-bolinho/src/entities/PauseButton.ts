@@ -13,16 +13,26 @@ export class PauseButton extends Phaser.GameObjects.Container {
   constructor(
     scene: Phaser.Scene,
     private readonly aoPausar: () => void,
+    opcoes: { x?: number; y?: number; icone?: 'pausa' | 'cadeado' } = {},
   ) {
-    super(scene, BOTAO_PAUSA.x, BOTAO_PAUSA.y);
+    super(scene, opcoes.x ?? BOTAO_PAUSA.x, opcoes.y ?? BOTAO_PAUSA.y);
     const g = scene.add.graphics();
     g.fillStyle(0xffffff, 0.9);
     g.fillCircle(0, 0, BOTAO_PAUSA.raio);
     g.lineStyle(4, CORES.texto, 1);
     g.strokeCircle(0, 0, BOTAO_PAUSA.raio);
     g.fillStyle(CORES.texto, 1);
-    g.fillRoundedRect(-12, -14, 9, 28, 3);
-    g.fillRoundedRect(3, -14, 9, 28, 3);
+    if ((opcoes.icone ?? 'pausa') === 'pausa') {
+      g.fillRoundedRect(-12, -14, 9, 28, 3);
+      g.fillRoundedRect(3, -14, 9, 28, 3);
+    } else {
+      // cadeado (área dos pais)
+      g.fillRoundedRect(-13, -4, 26, 20, 4);
+      g.lineStyle(5, CORES.texto, 1);
+      g.beginPath();
+      g.arc(0, -4, 9, Math.PI, 0, false);
+      g.strokePath();
+    }
     this.anel = scene.add.graphics();
     this.add([g, this.anel]);
     this.setSize(BOTAO_PAUSA.raio * 2, BOTAO_PAUSA.raio * 2).setInteractive({ useHandCursor: true });

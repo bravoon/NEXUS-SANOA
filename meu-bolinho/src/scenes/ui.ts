@@ -24,10 +24,21 @@ export function botaoGrande(
     .setOrigin(0.5);
   c.add([g, t]);
   c.setSize(largura, altura).setInteractive({ useHandCursor: true });
-  c.on('pointerdown', () => c.setScale(0.95));
-  c.on('pointerout', () => c.setScale(1));
+  // Só dispara se o toque COMEÇOU neste botão: um dedo que chega solto de outra tela
+  // (ex.: depois de segurar o cadeado) não aciona o botão por acidente.
+  let pressionado = false;
+  c.on('pointerdown', () => {
+    pressionado = true;
+    c.setScale(0.95);
+  });
+  c.on('pointerout', () => {
+    pressionado = false;
+    c.setScale(1);
+  });
   c.on('pointerup', () => {
     c.setScale(1);
+    if (!pressionado) return;
+    pressionado = false;
     aoTocar();
   });
   return c;
@@ -45,3 +56,15 @@ export const ESTILO_TITULO: Phaser.Types.GameObjects.Text.TextStyle = {
 };
 
 export const COR_TEXTO = CORES.texto;
+
+/** Liga `fn` ao "soltar" de um objeto interativo, só se o toque começou nele. */
+export function aoSoltarNoObjeto(obj: Phaser.GameObjects.GameObject, fn: () => void): void {
+  let pressionado = false;
+  obj.on('pointerdown', () => (pressionado = true));
+  obj.on('pointerout', () => (pressionado = false));
+  obj.on('pointerup', () => {
+    if (!pressionado) return;
+    pressionado = false;
+    fn();
+  });
+}

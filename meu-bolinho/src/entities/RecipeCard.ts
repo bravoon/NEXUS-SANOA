@@ -92,6 +92,8 @@ export class RecipeCard extends Phaser.GameObjects.Container {
   private readonly molduras: Phaser.GameObjects.Graphics[] = [];
   private readonly checks: Phaser.GameObjects.Text[] = [];
   private pulso: Phaser.Tweens.Tween | null = null;
+  private readonly brilho: Phaser.GameObjects.Graphics;
+  private tweenBrilho: Phaser.Tweens.Tween | null = null;
 
   constructor(scene: Phaser.Scene, x: number, y: number, receita: ReceitaResolvida, ingredientes: Record<string, IngredienteDef>) {
     super(scene, x, y);
@@ -102,6 +104,8 @@ export class RecipeCard extends Phaser.GameObjects.Container {
     fundo.lineStyle(4, CORES.mesaBorda, 1);
     fundo.strokeRoundedRect(0, 0, largura, TAM + ESPACO * 2, 16);
     this.add(fundo);
+    this.brilho = scene.add.graphics().setVisible(false);
+    this.add(this.brilho);
 
     receita.etapas.forEach((etapa, i) => {
       const cx = ESPACO + i * (TAM + ESPACO) + TAM / 2;
@@ -166,6 +170,27 @@ export class RecipeCard extends Phaser.GameObjects.Container {
     }
     this.desenharMoldura(indice, 'feita');
     this.checks[indice]?.setVisible(true);
+  }
+
+  /** Dica nível 1: a ficha da etapa brilha (até a criança voltar a interagir). */
+  brilhar(indice: number): void {
+    const f = this.fichas[indice];
+    if (!f) return;
+    const g = this.brilho;
+    g.clear();
+    g.fillStyle(CORES.destaque, 0.55);
+    g.fillRoundedRect(f.x - TAM / 2 - 8, f.y - TAM / 2 - 8, TAM + 16, TAM + 16, 18);
+    g.lineStyle(4, 0xffffff, 1);
+    g.strokeRoundedRect(f.x - TAM / 2 - 8, f.y - TAM / 2 - 8, TAM + 16, TAM + 16, 18);
+    g.setVisible(true).setAlpha(1);
+    this.tweenBrilho?.stop();
+    this.tweenBrilho = this.scene.tweens.add({ targets: g, alpha: 0.2, duration: 500, yoyo: true, repeat: -1 });
+  }
+
+  apagarBrilho(): void {
+    this.tweenBrilho?.stop();
+    this.tweenBrilho = null;
+    this.brilho.setVisible(false);
   }
 
   /** Balanço rápido na ficha (rejeição de ingrediente fora de ordem). */

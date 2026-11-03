@@ -17,7 +17,30 @@ npm test           # testes unitários (Node, sem navegador)
 npm run build      # typecheck + build de produção em dist/
 ```
 
-## Status: Milestone 2 (fluxo completo de uma receita, formas geométricas)
+## Status: Milestone 3 (arte, animações, sons, narração e dicas)
+
+- **Arte**: cenários da cozinha, do forno, do confeitar e do menu; sombras; mascote animado
+  (respira, pisca, pula, se assusta, torce); recipientes com rótulo; vapor no forno; poeira de
+  farinha; brilho nos enfeites. Tudo gerado por código (ver ARQUITETURA §13).
+- **Sons**: efeitos e música sintetizados; sons contínuos proporcionais ao gesto.
+- **Narração**: 62 falas em `src/data/falas.json`; grave os arquivos listados em
+  `docs/ROTEIRO_NARRACAO.md` e coloque em `src/assets/voz/` — sem gravação, usa a voz pt-BR do
+  sistema (se houver) ou só o balão.
+- **Dicas**: 6 s parado → o item certo brilha no cartão e na mesa; 12 s → mão-fantasma mostra o
+  gesto; 20 s → o mascote explica. Qualquer toque apaga.
+- **Área dos pais**: no menu, segure o cadeado 2 s.
+
+### Como testar o Milestone 3
+
+1. `npm run dev`, toque em qualquer lugar (o navegador só libera o som após um toque).
+2. Entre numa receita e **não toque em nada**: aos 6 s a ficha e o pote brilham, aos 12 s a mão
+   mostra o gesto, aos 20 s o mascote explica. Toque na tela: tudo some.
+3. Despeje, mexa e unte devagar e depressa: o volume do som acompanha o seu gesto e para quando
+   você para.
+4. No menu, segure o cadeado 2 s: mude volumes, desligue a narração, recarregue a página — fica salvo.
+5. Tecla **D** mostra também o nível de dica e o tempo parado.
+
+## Milestone 2 (fluxo completo de uma receita)
 
 Receita `Bolo Fofinho` (`src/data/recipes/fofinho.json`), do ingrediente ao bolo decorado:
 

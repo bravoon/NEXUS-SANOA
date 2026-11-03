@@ -1,5 +1,7 @@
-/** Boot: gera as texturas provisórias (formas geométricas) e segue para o Menu. */
+/** Boot: gera as texturas (arte procedural), inicia o áudio e segue para a Preload. */
 import Phaser from 'phaser';
+import { gerarArte } from '../art/ArteProcedural';
+import { AudioSystem } from '../systems/audio/AudioSystem';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -32,6 +34,8 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('pincel', 64, 64);
     g.destroy();
 
-    this.scene.start('Menu');
+    gerarArte(this);
+    AudioSystem.iniciar(this.game);
+    this.scene.start('Preload');
   }
 }

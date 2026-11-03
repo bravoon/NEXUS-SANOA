@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import { ALTURA, CORES, LARGURA } from '../config/layout';
 import type { Sessao } from '../systems/recipe/Sessao';
 import { botaoGrande } from './ui';
+import { AudioSystem } from '../systems/audio/AudioSystem';
 
 export class ResultadoScene extends Phaser.Scene {
   private sessao!: Sessao;
@@ -58,6 +59,9 @@ export class ResultadoScene extends Phaser.Scene {
     });
     e.explode(40);
 
+    const audio = AudioSystem.get();
+    audio?.efeito('festa');
+    audio?.falar('resultado');
     botaoGrande(this, LARGURA / 2 - 180, ALTURA - 80, '↻ De novo', CORES.sucesso, () => this.scene.start('SelecaoReceita'));
     botaoGrande(this, LARGURA / 2 + 180, ALTURA - 80, '⌂ Início', 0x0072b2, () => this.scene.start('Menu'));
   }

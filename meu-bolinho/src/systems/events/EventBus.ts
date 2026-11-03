@@ -15,7 +15,7 @@ export interface MapaEventos {
   /** Ingrediente fora de ordem: rejeição suave (não é erro de FSM). */
   'feedback:rejeicao': { item: string; esperado: string | null };
   /** Fala do mascote (no Milestone 3 vira narração na fila do AudioSystem). */
-  'mascote:fala': { texto: string; humor: 'feliz' | 'surpreso' | 'neutro' };
+  'mascote:fala': { id: string; texto: string; humor: 'feliz' | 'surpreso' | 'neutro' };
 }
 
 type Ouvinte<T> = (payload: T) => void;

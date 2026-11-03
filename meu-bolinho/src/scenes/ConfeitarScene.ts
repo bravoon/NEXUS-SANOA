@@ -6,8 +6,10 @@
  */
 import Phaser from 'phaser';
 import { CONFIG_DECORACAO } from '../config/gameplay';
-import { ALTURA, BANDEJA_Y, BARRA_MEXER, BOLO, CORES, LARGURA, MESA_Y } from '../config/layout';
+import { BANDEJA_Y, BARRA_MEXER, BOLO, CORES } from '../config/layout';
 import { CakeView } from '../entities/Cake';
+import { sombra, TEXTURAS } from '../art/ArteProcedural';
+import type { DicaEtapa } from '../entities/HintPresenter';
 import { CORES_CONFEITO, desenharEnfeite, desenharIconeEnfeite } from '../entities/Enfeites';
 import { Ferramenta } from '../entities/Ferramentas';
 import { ProgressBar } from '../entities/ProgressBar';
@@ -67,15 +69,8 @@ export class ConfeitarScene extends CenaEtapas {
   }
 
   protected criarCenario(): void {
-    const g = this.add.graphics().setDepth(0);
-    g.fillStyle(0xfce4ec, 1);
-    g.fillRect(0, 0, LARGURA, MESA_Y);
-    g.fillStyle(0xffffff, 0.4);
-    for (let x = 0; x < LARGURA; x += 50) for (let y = 0; y < MESA_Y; y += 50) g.fillCircle(x + 25, y + 25, 4);
-    g.fillStyle(CORES.mesa, 1);
-    g.fillRect(0, MESA_Y, LARGURA, ALTURA - MESA_Y);
-    g.fillStyle(CORES.mesaBorda, 1);
-    g.fillRect(0, MESA_Y, LARGURA, 10);
+    this.add.image(0, 0, TEXTURAS.fundoConfeitar).setOrigin(0).setDepth(0);
+    sombra(this, BOLO.cx, BOLO.topoY + BOLO.alturaLateral + 40, BOLO.pratoRx * 2.2, 1);
 
     const etapa = this.runner.etapa;
     const cor = etapa?.tipo === 'decorar' ? Number.parseInt(etapa.corCobertura.slice(1), 16) : 0x5a3220;
@@ -124,7 +119,7 @@ export class ConfeitarScene extends CenaEtapas {
     if (etapa.tipo !== 'decorar') return;
     const d = this.decor;
     d?.cobertura.definirSuperficie(this.bolo.areaTopo, mascaraElipse(this.bolo.areaTopo));
-    this.falar('Passe a cobertura no bolo todo!');
+    this.falar('decorar.cobertura');
   }
 
   // ================================================================ input
@@ -142,12 +137,14 @@ export class ConfeitarScene extends CenaEtapas {
     if (this.liberado) {
       if (Math.hypot(a.x - DESFAZER.x, a.y - DESFAZER.y) <= DESFAZER.raio + 8) {
         if (d.decoracao.desfazer()) this.bolo.desenharEnfeites(d.decoracao);
+        this.som('clique');
         this.tweens.add({ targets: this.botaoDesfazer, angle: { from: 0, to: -30 }, duration: 120, yoyo: true });
         return;
       }
       const item = BANDEJA.find((b) => Math.abs(a.x - b.x) <= 48 && Math.abs(a.y - BANDEJA_Y) <= 52);
       if (item) {
         this.runner.inicioDoGesto();
+        this.som('pop');
         if (item.tipo === 'granulado') {
           this.arrasto = { tipo: 'granulado' };
           this.sacudir.parar();
@@ -192,8 +189,12 @@ export class ConfeitarScene extends CenaEtapas {
         const p = { x: arr.g.x, y: arr.g.y };
         if (this.bolo.noTopo(p, 0.95)) {
           const rel = this.bolo.paraRelativo(p);
-          if (d.decoracao.adicionar([{ tipo: arr.enfeite, x: rel.x, y: rel.y, rot: 0, cor: arr.cor }])) this.bolo.desenharEnfeites(d.decoracao);
-          else this.falar('O bolo já está cheio de enfeites!', 'neutro');
+          if (d.decoracao.adicionar([{ tipo: arr.enfeite, x: rel.x, y: rel.y, rot: 0, cor: arr.cor }])) {
+            this.bolo.desenharEnfeites(d.decoracao);
+            this.som('pop');
+            this.brilhinho(p);
+          }
+          else this.falar('decorar.cheio', 'neutro');
           arr.g.destroy();
         } else {
           this.tweens.add({ targets: arr.g, alpha: 0, scale: 0.4, duration: 250, onComplete: () => arr.g.destroy() });
@@ -217,6 +218,7 @@ export class ConfeitarScene extends CenaEtapas {
     const seg = d.cobertura.pintar(a.x, a.y);
     if (!seg) return;
     this.bolo.pintar(seg.x0, seg.y0, seg.x1, seg.y1, d.cobertura.raioPincel);
+    this.somContinuo('pincel', Math.min(1, Math.hypot(seg.x1 - seg.x0, seg.y1 - seg.y0) / 20));
     this.runner.notificarProgresso();
   }
 
@@ -224,6 +226,7 @@ export class ConfeitarScene extends CenaEtapas {
     const d = this.decor;
     if (!d) return;
     const porcoes = this.sacudir.amostra(a.x, a.t);
+    if (porcoes > 0) this.som('chocalho');
     for (let p = 0; p < porcoes; p++) {
       const novos: Enfeite[] = [];
       for (let i = 0; i < CONFIG_DECORACAO.granulosPorPorcao; i++) {
@@ -282,8 +285,35 @@ export class ConfeitarScene extends CenaEtapas {
       this.tweens.add({ targets: [this.bandeja, this.botaoDesfazer], alpha: 1, duration: 300 });
       this.botaoPronto.setVisible(true).setScale(0.3);
       this.tweens.add({ targets: this.botaoPronto, scale: 1, duration: 400, ease: 'Back.Out' });
-      this.falar('Que lindo! Agora enfeite do seu jeito. Quando acabar, toque em Pronto!');
+      this.falar('decorar.liberado');
     }
+  }
+
+  /** Brilho rápido onde um enfeite grudou (cosmético). */
+  private brilhinho(p: Ponto): void {
+    const b = this.add.image(p.x, p.y, TEXTURAS.brilho).setDepth(71).setScale(0.2).setTint(0xf0e442);
+    this.tweens.add({ targets: b, scale: 1.2, alpha: 0, angle: 90, duration: 420, onComplete: () => b.destroy() });
+  }
+
+  // ================================================================ dicas
+
+  protected dicaAtual(): DicaEtapa | null {
+    const ficha = this.runner.estado.indice;
+    const topo = { x: BOLO.cx, y: BOLO.topoY };
+    if (!this.liberado) return { ficha, destaques: [topo], demo: { tipo: 'esfregar', centro: topo, largura: BOLO.rx * 1.4, altura: BOLO.ry * 1.2 }, fala: 'decorar.dica_cobertura' };
+    const vela = BANDEJA.find((b) => b.tipo === 'vela')!;
+    const pote = BANDEJA.find((b) => b.tipo === 'granulado')!;
+    return {
+      ficha,
+      destaques: [{ x: vela.x, y: BANDEJA_Y }, { x: pote.x, y: BANDEJA_Y }],
+      demo: {
+        tipo: 'arrastar',
+        de: { x: vela.x, y: BANDEJA_Y },
+        para: topo,
+        fantasma: (g) => desenharEnfeite(g, { tipo: 'vela', x: 0, y: 20, rot: 0, cor: 0x56b4e9 }),
+      },
+      fala: 'decorar.dica_enfeites',
+    };
   }
 
   // ================================================================ debug

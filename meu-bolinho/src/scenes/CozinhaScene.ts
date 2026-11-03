@@ -9,15 +9,12 @@
 import Phaser from 'phaser';
 import { CONFIG_DESPEJAR, CONFIG_OVO, VAZAO, type Material } from '../config/gameplay';
 import {
-  ALTURA,
   AREA_MEXER,
   BARRA_MEXER,
   CAIXA_OVOS,
   CORES,
   DESCANSO_COLHER,
   FORMA,
-  LARGURA,
-  MESA_Y,
   POSICOES_RECIPIENTES,
   PRATINHO_DESCARTE,
   RECIPIENTE,
@@ -25,6 +22,8 @@ import {
   TIGELA_LATERAL,
 } from '../config/layout';
 import { INGREDIENTES } from '../data/registry';
+import { sombra, TEXTURAS } from '../art/ArteProcedural';
+import type { DicaEtapa } from '../entities/HintPresenter';
 import { BowlView } from '../entities/Bowl';
 import { EggView } from '../entities/Egg';
 import { Ferramenta } from '../entities/Ferramentas';
@@ -75,6 +74,9 @@ export class CozinhaScene extends CenaEtapas {
   private barra!: ProgressBar;
   private guiaMexer!: Phaser.GameObjects.Graphics;
   private particulas!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private poeira!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private sombraTigela!: Phaser.GameObjects.Image;
+  private oitavoMexer = 0;
   private caixaOvos: Phaser.GameObjects.Graphics | null = null;
   private ovos: EggView[] = [];
   private ovoNaBorda: EggView | null = null;
@@ -113,22 +115,17 @@ export class CozinhaScene extends CenaEtapas {
   // ================================================================ cenário
 
   protected criarCenario(): void {
-    const g = this.add.graphics().setDepth(0);
-    g.fillStyle(CORES.parede, 1);
-    g.fillRect(0, 0, LARGURA, MESA_Y);
-    g.fillStyle(0xffffff, 0.35);
-    for (let x = 0; x < LARGURA; x += 80) for (let y = 0; y < MESA_Y; y += 80) if (((x + y) / 80) % 2 === 0) g.fillRect(x, y, 80, 80);
-    g.fillStyle(CORES.mesa, 1);
-    g.fillRect(0, MESA_Y, LARGURA, ALTURA - MESA_Y);
-    g.fillStyle(CORES.mesaBorda, 1);
-    g.fillRect(0, MESA_Y, LARGURA, 10);
+    this.add.image(0, 0, TEXTURAS.fundoCozinha).setOrigin(0).setDepth(0);
 
     const receita = this.sessao.receita;
+    // sombra estreita e baixa: o vidro é transparente, então ela não pode aparecer "dentro" da tigela
+    this.sombraTigela = sombra(this, TIGELA.cx, TIGELA.bordaY + TIGELA.profundidade + 8, 220, 2).setDisplaySize(220, 34).setAlpha(0.55);
     this.tigela = new BowlView(this, corHex(receita.corMassa));
     receita.recipientes.forEach((item, i) => {
       const def = INGREDIENTES[item];
       const x = POSICOES_RECIPIENTES[i];
       if (!def || x === undefined) throw new Error(`Sem lugar na mesa para "${item}"`);
+      sombra(this, x, RECIPIENTE.y + RECIPIENTE.altura / 2 + 2, 110, 2);
       this.recipientes.push(new PourContainer(this, item, def, { x, y: RECIPIENTE.y }));
     });
 
@@ -149,6 +146,16 @@ export class CozinhaScene extends CenaEtapas {
       maxAliveParticles: 300,
     });
     this.particulas.setDepth(25);
+    this.poeira = this.add.particles(0, 0, TEXTURAS.po, {
+      emitting: false,
+      lifespan: 700,
+      speed: { min: 20, max: 60 },
+      angle: { min: 200, max: 340 },
+      scale: { start: 0.8, end: 2.2 },
+      alpha: { start: 0.7, end: 0 },
+      maxAliveParticles: 60,
+    });
+    this.poeira.setDepth(26);
 
     // Ingredientes já despejados (ao voltar para a cena) saem da mesa
     const indice = this.runner.estado.indice;
@@ -165,7 +172,8 @@ export class CozinhaScene extends CenaEtapas {
       case 'despejar': {
         this.irParaEstacao('tigela');
         const def = INGREDIENTES[etapa.item];
-        this.falar(`Agora: ${def?.nome ?? etapa.item}! Leve até a tigela e incline.`);
+        this.falar(`despejar.${etapa.item}`);
+        void def;
         const r = this.recipienteDaEtapa();
         if (r && ctrl instanceof PourStep) r.atualizarMedidor(ctrl);
         r?.balancar();
@@ -174,11 +182,11 @@ export class CozinhaScene extends CenaEtapas {
       case 'quebrar_ovo':
         this.irParaEstacao('tigela');
         this.criarOvos(etapa.quantidade);
-        this.falar('Leve o ovo até a beirada da tigela e dê dois toquinhos nele!');
+        this.falar('ovo.inicio');
         break;
       case 'mexer':
         this.irParaEstacao('tigela');
-        this.falar('Hora de mexer! Gire o dedo dentro da tigela.');
+        this.falar('mexer.inicio');
         this.colherMexer.setVisible(true);
         this.barra.setVisible(true);
         this.guiaMexer.setVisible(true);
@@ -190,13 +198,13 @@ export class CozinhaScene extends CenaEtapas {
         if (ctrl instanceof CoverageStep) ctrl.definirSuperficie(forma.areaFundo, mascaraElipse(forma.areaFundo));
         this.manteiga = new Ferramenta(this, 'manteiga', { x: FORMA.cx + FORMA.rx + 90, y: FORMA.cy });
         this.barra.setVisible(true);
-        this.falar('Passe manteiga na forma toda, com o dedo!');
+        this.falar('untar.inicio');
         break;
       }
       case 'despejar_massa':
         this.irParaEstacao('forma');
         this.barra.setVisible(true);
-        this.falar('Leve a tigela até a forma e incline. Despeje tudo!');
+        this.falar('massa.inicio');
         this.tweens.add({ targets: this.tigela, angle: { from: -6, to: 6 }, duration: 120, yoyo: true, repeat: 2, onComplete: () => this.tigela.setAngle(0) });
         break;
       default:
@@ -233,8 +241,8 @@ export class CozinhaScene extends CenaEtapas {
   }
 
   protected override aoErro(erro: TipoErro): void {
-    if (erro === 'excesso') this.falar('Opa, colocou demais! Tire um pouco com a colher.', 'surpreso');
-    if (erro === 'casca') this.falar('Caiu casquinha! Pegue com a colher.', 'surpreso');
+    if (erro === 'excesso') this.falar('excesso', 'surpreso');
+    if (erro === 'casca') this.falar('casca', 'surpreso');
   }
 
   protected override aoMudarEstado(anterior: EstadoReceita, atual: EstadoReceita): void {
@@ -262,7 +270,16 @@ export class CozinhaScene extends CenaEtapas {
     this.estacao = estacao;
     if (estacao === 'forma') {
       this.tweens.add({ targets: this.tigela, x: TIGELA_LATERAL.x, y: TIGELA_LATERAL.y, scale: TIGELA_LATERAL.escala, duration: 500, ease: 'Sine.InOut' });
+      this.tweens.add({
+        targets: this.sombraTigela,
+        x: TIGELA_LATERAL.x,
+        y: TIGELA_LATERAL.y + TIGELA.profundidade * TIGELA_LATERAL.escala + 6,
+        displayWidth: 220 * TIGELA_LATERAL.escala,
+        displayHeight: 34 * TIGELA_LATERAL.escala,
+        duration: 500,
+      });
       if (!this.forma) {
+        sombra(this, FORMA.cx, FORMA.cy + FORMA.ry + 20, FORMA.rx * 2.2, 2);
         this.forma = new PanView(this, FORMA.cx, FORMA.cy, 1, corHex(this.sessao.receita.corMassa));
         this.forma.setAlpha(0);
         this.tweens.add({ targets: this.forma.objetos, alpha: 1, duration: 500 });
@@ -308,6 +325,7 @@ export class CozinhaScene extends CenaEtapas {
       }
       const ovo = this.ovos.find((o) => o.visible && o !== this.ovoNaBorda && o.contem(a));
       if (ovo && ctrl.estadoOvo === 'na_caixa' && !this.ovoNaBorda) {
+        this.som('pop');
         this.arrasto = { tipo: 'ovo', ovo };
         this.runner.inicioDoGesto();
         return;
@@ -318,6 +336,7 @@ export class CozinhaScene extends CenaEtapas {
     if (r) {
       const daEtapa = etapa?.tipo === 'despejar' && etapa.item === r.item;
       r.pegar();
+      this.som('pop');
       this.arrasto = { tipo: 'recipiente', r, daEtapa };
       if (daEtapa) this.runner.inicioDoGesto();
       return;
@@ -374,7 +393,8 @@ export class CozinhaScene extends CenaEtapas {
         const naBorda = d >= 0.65 && d <= 1.4 && arr.ovo.y <= TIGELA.bordaY + 30;
         if (naBorda && ctrl instanceof EggStep && ctrl.apoiarNaBorda()) {
           this.ovoNaBorda = arr.ovo;
-          this.falar('Agora dê dois toquinhos no ovo!');
+          this.som('tum');
+          this.falar('ovo.na_borda');
         } else {
           arr.ovo.voltar();
         }
@@ -417,14 +437,16 @@ export class CozinhaScene extends CenaEtapas {
     const r = ctrl.toque(t);
     if (r === 'trincou') {
       ovo.desenhar('trincado');
+      this.som('trinca');
       this.tweens.add({ targets: ovo, angle: { from: -12, to: 12 }, duration: 70, yoyo: true, repeat: 1, onComplete: () => ovo.setAngle(0) });
     } else if (r === 'abriu') {
       this.sessao.tigela.adicionar(ITEM_OVO, CONFIG_OVO.volumePorOvo);
+      this.som('abre');
       ovo.abrir(this.cores[ITEM_OVO] ?? 0xf5c542, this.tigela.ySuperficie(this.sessao.tigela.total));
       this.ovoNaBorda = null;
       this.runner.notificarProgresso();
       if (ctrl.caiuCasca) this.runner.reportarErro('casca');
-      else if (!ctrl.terminouOvos) this.falar('Isso! Agora o outro ovo.');
+      else if (!ctrl.terminouOvos) this.falar('ovo.outro');
     }
   }
 
@@ -432,7 +454,17 @@ export class CozinhaScene extends CenaEtapas {
     const ctrl = this.runner.controlador;
     if (!(ctrl instanceof StirStep)) return;
     const n = this.tigela.normalizarMexer(a.x, a.y);
-    if (ctrl.amostra(n.x, n.y, a.t).ganho > 0) this.runner.notificarProgresso();
+    const r = ctrl.amostra(n.x, n.y, a.t);
+    if (r.motivo === 'aceita') this.somContinuo('mexer', Math.min(1, ctrl.acumulador.velocidadeAngular / 8));
+    if (r.ganho > 0) {
+      this.runner.notificarProgresso();
+      // "clique" de massa a cada 1/8 de volta contada (feedback sonoro do progresso)
+      const oitavo = Math.floor(ctrl.voltas * 8);
+      if (oitavo > this.oitavoMexer) {
+        this.oitavoMexer = oitavo;
+        if (oitavo % 8 === 0) this.som('ding');
+      }
+    }
   }
 
   private pintarManteiga(a: AmostraPonteiro): void {
@@ -441,6 +473,7 @@ export class CozinhaScene extends CenaEtapas {
     const seg = ctrl.pintar(a.x, a.y);
     if (!seg) return;
     this.forma.pintarManteiga(seg.x0, seg.y0, seg.x1, seg.y1, ctrl.raioPincel);
+    this.somContinuo('pincel', Math.min(1, Math.hypot(seg.x1 - seg.x0, seg.y1 - seg.y0) / 20));
     this.sessao.forma.untada = ctrl.cobertura;
     this.runner.notificarProgresso();
   }
@@ -450,7 +483,7 @@ export class CozinhaScene extends CenaEtapas {
     const esperado = etapa?.tipo === 'despejar' ? etapa.item : null;
     this.sessao.bus.emit('feedback:rejeicao', { item, esperado });
     const nome = esperado ? INGREDIENTES[esperado]?.nome : null;
-    this.falar(nome ? `Ainda não! Agora é a vez do ${nome}.` : 'Esse agora não!', 'neutro');
+    this.falar(nome ? `rejeicao.${esperado}` : 'rejeicao.generica', 'neutro');
     this.cartao.destacar(this.runner.estado.indice);
     this.recipientes.find((r) => r.item === esperado)?.balancar();
   }
@@ -461,7 +494,14 @@ export class CozinhaScene extends CenaEtapas {
     const arr = this.arrasto;
     if (arr?.tipo === 'recipiente') this.atualizarRecipiente(arr.r, arr.daEtapa, dt);
     if (arr?.tipo === 'colher') this.atualizarColher(dt);
-    if (arr?.tipo === 'mexer') this.colherMexer.seguir({ x: this.dedo.x, y: this.dedo.y + 10 }, dt);
+    if (arr?.tipo === 'mexer') {
+      this.colherMexer.seguir({ x: this.dedo.x, y: this.dedo.y + 10 }, dt);
+      // a tigela balança junto com a colher (cosmético, acompanha o dedo)
+      const ctrlM = this.runner.controlador;
+      if (ctrlM instanceof StirStep) this.tigela.angle = Math.sin(ctrlM.acumulador.anguloAtual) * 2.5;
+    } else if (this.estacao === 'tigela' && this.tigela.angle !== 0 && arr?.tipo !== 'tigela') {
+      this.tigela.angle = amortecer(this.tigela.angle, 0, 10, dt / 1000);
+    }
     if (arr?.tipo === 'ovo') arr.ovo.seguir(this.dedo, dt);
     if (arr?.tipo === 'untar') this.manteiga?.seguir({ x: this.dedo.x, y: this.dedo.y + 10 }, dt);
     if (arr?.tipo === 'tigela') this.atualizarTigela(arr.offset, dt);
@@ -515,7 +555,10 @@ export class CozinhaScene extends CenaEtapas {
     const q = ctrl.tick({ segurando: true, anguloGraus: r.angle, bicoSobreAlvo: this.bicoSobre }, dt);
     if (q > 0) {
       this.sessao.tigela.adicionar(ctrl.params.item, q);
-      this.emitirParticulas(this.bico, q, r.corConteudo, ctrl.params.material, this.tigela.ySuperficie(this.sessao.tigela.total));
+      const ySup = this.tigela.ySuperficie(this.sessao.tigela.total);
+      this.emitirParticulas(this.bico, q, r.corConteudo, ctrl.params.material, ySup);
+      this.somContinuo(ctrl.params.material, ctrl.vazaoAtual / VAZAO[ctrl.params.material].vazaoMax);
+      if (ctrl.params.material === 'po' && Math.random() < 0.3) this.poeira.emitParticleAt(this.bico.x + (Math.random() - 0.5) * 30, ySup, 1);
       this.runner.notificarProgresso();
     }
     if (ctrl.emExcesso) this.runner.reportarErro('excesso');
@@ -541,6 +584,7 @@ export class CozinhaScene extends CenaEtapas {
       this.sessao.tigela.removerProporcional(q);
       this.sessao.forma.massa += q;
       this.emitirParticulas(this.bico, q, corHex(this.sessao.receita.corMassa), 'massa', FORMA.cy);
+      this.somContinuo('massa', ctrl.vazaoAtual / VAZAO.massa.vazaoMax);
       this.runner.notificarProgresso();
     }
   }
@@ -556,18 +600,21 @@ export class CozinhaScene extends CenaEtapas {
         if (removido > 0) {
           this.sessao.tigela.remover(ctrl.params.item, removido);
           this.colher.carregar(this.cores[ctrl.params.item] ?? 0xffffff);
+          this.som('colher');
           this.recipienteDaEtapa()?.atualizarMedidor(ctrl);
           this.runner.notificarProgresso();
-          if (!ctrl.emExcesso) this.falar('Isso! Agora está certinho. Pode soltar a colher.');
+          if (!ctrl.emExcesso) this.falar('excesso.ok');
         }
       } else if (ctrl instanceof EggStep && ctrl.retirarCasca()) {
         this.colher.carregar(0xfffaf0);
+        this.som('colher');
         this.runner.notificarProgresso();
-        if (ctrl.cascasNaTigela === 0) this.falar('Sem casquinha! Pode soltar a colher.');
+        if (ctrl.cascasNaTigela === 0) this.falar('casca.ok');
       }
     }
     if (this.colher.carregada && distancia(this.colher, PRATINHO_DESCARTE) < PRATINHO_DESCARTE.raio) {
       this.colher.descarregar();
+      this.som('tum');
       this.montesDescartados++;
       this.desenharMontes(ctrl instanceof EggStep ? 0xfffaf0 : undefined);
     }
@@ -630,6 +677,93 @@ export class CozinhaScene extends CenaEtapas {
     const fim = pts[pts.length - 1]!;
     g.fillStyle(0xffffff, 0.8);
     g.fillTriangle(fim.x - 12, fim.y - 10, fim.x + 12, fim.y - 6, fim.x - 2, fim.y + 14);
+  }
+
+  // ================================================================ dicas
+
+  protected dicaAtual(): DicaEtapa | null {
+    const etapa = this.runner.etapa;
+    const ctrl = this.runner.controlador;
+    const ficha = this.runner.estado.indice;
+    if (!etapa) return null;
+    const colher = (fala: string): DicaEtapa => ({
+      ficha,
+      destaques: [{ x: this.colher.x, y: this.colher.y }],
+      demo: { tipo: 'arrastar', de: { x: this.colher.x, y: this.colher.y }, para: { x: TIGELA.cx, y: TIGELA.bordaY } },
+      fala,
+    });
+    if (this.runner.estado.sub === 'correcao') return colher(this.runner.estado.erro === 'casca' ? 'casca' : 'excesso.dica');
+
+    switch (etapa.tipo) {
+      case 'despejar': {
+        const r = this.recipienteDaEtapa();
+        if (!r) return null;
+        return {
+          ficha,
+          destaques: [r.descanso],
+          demo: {
+            tipo: 'arrastar',
+            de: r.descanso,
+            para: { x: ZONA_DESPEJO.centerX - 40, y: ZONA_DESPEJO.centerY },
+            depois: 'inclinar',
+            fantasma: (g) => {
+              g.fillStyle(r.cor, 1);
+              g.fillRoundedRect(-r.largura / 2, -r.altura / 2, r.largura, r.altura, 12);
+            },
+          },
+          fala: 'despejar.dica',
+        };
+      }
+      case 'quebrar_ovo': {
+        if (this.ovoNaBorda) return { ficha, destaques: [this.ovoNaBorda], demo: { tipo: 'tocar', ponto: this.ovoNaBorda, vezes: 2 }, fala: 'ovo.dica' };
+        const ovo = this.ovos.find((o) => o.visible);
+        if (!ovo) return null;
+        return {
+          ficha,
+          destaques: [ovo.descanso],
+          demo: {
+            tipo: 'arrastar',
+            de: ovo.descanso,
+            para: { x: TIGELA.cx + TIGELA.raio * 0.92, y: TIGELA.bordaY - 10 },
+            fantasma: (g) => {
+              g.fillStyle(0xfff8e7, 1);
+              g.fillEllipse(0, 0, 52, 66);
+            },
+          },
+          fala: 'ovo.dica',
+        };
+      }
+      case 'mexer':
+        return {
+          ficha,
+          destaques: [{ x: AREA_MEXER.cx, y: AREA_MEXER.cy }],
+          demo: { tipo: 'circular', centro: { x: AREA_MEXER.cx, y: AREA_MEXER.cy }, rx: AREA_MEXER.rx * 0.6, ry: AREA_MEXER.ry * 0.6 },
+          fala: 'mexer.dica',
+        };
+      case 'untar':
+        return { ficha, destaques: [{ x: FORMA.cx, y: FORMA.cy }], demo: { tipo: 'esfregar', centro: { x: FORMA.cx, y: FORMA.cy }, largura: 260, altura: 150 }, fala: 'untar.dica' };
+      case 'despejar_massa':
+        if (!(ctrl instanceof PourOutStep)) return null;
+        return {
+          ficha,
+          destaques: [{ x: TIGELA_LATERAL.x, y: TIGELA_LATERAL.y + 40 }],
+          demo: {
+            tipo: 'arrastar',
+            de: { x: TIGELA_LATERAL.x, y: TIGELA_LATERAL.y + 30 },
+            para: { x: ZONA_FORMA.centerX - 40, y: ZONA_FORMA.centerY + 30 },
+            depois: 'inclinar',
+            fantasma: (g) => {
+              g.fillStyle(0xcfe8f7, 1);
+              g.fillEllipse(0, 0, 216, 86);
+              g.fillStyle(corHex(this.sessao.receita.corMassa), 1);
+              g.fillEllipse(0, 6, 170, 56);
+            },
+          },
+          fala: 'massa.dica',
+        };
+      default:
+        return null;
+    }
   }
 
   // ================================================================ debug

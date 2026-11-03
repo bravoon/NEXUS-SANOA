@@ -331,3 +331,34 @@ Overlay com: colisores (tigela, bico, anel válido do mexer em verde/vermelho), 
     3 inversões rápidas do pote em 600 ms). "Desfazer" remove a última ação inteira (uma porção de
     granulado é uma ação). Máximo de 120 itens. A foto do bolo (Resultado) é um `snapshotArea` do
     enquadramento do bolo, pronta para a galeria do Milestone 4.
+
+## 13. Milestone 3: arte, áudio, narração e dicas
+
+**Arte** (`src/art/ArteProcedural.ts`): cenários, sombra, mão-fantasma, brilho, vapor e pó são
+desenhados por código uma vez no Boot e salvos como texturas (chaves em `TEXTURAS`). Trocar por
+arte ilustrada = carregar um atlas com as mesmas chaves na Preload; nenhuma cena muda. Objetos
+interativos (recipientes, tigela, forma, ovo, forno, bolo) continuam vetoriais porque o desenho
+deles depende do estado (nível, inclinação, mistura, cobertura).
+
+**Áudio** (`src/systems/audio`): efeitos e música são sintetizados em WebAudio (0 bytes no build).
+Sons contínuos (despejar pó/líquido/massa, mexer, pincel, forno) têm intensidade proporcional ao
+input e silenciam sozinhos ~120 ms depois que a cena para de alimentá-los: o som obedece à mesma
+regra do jogo. A música abaixa enquanto o mascote fala.
+
+**Narração**: cada fala tem um id em `src/data/falas.json` (teste garante que todo id usado no
+código existe). `FilaNarracao` (pura, testada) garante uma fala por vez, sem repetição em eco,
+com prioridade para avisos. Fonte da voz, em ordem: `src/assets/voz/<id>.mp3` (carregado
+automaticamente pela Preload) → voz pt-BR do sistema (Web Speech) → só o balão. O roteiro de
+gravação é gerado por `npm run roteiro` em `docs/ROTEIRO_NARRACAO.md`.
+
+**Dicas** (`HintTimer` puro + `HintPresenter`): o relógio só corre quando a etapa espera input
+(aguardando/correção, sem gesto em andamento, com dica disponível — p.ex. não corre com o forno
+assando). Qualquer toque, movimento do dedo ou progresso zera. Cada cena implementa
+`dicaAtual()`: ficha do cartão, objetos a destacar, demonstração do gesto e fala do nível 3.
+A mão-fantasma é uma imagem sem colisor e sem referência aos controladores; nos arrastos ela
+leva uma cópia translúcida do objeto (o real não se move).
+
+**Área dos pais**: no menu, segurar o cadeado 2 s. Volumes (geral, música, efeitos), narração e
+música liga/desliga, salvos em `localStorage` (leitura tolerante a dado corrompido e a storage
+bloqueado). Botões só disparam se o toque começou neles (um dedo que chega "solto" de outra
+tela não aciona nada).

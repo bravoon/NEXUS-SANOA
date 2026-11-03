@@ -64,7 +64,17 @@ export class PourContainer extends Phaser.GameObjects.Container {
     // bico
     g.fillStyle(clarear(this.cor, 0.3), 1);
     g.fillTriangle(w / 2 - 14, -h / 2, w / 2 + 6, -h / 2 - 8, w / 2, -h / 2 + 14);
-    desenharSimbolo(g, this.def.simbolo, -6, 14, 34, 0xffffff);
+    // reflexo lateral e base mais escura (volume)
+    g.fillStyle(0xffffff, 0.28);
+    g.fillRoundedRect(-w / 2 + 6, -h / 2 + 28, 9, h - 40, 4);
+    g.fillStyle(escurecer(this.cor, 0.15), 1);
+    g.fillRoundedRect(-w / 2, h / 2 - 14, w, 14, { tl: 0, tr: 0, bl: 12, br: 12 });
+    // rótulo redondo com o símbolo (forma + cor: legível sem ler)
+    g.fillStyle(0xffffff, 0.95);
+    g.fillCircle(-6, 14, 25);
+    g.lineStyle(3, escurecer(this.cor, 0.35), 1);
+    g.strokeCircle(-6, 14, 25);
+    desenharSimbolo(g, this.def.simbolo, -6, 14, 30, this.cor);
   }
 
   /** Mostra o medidor (só no recipiente da etapa atual). */
@@ -106,6 +116,9 @@ export class PourContainer extends Phaser.GameObjects.Container {
     this.setAngle(0);
     this.estado = 'arrastando';
     this.setDepth(40);
+    // "squash" de pegar (cosmético)
+    this.setScale(1);
+    this.scene.tweens.add({ targets: this, scaleX: 1.1, scaleY: 0.9, duration: 80, yoyo: true });
   }
 
   /** Segue o alvo com atraso físico (independente do frame rate). */
