@@ -68,7 +68,7 @@ const PASTA = process.argv[2] || null;
 
   console.log('Receitas e modo Confeiteiro');
   // a área dos pais libera a trilha toda (o Chocolate no Confeiteiro é a fase 2)
-  await p.evaluate(() => localStorage.setItem('meu-bolinho:preferencias:v1', JSON.stringify({ liberarFases: true })));
+  await p.evaluate(() => { localStorage.setItem('meu-bolinho:preferencias:v1', JSON.stringify({ liberarFases: true })); localStorage.setItem('meu-bolinho:perfis:v1', JSON.stringify({ perfis: [{ id: 'teste', nome: 'Teste', avatar: 'gato', criadoEm: '2026-01-01T00:00:00Z' }], atual: 'teste' })); });
   await p.reload(); await p.waitForTimeout(1500);
   await p.mouse.click(530, 570); await p.waitForTimeout(800); // Jogar → Trilha
   const nReceitas = await p.evaluate(() => window.__jogo.scene.getScene('Trilha').children.list.filter((o) => o.name && o.input).length);
@@ -156,9 +156,9 @@ const PASTA = process.argv[2] || null;
   await p.mouse.click(1060, 650);
   await esperar((x) => x.cenas.includes('Resultado'), 20000); await p.waitForTimeout(1500);
   await foto('06-resultado');
-  const galeria = await p.evaluate(() => JSON.parse(localStorage.getItem('meu-bolinho:galeria:v1') || '[]'));
+  const galeria = await p.evaluate(() => JSON.parse(localStorage.getItem('meu-bolinho:galeria:v1@teste') || '[]'));
   ok(galeria.length === 1 && galeria[0].foto.startsWith('data:image/jpeg') && galeria[0].enfeites >= 2, `bolo guardado na galeria (foto ${Math.round(galeria[0]?.foto.length / 1024)} KB)`);
-  const prog = await p.evaluate(() => JSON.parse(localStorage.getItem('meu-bolinho:progresso:v1') || '{}'));
+  const prog = await p.evaluate(() => JSON.parse(localStorage.getItem('meu-bolinho:progresso:v1@teste') || '{}'));
   ok(prog[receita.id]?.confeiteiro === 1, 'progresso registrado (Confeiteiro: 1)');
   await p.mouse.click(640, 640); await p.waitForTimeout(1500); // Galeria
   ok((await st()).cenas.includes('Galeria'), 'botão Galeria abre a galeria');
@@ -167,7 +167,7 @@ const PASTA = process.argv[2] || null;
   await p.mouse.click(1000, 110); await p.waitForTimeout(400);
   await foto('08-galeria');
   await p.reload(); await p.waitForTimeout(1500);
-  ok((await p.evaluate(() => JSON.parse(localStorage.getItem('meu-bolinho:galeria:v1') || '[]').length)) === 1, 'galeria sobrevive ao recarregar');
+  ok((await p.evaluate(() => JSON.parse(localStorage.getItem('meu-bolinho:galeria:v1@teste') || '[]').length)) === 1, 'galeria sobrevive ao recarregar');
 
   ok(erros.length === 0, 'sem erros de página ' + erros.join(' | '));
   console.log(falhas === 0 ? '\nACEITE: tudo ok' : `\nACEITE: ${falhas} falha(s)`);

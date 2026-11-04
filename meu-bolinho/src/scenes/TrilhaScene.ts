@@ -8,12 +8,15 @@ import Phaser from 'phaser';
 import { TEXTURAS } from '../art/ArteProcedural';
 import { ALTURA, CORES, LARGURA } from '../config/layout';
 import { carregarReceita, RECEITAS } from '../data/registry';
-import trilha from '../data/trilha.json';
+import { MUNDOS, ordemDaTrilhaJson } from '../data/trilhaDados';
 import { AudioSystem } from '../systems/audio/AudioSystem';
-import { carregarEstrelas, montarTrilha, placar, type FaseTrilha, type Mecanica } from '../systems/progresso/Trilha';
+import { carregarEstrelas, dividirEmMundos, montarTrilha, mundoAtual, placar, type FaseTrilha, type Mecanica } from '../systems/progresso/Trilha';
 import { Sessao } from '../systems/recipe/Sessao';
 import type { Dificuldade } from '../systems/recipe/recipeTypes';
-import { armazenamentoLocal, carregarPreferencias } from '../systems/save/Preferencias';
+import { carregarPreferencias } from '../systems/save/Preferencias';
+import { armazenamentoJogador, nomeExibido, perfilAtual } from '../systems/save/Perfis';
+import { armazenamentoLocal } from '../systems/save/Preferencias';
+import { desenharAvatar } from '../utils/avatar';
 import { assarGraphics, imagemVetorial } from '../utils/CacheGrafico';
 import { corHex, escurecer } from '../utils/desenho';
 import { aoSoltarNoObjeto, botaoGrande } from './ui';
@@ -30,9 +33,19 @@ function posicoes(n: number): { x: number; y: number }[] {
     const lin = Math.floor(i / colunas);
     let col = i % colunas;
     if (lin % 2 === 1) col = colunas - 1 - col; // vai e volta
-    return { x: 230 + col * 273, y: y0 + lin * dy };
+    return { x: 235 + col * 270, y: y0 + lin * dy };
   });
 }
+
+/** Mecânicas que ganham selo "NOVO" e aviso no popup. */
+const NOMES_MECANICA: Partial<Record<Mecanica, string>> = {
+  bater: 'bater claras em neve',
+  rechear: 'rechear o bolo em camadas',
+  glace: 'escrever com glacê',
+  peneirar: 'peneirar a farinha',
+  ralar: 'ralar com o ralador',
+  polvilhar: 'polvilhar por cima do bolo',
+};
 
 /** Ícone da mecânica nova (selo "NOVO"). */
 function iconeMecanica(g: Phaser.GameObjects.Graphics, m: Mecanica, x: number, y: number): void {
@@ -52,6 +65,26 @@ function iconeMecanica(g: Phaser.GameObjects.Graphics, m: Mecanica, x: number, y
       g.fillStyle(0xd7263d, 1);
       g.fillRect(x - 13, y - 4, 26, 6);
       break;
+    case 'peneirar':
+      g.fillStyle(0xdfe7ee, 1);
+      g.fillEllipse(x, y + 2, 30, 12);
+      g.strokeEllipse(x, y + 2, 30, 12);
+      g.fillStyle(0xefe3c8, 1);
+      for (const [dx, dy] of [[-6, 10], [0, 14], [6, 10]] as const) g.fillCircle(x + dx, y + dy, 2);
+      break;
+    case 'ralar':
+      g.fillStyle(0xc5ccd3, 1);
+      g.fillRoundedRect(x - 9, y - 14, 18, 28, 3);
+      g.fillStyle(0x6b7680, 1);
+      for (let l = -10; l <= 8; l += 6) g.fillRect(x - 4, y + l, 8, 2);
+      break;
+    case 'polvilhar':
+      g.fillStyle(0xffffff, 1);
+      g.fillRoundedRect(x - 8, y - 16, 16, 20, 4);
+      g.strokeRoundedRect(x - 8, y - 16, 16, 20, 4);
+      g.fillStyle(0x6b3e26, 1);
+      for (const [dx, dy] of [[-6, 10], [0, 14], [6, 9]] as const) g.fillCircle(x + dx, y + dy, 2);
+      break;
     case 'glace':
       g.fillStyle(0xffffff, 1);
       g.fillTriangle(x - 10, y - 14, x + 10, y - 14, x, y + 12);
@@ -63,27 +96,60 @@ function iconeMecanica(g: Phaser.GameObjects.Graphics, m: Mecanica, x: number, y
   }
 }
 
+export interface DadosTrilha {
+  /** Mundo a mostrar (0 = primeiro). Sem isso: o mundo onde a criança está. */
+  mundo?: number;
+}
+
 export class TrilhaScene extends Phaser.Scene {
   private popup: Phaser.GameObjects.Container | null = null;
+  private mundoPedido: number | null = null;
+  /** Mundo mostrado agora (lido pelos testes). */
+  mundo = 0;
 
   constructor() {
     super('Trilha');
+  }
+
+  init(dados: DadosTrilha): void {
+    this.mundoPedido = typeof dados?.mundo === 'number' ? dados.mundo : null;
   }
 
   create(): void {
     this.popup = null;
     this.add.image(0, 0, TEXTURAS.fundoMenu).setOrigin(0);
     const audio = AudioSystem.get();
-    const arm = armazenamentoLocal();
-    const fases = montarTrilha(trilha, RECEITAS, carregarEstrelas(arm), carregarPreferencias(arm).liberarFases);
+    const arm = armazenamentoJogador();
+    const todas = montarTrilha(ordemDaTrilhaJson(), RECEITAS, carregarEstrelas(arm), carregarPreferencias(arm).liberarFases);
+    const mundos = dividirEmMundos(todas, MUNDOS);
+    const im = Phaser.Math.Clamp(this.mundoPedido ?? mundoAtual(mundos), 0, mundos.length - 1);
+    this.mundo = im;
+    const mundo = mundos[im]!;
+    const fases = mundo.fases;
     const pos = posicoes(fases.length);
 
-    this.add.text(LARGURA / 2, 48, 'Trilha do Confeiteiro', { fontFamily: FONTE, fontSize: '46px', color: '#3b2a20', fontStyle: 'bold', stroke: '#ffffff', strokeThickness: 8 }).setOrigin(0.5);
-    const { estrelas, maximo } = placar(fases);
+    this.add.text(LARGURA / 2, 40, `Mundo ${mundo.numero}: ${mundo.nome}`, { fontFamily: FONTE, fontSize: '40px', color: '#3b2a20', fontStyle: 'bold', stroke: '#ffffff', strokeThickness: 8 }).setOrigin(0.5);
+    // bolinhas dos mundos
+    mundos.forEach((m, i) => this.add.circle(LARGURA / 2 + (i - (mundos.length - 1) / 2) * 26, 82, 8, i === im ? CORES.sucesso : m.aberto ? 0xffffff : 0xb0a49a).setStrokeStyle(2, 0x8a7f76));
+    const { estrelas, maximo } = placar(todas);
     const p = this.add.container(LARGURA - 130, 48);
     p.add(this.add.image(-50, 0, 'estrela').setScale(1.8).setTint(CORES.destaque));
     p.add(this.add.text(-28, 0, `${estrelas}/${maximo}`, { fontFamily: FONTE, fontSize: '32px', color: '#3b2a20', fontStyle: 'bold' }).setOrigin(0, 0.5));
-    botaoGrande(this, 90, 48, '⌂', 0x0072b2, () => this.scene.start('Menu'), 120, 80);
+    botaoGrande(this, 80, 48, '⌂', 0x0072b2, () => this.scene.start('Menu'), 110, 80);
+    this.criarJogador();
+    // setas entre mundos (o próximo só abre quando a primeira fase dele for liberada)
+    if (im > 0) botaoGrande(this, 50, ALTURA / 2 + 40, '◀', 0xcc79a7, () => this.scene.restart({ mundo: im - 1 }), 80, 110).setName('mundo:anterior');
+    const prox = mundos[im + 1];
+    if (prox) {
+      const b = botaoGrande(this, LARGURA - 50, ALTURA / 2 + 40, prox.aberto ? '▶' : '🔒', prox.aberto ? 0xcc79a7 : 0xb0a49a, () => {
+        if (prox.aberto) this.scene.restart({ mundo: im + 1 });
+        else {
+          audio?.efeito('boing');
+          audio?.falar('trilha.mundo_trancado');
+        }
+      }, 80, 110);
+      b.setName('mundo:proximo');
+    }
 
     // estrada (estática: assada numa textura)
     const estrada = this.add.graphics();
@@ -95,7 +161,7 @@ export class TrilhaScene extends Phaser.Scene {
       const n = Math.floor(Math.hypot(b.x - a.x, b.y - a.y) / 34);
       for (let k = 1; k < n; k += 2) estrada.lineBetween(a.x + ((b.x - a.x) * k) / n, a.y + ((b.y - a.y) * k) / n, a.x + ((b.x - a.x) * (k + 1)) / n, a.y + ((b.y - a.y) * (k + 1)) / n);
     }
-    assarGraphics(this, estrada, `trilha:estrada:${fases.length}`, { x: 0, y: 0, largura: LARGURA, altura: ALTURA });
+    assarGraphics(this, estrada, `trilha:estrada:${fases.length}:${im}`, { x: 0, y: 0, largura: LARGURA, altura: ALTURA });
 
     const atual = fases.find((f) => f.liberada && !f.concluida) ?? null;
     fases.forEach((f, i) => this.criarFase(f, pos[i]!, f === atual));
@@ -105,7 +171,21 @@ export class TrilhaScene extends Phaser.Scene {
       const m = this.add.image(pa.x - 78, pa.y - 66, this.textures.exists('menu:bolinho') ? 'menu:bolinho' : 'estrela').setScale(0.32);
       this.tweens.add({ targets: m, y: m.y - 10, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     }
-    audio?.falar('trilha.escolher');
+    audio?.falar(this.mundoPedido === null && im > 0 && fases[0] === atual ? 'trilha.mundo_novo' : 'trilha.escolher');
+  }
+
+  /** Avatar e nome de quem está jogando; tocar troca de jogador. */
+  private criarJogador(): void {
+    const perfil = perfilAtual(armazenamentoLocal());
+    if (!perfil) return;
+    const c = this.add.container(190, 48).setName('jogador');
+    c.add(imagemVetorial(this, `avatar:${perfil.avatar}:30`, { x: -34, y: -34, largura: 68, altura: 68 }, (g) => desenharAvatar(g, perfil.avatar, 0, 0, 30)));
+    c.add(this.add.text(40, 0, nomeExibido(perfil), { fontFamily: FONTE, fontSize: '24px', color: '#3b2a20', fontStyle: 'bold', stroke: '#ffffff', strokeThickness: 5 }).setOrigin(0, 0.5));
+    c.setSize(200, 72).setInteractive({ useHandCursor: true });
+    aoSoltarNoObjeto(c, () => {
+      AudioSystem.get()?.efeito('pop');
+      this.scene.start('Perfis');
+    });
   }
 
   private criarFase(f: FaseTrilha, p: { x: number; y: number }, atual: boolean): void {
@@ -151,7 +231,7 @@ export class TrilhaScene extends Phaser.Scene {
       selo.add(gs);
       selo.add(this.add.text(-6, 0, 'NOVO', { fontFamily: FONTE, fontSize: '15px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5));
       const gi = this.add.graphics();
-      iconeMecanica(gi, f.novidades.find((m) => m === 'bater' || m === 'rechear' || m === 'glace') ?? f.novidades[0]!, 46, 0);
+      iconeMecanica(gi, f.novidades.find((m) => m in NOMES_MECANICA) ?? f.novidades[0]!, 46, 0);
       selo.add(gi);
       c.add(selo);
       if (f.liberada) this.tweens.add({ targets: selo, angle: { from: -6, to: 6 }, duration: 700, yoyo: true, repeat: -1 });
@@ -183,7 +263,7 @@ export class TrilhaScene extends Phaser.Scene {
     c.add([fundo, g]);
     c.add(this.add.text(LARGURA / 2, 210, `Fase ${f.numero}: ${f.nome}`, { fontFamily: FONTE, fontSize: '38px', color: '#3b2a20', fontStyle: 'bold' }).setOrigin(0.5));
     for (let k = 0; k < 3; k++) c.add(this.add.image(LARGURA / 2 + (k - 1) * 50, 270, 'estrela').setScale(2).setTint(k < f.estrelas ? CORES.destaque : 0xd8cfc6));
-    const NOMES: Partial<Record<Mecanica, string>> = { bater: 'bater claras em neve', rechear: 'rechear o bolo em camadas', glace: 'escrever com glacê' };
+    const NOMES: Partial<Record<Mecanica, string>> = NOMES_MECANICA;
     const novidade = f.novidades.map((m) => NOMES[m]).find(Boolean);
     if (novidade) {
       const gi = this.add.graphics();

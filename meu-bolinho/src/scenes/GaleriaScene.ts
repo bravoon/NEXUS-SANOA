@@ -8,7 +8,7 @@ import { ALTURA, CORES, LARGURA } from '../config/layout';
 import { PauseButton } from '../entities/PauseButton';
 import { AudioSystem } from '../systems/audio/AudioSystem';
 import { carregarGaleria, removerBolo, type BoloSalvo } from '../systems/save/Galeria';
-import { armazenamentoLocal } from '../systems/save/Preferencias';
+import { armazenamentoJogador } from '../systems/save/Perfis';
 import { aoSoltarNoObjeto, botaoGrande } from './ui';
 
 const FONTE = 'Arial Rounded MT Bold, Arial, sans-serif';
@@ -35,7 +35,7 @@ export class GaleriaScene extends Phaser.Scene {
     this.grade = this.add.container(0, 0);
     this.ampliado = null;
     this.pagina = 0;
-    this.bolos = carregarGaleria(armazenamentoLocal());
+    this.bolos = carregarGaleria(armazenamentoJogador());
     this.setas = [
       botaoGrande(this, 60, 390, '◀', 0xe69f00, () => this.mudarPagina(-1), 90, 90),
       botaoGrande(this, LARGURA - 60, 390, '▶', 0xe69f00, () => this.mudarPagina(1), 90, 90),
@@ -123,9 +123,9 @@ export class GaleriaScene extends Phaser.Scene {
     c.add(this.add.text(LARGURA / 2, 590, `${b.nomeReceita}  ${estrelas}  ·  ${dataCurta(b.criadoEm)}  ·  ${b.enfeites} enfeites`, { fontFamily: FONTE, fontSize: '26px', color: '#3b2a20' }).setOrigin(0.5));
     c.add(botaoGrande(this, LARGURA / 2 + 360, 110, '✕', 0xd55e00, () => this.fecharAmpliado(), 90, 80));
     const lixeira = new PauseButton(this, () => {
-      removerBolo(armazenamentoLocal(), b.id);
+      removerBolo(armazenamentoJogador(), b.id);
       AudioSystem.get()?.efeito('whoosh');
-      this.bolos = carregarGaleria(armazenamentoLocal());
+      this.bolos = carregarGaleria(armazenamentoJogador());
       this.pagina = Math.min(this.pagina, this.paginas - 1);
       this.fecharAmpliado();
       this.desenharPagina();

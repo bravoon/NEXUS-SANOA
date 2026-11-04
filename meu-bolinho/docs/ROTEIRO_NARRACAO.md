@@ -8,7 +8,7 @@ longo no início/fim, normalizado em −16 LUFS. Salve em `src/assets/voz/<arqui
 automaticamente cada arquivo que existir; as falas sem arquivo usam a voz pt-BR do sistema
 (ou só o balão de texto).
 
-Total: 85 falas.
+Total: 112 falas.
 
 | id | arquivo | texto |
 |---|---|---|
@@ -97,3 +97,30 @@ Total: 85 falas.
 | `fase.liberada` | `fase.liberada.mp3` | Oba! Uma fase nova foi liberada! |
 | `trilha.escolher` | `trilha.escolher.mp3` | Escolha uma fase no caminho! |
 | `trilha.trancada` | `trilha.trancada.mp3` | Essa fase ainda está trancada. Termine a anterior para abrir! |
+| `perfil.quem` | `perfil.quem.mp3` | Quem vai jogar? Toque no seu bichinho! |
+| `perfil.avatar` | `perfil.avatar.mp3` | Escolha o seu bichinho! |
+| `perfil.nome` | `perfil.nome.mp3` | Qual é o seu nome? Pode pedir ajuda para um adulto. Depois toque em Pronto! |
+| `perfil.ola` | `perfil.ola.mp3` | Oba! Agora as suas estrelas ficam guardadas com você! |
+| `trilha.mundo_novo` | `trilha.mundo_novo.mp3` | Um mundo novo! Bem-vindo à Confeitaria da Vovó! |
+| `trilha.mundo_trancado` | `trilha.mundo_trancado.mp3` | Esse mundo ainda está trancado. Termine as fases deste mundo primeiro! |
+| `peneirar.inicio` | `peneirar.inicio.mp3` | Pegue a peneira, leve até a tigela e sacuda de um lado para o outro! |
+| `peneirar.dica` | `peneirar.dica.mp3` | Segure a peneira em cima da tigela e sacuda bem! |
+| `peneirar.ok` | `peneirar.ok.mp3` | Peneirado! Fica bem fofinho. |
+| `ralar.inicio` | `ralar.inicio.mp3` | Esfregue o pedaço para cima e para baixo no ralador! |
+| `ralar.dica` | `ralar.dica.mp3` | Arraste o pedaço até o ralador e esfregue para cima e para baixo! |
+| `ralar.ok` | `ralar.ok.mp3` | Ralado! Muito bem! |
+| `polvilhar.inicio` | `polvilhar.inicio.mp3` | Agora pegue o polvilhador e sacuda em cima do bolo! |
+| `polvilhar.dica` | `polvilhar.dica.mp3` | Segure o polvilhador em cima do bolo e sacuda de um lado para o outro! |
+| `polvilhar.ok` | `polvilhar.ok.mp3` | Que lindo! Agora coloque os enfeites. |
+| `despejar.fuba` | `despejar.fuba.mp3` | Agora o fubá! Leve até a tigela e incline. |
+| `despejar.mel` | `despejar.mel.mp3` | Agora o mel! Leve até a tigela e incline. |
+| `despejar.coco` | `despejar.coco.mp3` | Agora o coco! Leve até a tigela e incline. |
+| `despejar.suco_limao` | `despejar.suco_limao.mp3` | Agora o suco de limão! Leve até a tigela e incline. |
+| `despejar.maca` | `despejar.maca.mp3` | Agora a maçã! Leve até a tigela e incline. |
+| `despejar.chocolate_barra` | `despejar.chocolate_barra.mp3` | Agora o chocolate! Leve até a tigela e incline. |
+| `rejeicao.fuba` | `rejeicao.fuba.mp3` | Ainda não! Agora é a vez do fubá. |
+| `rejeicao.mel` | `rejeicao.mel.mp3` | Ainda não! Agora é a vez do mel. |
+| `rejeicao.coco` | `rejeicao.coco.mp3` | Ainda não! Agora é a vez do coco. |
+| `rejeicao.suco_limao` | `rejeicao.suco_limao.mp3` | Ainda não! Agora é a vez do suco de limão. |
+| `rejeicao.maca` | `rejeicao.maca.mp3` | Ainda não! Agora é a vez da maçã. |
+| `rejeicao.chocolate_barra` | `rejeicao.chocolate_barra.mp3` | Ainda não! Agora é a vez do chocolate. |

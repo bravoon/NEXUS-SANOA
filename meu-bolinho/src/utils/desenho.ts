@@ -93,6 +93,66 @@ export function desenharSimbolo(
       g.strokeEllipse(x, y, tam, tam * 0.55);
       g.lineBetween(x - h * 0.8, y, x + h * 0.8, y);
       break;
+    case 'cruz':
+      g.fillRect(x - h * 0.32, y - h, h * 0.64, tam);
+      g.fillRect(x - h, y - h * 0.32, tam, h * 0.64);
+      g.strokeRect(x - h * 0.32, y - h, h * 0.64, tam);
+      g.strokeRect(x - h, y - h * 0.32, tam, h * 0.64);
+      break;
+    case 'lua': {
+      // meia-lua (crescente): arco externo + arco interno deslocado
+      const pts: Phaser.Types.Math.Vector2Like[] = [];
+      for (let i = 0; i <= 16; i++) {
+        const a = Math.PI / 2 + (i / 16) * Math.PI;
+        pts.push({ x: x + Math.cos(a) * h, y: y + Math.sin(a) * h });
+      }
+      for (let i = 16; i >= 0; i--) {
+        const a = Math.PI / 2 + (i / 16) * Math.PI;
+        pts.push({ x: x + h * 0.35 + Math.cos(a) * h * 0.7, y: y + Math.sin(a) * h * 0.95 });
+      }
+      g.fillPoints(pts, true);
+      g.strokePoints(pts, true);
+      break;
+    }
+    case 'coracao': {
+      const pts: Phaser.Types.Math.Vector2Like[] = [];
+      for (let i = 0; i < 28; i++) {
+        const t = (i / 28) * Math.PI * 2;
+        const px = 16 * Math.sin(t) ** 3;
+        const py = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+        pts.push({ x: x + (px / 17) * h, y: y + (py / 17) * h + h * 0.1 });
+      }
+      g.fillPoints(pts, true);
+      g.strokePoints(pts, true);
+      break;
+    }
+    case 'anel':
+      g.lineStyle(h * 0.45, cor, 1);
+      g.strokeCircle(x, y, h * 0.75);
+      g.lineStyle(3, escurecer(cor, 0.45), 1);
+      g.strokeCircle(x, y, h);
+      g.strokeCircle(x, y, h * 0.5);
+      break;
+    case 'nuvem':
+      g.fillCircle(x - h * 0.45, y + h * 0.15, h * 0.48);
+      g.fillCircle(x + h * 0.45, y + h * 0.15, h * 0.48);
+      g.fillCircle(x, y - h * 0.2, h * 0.58);
+      g.fillRect(x - h * 0.45, y + h * 0.1, h * 0.9, h * 0.53);
+      g.strokeCircle(x, y - h * 0.2, h * 0.58);
+      break;
+    case 'raio': {
+      const pts = [
+        { x: x + h * 0.2, y: y - h },
+        { x: x - h * 0.6, y: y + h * 0.1 },
+        { x: x - h * 0.05, y: y + h * 0.1 },
+        { x: x - h * 0.25, y: y + h },
+        { x: x + h * 0.6, y: y - h * 0.15 },
+        { x: x + h * 0.05, y: y - h * 0.15 },
+      ];
+      g.fillPoints(pts, true);
+      g.strokePoints(pts, true);
+      break;
+    }
     default: {
       // Exaustividade: um símbolo novo em IngredienteDef sem desenho aqui é erro de compilação.
       const nunca: never = simbolo;

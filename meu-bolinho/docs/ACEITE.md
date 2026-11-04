@@ -22,6 +22,8 @@ Como verificar tudo: `npm test` (unitários, Node) e `npm run e2e` (navegador; v
 | Alvos de toque ≥ 64 px, acessível a daltonismo | Layout testado para 1–8 potes; cada ingrediente tem forma única (não depende de cor) | `tests/layout.test.ts`, `tests/recipeLoader.test.ts` |
 | Trilha: fase seguinte só libera ao terminar a anterior; estrelas sem punição | `montarTrilha`/`avaliar` testados com a `trilha.json` real; navegador: fase 2 abre e fase 3 continua trancada após a fase 1; 3 estrelas no Bolo de Aniversário | `tests/fases.test.ts`, `tests/e2e/fases.cjs` |
 | Mecânicas novas sem auto-complete (bater, rechear, glacê) | Linha reta/parado = 0 batidas e parar congela a espuma; camada solta longe volta, perto assenta onde caiu; rabisco fora do desenho = 0% e "Pronto!" só depois do glacê | `tests/fases.test.ts`, `tests/e2e/fases.cjs` |
+| Perfis: progressão gravada por jogador, sem login online | Estrelas/galeria separadas por perfil, migração dos dados antigos, apagar perfil remove os dados, dado corrompido; navegador: criar Ana e Gatinho, cada um com a sua trilha, sobrevive ao recarregar, lixeira de 2 s | `tests/perfis.test.ts`, `tests/e2e/mundo2.cjs` |
+| Mundo 2 e mecânicas peneirar, ralar e polvilhar sem auto-complete | Peneira longe/parada/reta = 0 e nunca passa da medida; ralar de lado/fora = 0; polvilhar sem sacudir ou fora do bolo = 0; "Pronto!" só depois do polvilho; mundo 2 trancado até a fase 8 | `tests/mundo2.test.ts`, `tests/fases.test.ts`, `tests/e2e/mundo2.cjs` |
 | Sem backend, sem coleta de dados, sem anúncios, sem compras | Nenhuma chamada de rede no código (só arquivos do próprio build); dados só no localStorage | revisão de código, `src/systems/save` |
 
 ## Desempenho

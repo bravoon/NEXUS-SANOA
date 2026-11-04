@@ -64,7 +64,7 @@ describe('resolverReceita', () => {
       { tipo: 'despejar_massa', restanteMax: 0.05 },
       { tipo: 'forno', tempoSegundos: 20 },
       { tipo: 'desenformar' },
-      { tipo: 'decorar', cobertura: 0.5, corCobertura: '#5A3220', glace: null },
+      { tipo: 'decorar', cobertura: 0.5, corCobertura: '#5A3220', glace: null, polvilho: null },
     ]);
     expect(resolverReceita(r, 'confeiteiro', tabela, ings).etapas[0]).toMatchObject({ cascaDeOvo: true });
     expect(f.recipientes).toEqual([]);

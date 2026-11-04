@@ -102,7 +102,39 @@ export function desenharIconeEtapa(
       g.fillStyle(corHex(etapa.corRecheio), 1);
       g.fillRect(x - 18, y - 4, 36, 8);
       return '';
+    case 'peneirar': {
+      // peneira (aro + tela) com o símbolo do ingrediente em cima
+      g.fillStyle(0xdfe7ee, 1);
+      g.lineStyle(3, 0x8a96a3, 1);
+      g.fillEllipse(x, y + 8, 40, 16);
+      g.strokeEllipse(x, y + 8, 40, 16);
+      g.lineStyle(1, 0x8a96a3, 1);
+      for (let k = -14; k <= 14; k += 7) g.lineBetween(x + k, y + 2, x + k, y + 14);
+      g.fillStyle(0x8a6440, 1);
+      g.fillRect(x + 18, y + 6, 12, 5);
+      const def = ingredientes[etapa.item];
+      if (def) desenharSimbolo(g, def.simbolo, x, y - 12, 16, corHex(def.corRecipiente));
+      return String(etapa.sacudidas);
+    }
+    case 'ralar': {
+      // ralador (face com furinhos) e o pedaço
+      g.fillStyle(0xc5ccd3, 1);
+      g.lineStyle(2, 0x6b7680, 1);
+      g.fillRoundedRect(x - 12, y - 20, 22, 40, 4);
+      g.strokeRoundedRect(x - 12, y - 20, 22, 40, 4);
+      g.fillStyle(0x6b7680, 1);
+      for (let l = -14; l <= 12; l += 7) for (let c = -6; c <= 4; c += 6) g.fillRect(x + c, y + l, 3, 2);
+      const def = ingredientes[etapa.item];
+      if (def) desenharSimbolo(g, def.simbolo, x + 18, y + 8, 16, corHex(def.corRecipiente));
+      return String(etapa.raladas);
+    }
     case 'decorar':
+      if (etapa.polvilho) {
+        // pontinhos de polvilho caindo
+        const c = corHex(etapa.polvilho.cor);
+        g.fillStyle(c === 0xffffff ? 0xdddddd : c, 1);
+        for (const [dx, dy] of [[-14, -24], [-6, -18], [4, -26], [12, -20]] as const) g.fillCircle(x + dx, y + dy, 2.5);
+      }
       if (etapa.glace) {
         // saco de confeitar
         g.fillStyle(0xffffff, 1);

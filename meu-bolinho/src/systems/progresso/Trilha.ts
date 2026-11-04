@@ -9,7 +9,7 @@
 import type { ReceitaJson, TipoEtapa } from '../recipe/recipeTypes';
 import type { Armazenamento } from '../save/Preferencias';
 
-export type Mecanica = TipoEtapa | 'glace';
+export type Mecanica = TipoEtapa | 'glace' | 'polvilhar';
 
 export interface FaseTrilha {
   id: string;
@@ -30,6 +30,7 @@ export function mecanicasDa(r: ReceitaJson): Set<Mecanica> {
   for (const e of r.etapas) {
     m.add(e.tipo as TipoEtapa);
     if (e.tipo === 'decorar' && e.glace) m.add('glace');
+    if (e.tipo === 'decorar' && e.polvilhar) m.add('polvilhar');
   }
   return m;
 }
@@ -98,4 +99,56 @@ export function registrarEstrelas(arm: Armazenamento | null, id: string, estrela
     // armazenamento cheio/bloqueado: segue sem salvar
   }
   return atual;
+}
+
+/** Mundo da trilha (data/trilha.json): um grupo de fases com nome próprio. */
+export interface MundoJson {
+  nome: string;
+  fases: string[];
+}
+
+export interface MundoTrilha {
+  numero: number;
+  nome: string;
+  fases: FaseTrilha[];
+  /** A primeira fase do mundo já está liberada. */
+  aberto: boolean;
+}
+
+/** Ordem plana das fases (mundo 1, depois mundo 2...). */
+export function ordemDosMundos(mundos: readonly MundoJson[]): string[] {
+  return mundos.flatMap((m) => m.fases);
+}
+
+/**
+ * Agrupa as fases montadas por mundo. Receitas fora de trilha.json (as "extras", que
+ * `ordemDaTrilha` põe no fim) entram no último mundo.
+ */
+export function dividirEmMundos(fases: readonly FaseTrilha[], mundos: readonly MundoJson[]): MundoTrilha[] {
+  const ids = new Map(fases.map((f) => [f.id, f]));
+  const usados = new Set<string>();
+  const out: MundoTrilha[] = mundos.map((m, i) => {
+    const fs = m.fases.flatMap((id) => {
+      const f = ids.get(id);
+      if (!f || usados.has(id)) return [];
+      usados.add(id);
+      return [f];
+    });
+    return { numero: i + 1, nome: m.nome, fases: fs, aberto: fs[0]?.liberada ?? false };
+  });
+  const extras = fases.filter((f) => !usados.has(f.id));
+  const ultimo = out[out.length - 1];
+  if (extras.length) {
+    if (ultimo) ultimo.fases.push(...extras);
+    else out.push({ numero: 1, nome: 'Trilha', fases: [...extras], aberto: extras[0]!.liberada });
+  }
+  return out.filter((m) => m.fases.length > 0);
+}
+
+/** Mundo onde a criança está (o da primeira fase liberada ainda não concluída). */
+export function mundoAtual(mundos: readonly MundoTrilha[]): number {
+  const i = mundos.findIndex((m) => m.fases.some((f) => f.liberada && !f.concluida));
+  if (i >= 0) return i;
+  const ultimoAberto = mundos.map((m) => m.aberto).lastIndexOf(true);
+  return Math.max(0, ultimoAberto);
 }

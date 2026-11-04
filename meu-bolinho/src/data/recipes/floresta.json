@@ -1,0 +1,66 @@
+{
+  "id": "floresta",
+  "nome": "Bolo Floresta Negra",
+  "corMassa": "#5A3220",
+  "etapas": [
+    {
+      "tipo": "quebrar_ovo",
+      "quantidade": 3
+    },
+    {
+      "tipo": "bater"
+    },
+    {
+      "tipo": "peneirar",
+      "item": "farinha",
+      "quantidade": 1.0
+    },
+    {
+      "tipo": "despejar",
+      "item": "chocolate_po",
+      "alvo": "tigela",
+      "quantidade": 0.25
+    },
+    {
+      "tipo": "ralar",
+      "item": "chocolate_barra",
+      "quantidade": 0.25
+    },
+    {
+      "tipo": "despejar",
+      "item": "acucar",
+      "alvo": "tigela",
+      "quantidade": 0.5,
+      "apenas": "confeiteiro"
+    },
+    {
+      "tipo": "mexer"
+    },
+    {
+      "tipo": "untar",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "despejar_massa",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "forno",
+      "tempoSegundos": 24
+    },
+    {
+      "tipo": "desenformar"
+    },
+    {
+      "tipo": "rechear",
+      "corRecheio": "#D7263D"
+    },
+    {
+      "tipo": "decorar",
+      "corCobertura": "#5A3220",
+      "glace": "onda",
+      "corGlace": "#FFFFFF",
+      "polvilhar": "granulado"
+    }
+  ]
+}

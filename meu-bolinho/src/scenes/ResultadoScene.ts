@@ -8,11 +8,12 @@ import type { Sessao } from '../systems/recipe/Sessao';
 import { botaoGrande } from './ui';
 import { AudioSystem } from '../systems/audio/AudioSystem';
 import { registrarConclusao, salvarBolo } from '../systems/save/Galeria';
-import { armazenamentoLocal, carregarPreferencias } from '../systems/save/Preferencias';
+import { carregarPreferencias } from '../systems/save/Preferencias';
+import { armazenamentoJogador } from '../systems/save/Perfis';
 import { avaliar } from '../systems/progresso/Avaliacao';
 import { carregarEstrelas, montarTrilha, registrarEstrelas } from '../systems/progresso/Trilha';
 import { RECEITAS } from '../data/registry';
-import trilha from '../data/trilha.json';
+import { MUNDOS, ordemDaTrilhaJson } from '../data/trilhaDados';
 
 export class ResultadoScene extends Phaser.Scene {
   private sessao!: Sessao;
@@ -84,11 +85,11 @@ export class ResultadoScene extends Phaser.Scene {
    */
   private mostrarEstrelas(): void {
     const s = this.sessao;
-    const arm = armazenamentoLocal();
+    const arm = armazenamentoJogador();
     const liberar = carregarPreferencias(arm).liberarFases;
-    const antes = montarTrilha(trilha, RECEITAS, carregarEstrelas(arm), liberar);
+    const antes = montarTrilha(ordemDaTrilhaJson(), RECEITAS, carregarEstrelas(arm), liberar);
     const av = avaliar({ excessos: s.excessos, coberturaFinal: s.coberturaFinal, enfeites: s.enfeites });
-    const depois = montarTrilha(trilha, RECEITAS, registrarEstrelas(arm, s.receita.id, av.estrelas), liberar);
+    const depois = montarTrilha(ordemDaTrilhaJson(), RECEITAS, registrarEstrelas(arm, s.receita.id, av.estrelas), liberar);
     s.estrelasGanhas = av.estrelas;
     const novaFase = depois.find((f, i) => f.liberada && !antes[i]?.liberada) ?? null;
 
@@ -121,8 +122,9 @@ export class ResultadoScene extends Phaser.Scene {
     if (av.boloCaprichado) audio?.falar('estrela.capricho');
 
     if (novaFase) {
+      const mundoNovo = MUNDOS.find((m) => m.fases[0] === novaFase.id) ?? null;
       const selo = this.add
-        .text(LARGURA - 190, 150, `🔓 Fase ${novaFase.numero} liberada!\n${novaFase.nome}`, {
+        .text(LARGURA - 190, 150, mundoNovo ? `🌍 Mundo ${MUNDOS.indexOf(mundoNovo) + 1} liberado!\n${mundoNovo.nome}` : `🔓 Fase ${novaFase.numero} liberada!\n${novaFase.nome}`, {
           fontFamily: 'Arial Rounded MT Bold, Arial, sans-serif',
           fontSize: '24px',
           color: '#ffffff',
@@ -142,7 +144,7 @@ export class ResultadoScene extends Phaser.Scene {
     const s = this.sessao;
     if (s.guardado) return;
     s.guardado = true;
-    const arm = armazenamentoLocal();
+    const arm = armazenamentoJogador();
     registrarConclusao(arm, s.receita.id, s.receita.dificuldade);
     if (!s.fotoUrl) return;
     const r = salvarBolo(arm, {

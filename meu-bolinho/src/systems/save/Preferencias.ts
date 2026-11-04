@@ -24,6 +24,7 @@ export const PREFERENCIAS_PADRAO: Readonly<Preferencias> = {
 export interface Armazenamento {
   getItem(chave: string): string | null;
   setItem(chave: string, valor: string): void;
+  removeItem?(chave: string): void;
 }
 
 export const CHAVE_PREFERENCIAS = 'meu-bolinho:preferencias:v1';

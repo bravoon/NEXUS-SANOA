@@ -6,13 +6,19 @@
  */
 import { CONFIG_SACUDIR } from '../../../config/gameplay';
 
+export interface ConfigSacudir {
+  readonly janelaMs: number;
+  readonly velocidadeMin: number;
+  readonly inversoesPorPorcao: number;
+}
+
 export class ShakeRecognizer {
   private anterior: { x: number; t: number } | null = null;
   private sinal: -1 | 0 | 1 = 0;
   private inversoes: number[] = [];
   private ultimaVx = 0;
 
-  constructor(private readonly cfg = CONFIG_SACUDIR) {}
+  constructor(private readonly cfg: ConfigSacudir = CONFIG_SACUDIR) {}
 
   /** Alimenta uma amostra; retorna quantas porções foram emitidas (0 ou 1). */
   amostra(x: number, tMs: number): number {

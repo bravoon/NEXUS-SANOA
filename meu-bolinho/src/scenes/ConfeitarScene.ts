@@ -24,7 +24,7 @@ import type { EtapaResolvida } from '../systems/recipe/recipeTypes';
 import { DecorStep } from '../systems/steps/DecorStep';
 import { FillLayerStep } from '../systems/steps/FillLayerStep';
 import { gerarDesenho } from '../systems/steps/TraceStep';
-import { CONFIG_GLACE } from '../config/gameplay';
+import { CONFIG_GLACE, CONFIG_POLVILHAR } from '../config/gameplay';
 import { corHex } from '../utils/desenho';
 import { type Ponto } from '../utils/math';
 import { CenaEtapas } from './CenaEtapas';
@@ -36,6 +36,7 @@ type Arrasto =
   | { tipo: 'recheio' }
   | { tipo: 'camada'; offset: Ponto }
   | { tipo: 'glace' }
+  | { tipo: 'polvilho' }
   | { tipo: 'enfeite'; enfeite: TipoEnfeite; g: Phaser.GameObjects.Graphics; cor: number }
   | { tipo: 'granulado' }
   | { tipo: 'pronto' };
@@ -61,6 +62,7 @@ export class ConfeitarScene extends CenaEtapas {
   private arrasto: Arrasto | null = null;
   private liberado = false;
   private saco: Ferramenta | null = null;
+  private polvilhador: Ferramenta | null = null;
   private avisouCamada = false;
   private contadorCor = 0;
 
@@ -74,6 +76,7 @@ export class ConfeitarScene extends CenaEtapas {
     this.liberado = false;
     this.avisouCamada = false;
     this.saco = null;
+    this.polvilhador = null;
     this.contadorCor = 0;
     this.sacudir.parar();
   }
@@ -180,6 +183,14 @@ export class ConfeitarScene extends CenaEtapas {
     }
     const d = this.decor;
     if (!d) return;
+    if (d.fase === 'polvilhar' && this.polvilhador && (this.polvilhador.contem(a) || this.bolo.noTopo({ x: a.x, y: a.y + CONFIG_POLVILHAR.quedaPx }, 1.3))) {
+      this.tweens.killTweensOf(this.polvilhador);
+      this.arrasto = { tipo: 'polvilho' };
+      this.som('pop');
+      this.runner.inicioDoGesto();
+      this.polvilhar(a);
+      return;
+    }
     if (d.fase === 'glace' && this.bolo.noTopo(a, 1.2)) {
       this.arrasto = { tipo: 'glace' };
       this.runner.inicioDoGesto();
@@ -218,7 +229,7 @@ export class ConfeitarScene extends CenaEtapas {
         return;
       }
     }
-    if (d.fase !== 'glace' && this.bolo.noTopo(a, 1.15)) {
+    if ((d.fase === 'cobrir' || d.fase === 'enfeitar') && this.bolo.noTopo(a, 1.15)) {
       this.arrasto = { tipo: 'cobrir' };
       this.runner.inicioDoGesto();
       this.cobrir(a);
@@ -231,6 +242,7 @@ export class ConfeitarScene extends CenaEtapas {
     if (arr?.tipo === 'granulado') this.sacudirPote(a);
     if (arr?.tipo === 'recheio') this.espalharRecheio(a);
     if (arr?.tipo === 'glace') this.tracarGlace(a);
+    if (arr?.tipo === 'polvilho') this.polvilhar(a);
   }
 
   protected aoSoltar(a: AmostraPonteiro): void {
@@ -252,6 +264,9 @@ export class ConfeitarScene extends CenaEtapas {
         break;
       case 'glace':
         this.saco?.voltar();
+        break;
+      case 'polvilho':
+        this.polvilhador?.voltar();
         break;
       case 'recheio':
       case 'camada':
@@ -344,6 +359,46 @@ export class ConfeitarScene extends CenaEtapas {
     this.falar('glace.inicio');
   }
 
+  /** O polvilhador acompanha o dedo; cada sacudida sobre o bolo polvilha um círculo abaixo dele. */
+  private polvilhar(a: AmostraPonteiro): void {
+    const d = this.decor;
+    const sp = d?.polvilhador;
+    if (!d || !sp || !d.polvilho || !this.polvilhador) return;
+    this.polvilhador.setPosition(a.x, a.y - 30);
+    const alvo = sp.amostra(a.x, a.y, a.t);
+    if (!alvo) return;
+    const cor = corHex(d.polvilho.cor);
+    const raio = CONFIG_POLVILHAR.raioPx;
+    const pontos: Ponto[] = [];
+    for (let i = 0; i < 26; i++) {
+      const ang = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * raio;
+      const p = { x: alvo.x + Math.cos(ang) * r, y: alvo.y + Math.sin(ang) * r * 0.6 };
+      if (this.bolo.noTopo(p, 0.97)) pontos.push(p);
+    }
+    this.bolo.pintarPolvilho(cor, pontos, d.polvilho.tipo === 'granulado' ? 3.2 : 2.4);
+    // grãozinhos caindo (cosmético; a porção já foi registrada pela sacudida)
+    for (let i = 0; i < (Qualidade.leve ? 3 : 8); i++) {
+      const g = this.add.circle(a.x + (Math.random() - 0.5) * 30, a.y, 3, cor).setDepth(69).setStrokeStyle(1, 0x9c8a7e, 0.6);
+      this.tweens.add({ targets: g, x: alvo.x + (Math.random() - 0.5) * raio * 1.6, y: alvo.y + (Math.random() - 0.5) * raio * 0.8, duration: 240, ease: 'Quad.In', onComplete: () => g.destroy() });
+    }
+    this.som('chocalho');
+    this.runner.notificarProgresso();
+  }
+
+  /** Glacê pronto (ou sem glacê) e a receita pede polvilho: superfície = topo do bolo. */
+  private prepararPolvilho(d: DecorStep): void {
+    const sp = d.polvilhador;
+    if (!sp || sp.definido) return;
+    const area = this.bolo.areaTopo;
+    sp.definirSuperficie(area, mascaraElipse({ x: area.x + area.largura * 0.025, y: area.y + area.altura * 0.025, largura: area.largura * 0.95, altura: area.altura * 0.95 }));
+    this.polvilhador = new Ferramenta(this, 'polvilhador', { x: BOLO.cx + BOLO.rx + 110, y: BOLO.topoY - 20 }, 120);
+    this.polvilhador.setDepth(70);
+    this.saco?.setVisible(false);
+    this.espatula.setVisible(false);
+    this.bolo.apagarGuia();
+    this.falar('polvilhar.inicio');
+  }
+
   private sacudirPote(a: AmostraPonteiro): void {
     const d = this.decor;
     if (!d) return;
@@ -426,16 +481,21 @@ export class ConfeitarScene extends CenaEtapas {
     if (d.coberturaOk && d.glace && !d.tracoGlace) this.prepararGlace(d);
     const traco = d.tracoGlace;
     if (traco && d.fase === 'glace') this.bolo.desenharGuia(traco.pontos, (i) => traco.ehVisitado(i), traco.fracao.toFixed(3));
+    if (d.fase === 'polvilhar') this.prepararPolvilho(d);
     if (d.fase === 'enfeitar' && !this.liberado) {
       this.liberado = true;
       this.barra.setVisible(false);
       this.bolo.apagarGuia();
       this.saco?.setVisible(false);
+      this.polvilhador?.setVisible(false);
       this.espatula.setVisible(true);
       this.tweens.add({ targets: [this.bandeja, this.botaoDesfazer], alpha: 1, duration: 300 });
       this.botaoPronto.setVisible(true).setScale(0.3);
       this.tweens.add({ targets: this.botaoPronto, scale: 1, duration: 400, ease: 'Back.Out' });
-      if (d.glace) {
+      if (d.polvilho) {
+        this.som('sucesso');
+        this.falar('polvilhar.ok');
+      } else if (d.glace) {
         this.som('sucesso');
         this.falar('glace.ok');
       } else this.falar('decorar.liberado');
@@ -470,6 +530,10 @@ export class ConfeitarScene extends CenaEtapas {
       const pts = d.tracoGlace.pontos.filter((_, i) => i % 4 === 0);
       return { ficha, destaques: [topo], demo: { tipo: 'caminho', pontos: pts }, fala: 'glace.dica' };
     }
+    if (d?.fase === 'polvilhar') {
+      const acima = { x: topo.x - 40, y: topo.y - CONFIG_POLVILHAR.quedaPx };
+      return { ficha, destaques: [this.polvilhador ?? acima], demo: { tipo: 'sacudir', ponto: acima }, fala: 'polvilhar.dica' };
+    }
     if (!this.liberado) return { ficha, destaques: [topo], demo: { tipo: 'esfregar', centro: topo, largura: BOLO.rx * 1.4, altura: BOLO.ry * 1.2 }, fala: 'decorar.dica_cobertura' };
     const vela = BANDEJA.find((b) => b.tipo === 'vela')!;
     const pote = BANDEJA.find((b) => b.tipo === 'granulado')!;
@@ -496,6 +560,7 @@ export class ConfeitarScene extends CenaEtapas {
     g.strokeEllipse(BOLO.cx, BOLO.topoY, BOLO.rx * 2 * 0.95, BOLO.ry * 2 * 0.95);
     return [
       `Decorar: cobertura ${(d.cobertura.cobertura * 100).toFixed(1)}% / meta ${(d.cobertura.meta * 100).toFixed(0)}%  liberado ${this.liberado}`,
+      ...(d.polvilhador ? [`Polvilhar ${d.polvilho?.tipo}: ${(d.polvilhador.cobertura * 100).toFixed(1)}% / meta ${(d.polvilhador.meta * 100).toFixed(0)}%  sacudidas ${d.polvilhador.sacudidas}  fase ${d.fase}`] : []),
       `  enfeites ${d.decoracao.total}/${d.decoracao.maxItens}  sacudir vx ${this.sacudir.velocidadeX.toFixed(2)} inv ${this.sacudir.inversoesNaJanela}`,
     ];
   }

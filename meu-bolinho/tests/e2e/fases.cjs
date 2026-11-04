@@ -62,9 +62,9 @@ const PASTA = process.argv[2] || null;
     await p.evaluate(() => {
       // sempre reabre: fecha janelas abertas e relê o progresso/preferências
       const g = window.__jogo.scene;
-      if (g.isActive('Trilha')) { g.getScene('Trilha').scene.restart(); return; }
+      if (g.isActive('Trilha')) { g.getScene('Trilha').scene.restart({ mundo: 0 }); return; }
       for (const s of g.getScenes(true)) s.scene.stop();
-      g.start('Trilha');
+      g.start('Trilha', { mundo: 0 });
     });
     await p.waitForFunction((id) => { const t = window.__jogo.scene.getScene('Trilha'); return t.scene.isActive() && t.children.getByName(id); }, id, { timeout: 20000 });
     await p.waitForTimeout(400);
@@ -82,7 +82,11 @@ const PASTA = process.argv[2] || null;
   }, { x, y, n, amplitude });
 
   await p.goto(BASE); await p.waitForTimeout(1500);
-  await p.evaluate(() => localStorage.clear());
+  await p.evaluate(() => {
+    localStorage.clear();
+    // jogador de teste (a criação de perfil é coberta por tests/e2e/mundo2.cjs)
+    localStorage.setItem('meu-bolinho:perfis:v1', JSON.stringify({ perfis: [{ id: 'f', nome: 'Teste', avatar: 'urso', criadoEm: '2026-01-01T00:00:00Z' }], atual: 'f' }));
+  });
   await p.reload(); await p.waitForTimeout(1500);
 
   console.log('Trilha: desbloqueio ao terminar');
@@ -93,7 +97,7 @@ const PASTA = process.argv[2] || null;
   for (let i = 0; i < 30 && !(await st()).cenas.includes('Resultado'); i++) await pular();
   await esperar((s) => s.cenas.includes('Resultado'), 20000); await p.waitForTimeout(2800);
   await foto('01-resultado-fase1');
-  const estrelas = await p.evaluate(() => JSON.parse(localStorage.getItem('meu-bolinho:trilha:v1') || '{}'));
+  const estrelas = await p.evaluate(() => JSON.parse(localStorage.getItem('meu-bolinho:trilha:v1@f') || '{}'));
   ok(estrelas.fofinho >= 1, `estrelas da fase 1 registradas: ${estrelas.fofinho}`);
   await p.mouse.click(310, 660); await p.waitForTimeout(1500); // ▶ Trilha
   ok((await st()).cenas.includes('Trilha'), 'botão Trilha volta para a trilha');
@@ -172,7 +176,7 @@ const PASTA = process.argv[2] || null;
   await p.mouse.click(1060, 650);
   await esperar((s) => s.cenas.includes('Resultado'), 20000); await p.waitForTimeout(3000);
   await foto('09-resultado-estrelas');
-  const est = await p.evaluate(() => JSON.parse(localStorage.getItem('meu-bolinho:trilha:v1') || '{}').aniversario);
+  const est = await p.evaluate(() => JSON.parse(localStorage.getItem('meu-bolinho:trilha:v1@f') || '{}').aniversario);
   ok(est >= 2, `bolo caprichado e medidas certinhas: ${est} estrelas`);
 
   ok(erros.length === 0, 'sem erros de página ' + erros.join(' | '));

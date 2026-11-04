@@ -1,10 +1,12 @@
-[
-  "fofinho",
-  "chocolate",
-  "laranja",
-  "nuvem",
-  "morango",
-  "aniversario",
-  "cenoura",
-  "arcoiris"
-]
+{
+  "mundos": [
+    {
+      "nome": "Cozinha da Vila",
+      "fases": ["fofinho", "chocolate", "laranja", "nuvem", "morango", "aniversario", "cenoura", "arcoiris"]
+    },
+    {
+      "nome": "Confeitaria da Vovó",
+      "fases": ["fuba", "mel", "coco", "marmore", "limao", "maca", "floresta", "festa"]
+    }
+  ]
+}

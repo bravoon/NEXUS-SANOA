@@ -24,6 +24,9 @@ const path = require('path');
   await w.evaluate(() => localStorage.setItem('meu-bolinho:teste-persistencia', 'sim'));
   await w.screenshot({ path: process.argv[2] ? `${process.argv[2]}/desktop-menu.png` : 'desktop-menu.png' });
   // jogar um pouco: entra numa receita
+  // jogador de teste (o "Quem vai jogar?" é coberto pelo e2e do navegador)
+  await w.evaluate(() => { localStorage.setItem('meu-bolinho:perfis:v1', JSON.stringify({ perfis: [{ id: 'teste-desktop', nome: 'Teste', avatar: 'gato', criadoEm: '2026-01-01T00:00:00Z' }], atual: 'teste-desktop' })); window.__jogo.scene.getScene('Menu').scene.restart(); });
+  await w.waitForTimeout(800);
   await w.mouse.click(530, 570); await w.waitForTimeout(800);
   const c = await w.evaluate(() => { const o = window.__jogo.scene.getScene('Trilha').children.getByName('fofinho'); return { x: o.x, y: o.y }; });
   await w.mouse.click(c.x, c.y); await w.waitForTimeout(500);

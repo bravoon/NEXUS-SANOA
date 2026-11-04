@@ -23,7 +23,11 @@ export class WhiskRecognizer {
   private ey: Eixo | null = null;
   private ultimaBatida = Number.NEGATIVE_INFINITY;
 
-  constructor(private readonly cfg = CONFIG_BATER) {}
+  constructor(
+    private readonly cfg: { readonly amplitudeMin: number; readonly velocidadeMin: number; readonly intervaloMinMs: number } = CONFIG_BATER,
+    /** 'y': só o vai e vem vertical conta (ralador). */
+    private readonly eixos: 'xy' | 'y' = 'xy',
+  ) {}
 
   /** Amostra do dedo; `dentro` = o batedor está dentro da tigela. Retorna batidas novas (0 ou 1). */
   amostra(x: number, y: number, tMs: number, dentro: boolean): number {
@@ -36,7 +40,7 @@ export class WhiskRecognizer {
       this.ey = novoEixo(y, tMs);
       return 0;
     }
-    const bx = this.eixo(this.ex, x, tMs);
+    const bx = this.eixos === 'xy' && this.eixo(this.ex, x, tMs);
     const by = this.eixo(this.ey, y, tMs);
     if ((bx || by) && tMs - this.ultimaBatida >= this.cfg.intervaloMinMs) {
       this.ultimaBatida = tMs;

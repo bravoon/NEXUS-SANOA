@@ -138,6 +138,32 @@ export const CONFIG_RECHEAR = {
 } as const;
 
 /** Escrever com glacê: espaçamento (px) dos pontos de controle do desenho. */
+/** Peneira: sacudir de lado a lado com a peneira sobre a tigela. */
+export const CONFIG_PENEIRAR = {
+  janelaMs: 700,
+  velocidadeMin: 0.45,
+  /** Inversões de sentido para uma "sacudida" (uma porção cai). */
+  inversoesPorPorcao: 2,
+} as const;
+
+/** Ralador: vai e vem VERTICAL do pedaço sobre a face do ralador. */
+export const CONFIG_RALAR = {
+  amplitudeMin: 30,
+  velocidadeMin: 0.25,
+  intervaloMinMs: 120,
+} as const;
+
+/** Polvilhador: cada sacudida sobre o bolo carimba um círculo de polvilho. */
+export const CONFIG_POLVILHAR = {
+  janelaMs: 700,
+  velocidadeMin: 0.45,
+  inversoesPorPorcao: 2,
+  /** Raio do círculo polvilhado por sacudida (px). */
+  raioPx: 46,
+  /** O polvilho cai um pouco abaixo do polvilhador (px). */
+  quedaPx: 70,
+} as const;
+
 export const CONFIG_GLACE = {
   espacamentoPx: 10,
   raioTracoPx: 7,

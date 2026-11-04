@@ -14,6 +14,7 @@
     "roteiro": "node scripts/roteiro.mjs",
     "e2e": "node tests/e2e/aceite.cjs",
     "e2e:fases": "node tests/e2e/fases.cjs",
+    "e2e:mundo2": "node tests/e2e/mundo2.cjs",
     "desktop": "npm run build && electron . --no-sandbox",
     "desktop:pacote": "npm run build && electron-builder --publish never",
     "android:sync": "npm run build && cap sync android",

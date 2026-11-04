@@ -22,6 +22,8 @@ export const CENA_DA_ETAPA: Record<TipoEtapa, CenaJogo> = {
   desenformar: 'Forno',
   bater: 'Cozinha',
   rechear: 'Confeitar',
+  peneirar: 'Cozinha',
+  ralar: 'Cozinha',
   decorar: 'Confeitar',
 };
 

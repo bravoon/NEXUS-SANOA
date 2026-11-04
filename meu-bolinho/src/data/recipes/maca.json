@@ -1,0 +1,64 @@
+{
+  "id": "maca",
+  "nome": "Bolo de Maçã com Canela",
+  "corMassa": "#EBD3A0",
+  "etapas": [
+    {
+      "tipo": "quebrar_ovo",
+      "quantidade": 2
+    },
+    {
+      "tipo": "ralar",
+      "item": "maca",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "peneirar",
+      "item": "farinha",
+      "quantidade": 1.0
+    },
+    {
+      "tipo": "despejar",
+      "item": "acucar",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "despejar",
+      "item": "leite",
+      "alvo": "tigela",
+      "quantidade": 0.5,
+      "apenas": "confeiteiro"
+    },
+    {
+      "tipo": "despejar",
+      "item": "fermento",
+      "alvo": "tigela",
+      "quantidade": 0.25,
+      "apenas": "confeiteiro"
+    },
+    {
+      "tipo": "mexer"
+    },
+    {
+      "tipo": "untar",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "despejar_massa",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "forno",
+      "tempoSegundos": 24
+    },
+    {
+      "tipo": "desenformar"
+    },
+    {
+      "tipo": "decorar",
+      "corCobertura": "#F5E6C8",
+      "polvilhar": "canela"
+    }
+  ]
+}

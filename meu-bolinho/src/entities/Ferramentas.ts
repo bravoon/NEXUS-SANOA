@@ -5,7 +5,7 @@ import { CONFIG_ARRASTAR } from '../config/gameplay';
 import { ALVO_TOQUE_MIN } from '../config/layout';
 import { amortecer, type Ponto } from '../utils/math';
 
-export type TipoFerramenta = 'luva' | 'prato' | 'manteiga' | 'espatula' | 'batedor' | 'saco' | 'camada';
+export type TipoFerramenta = 'luva' | 'prato' | 'manteiga' | 'espatula' | 'batedor' | 'saco' | 'camada' | 'peneira' | 'ralador' | 'polvilhador';
 
 export class Ferramenta extends Phaser.GameObjects.Container {
   readonly g: Phaser.GameObjects.Graphics;
@@ -76,6 +76,48 @@ export class Ferramenta extends Phaser.GameObjects.Container {
         g.fillRect(-34, -96, 68, 18);
         break;
       case 'camada':
+        break;
+      case 'peneira':
+        // aro com tela; cabo para a direita. O monte do ingrediente é desenhado pela cena.
+        g.fillStyle(0x8a6440, 1);
+        g.fillRoundedRect(66, -9, 54, 18, 8);
+        g.fillStyle(0xe9eef2, 0.95);
+        g.fillEllipse(0, 0, 150, 56);
+        g.lineStyle(1.5, 0x9aa4ad, 0.8);
+        for (let k = -60; k <= 60; k += 10) {
+          const h = Math.sqrt(Math.max(0, 1 - (k / 75) ** 2)) * 28;
+          g.lineBetween(k, -h, k, h);
+        }
+        for (let k = -20; k <= 20; k += 10) {
+          const w = Math.sqrt(Math.max(0, 1 - (k / 28) ** 2)) * 75;
+          g.lineBetween(-w, k, w, k);
+        }
+        g.lineStyle(6, 0x8a96a3, 1);
+        g.strokeEllipse(0, 0, 150, 56);
+        break;
+      case 'ralador':
+        // ralador em pé: face com furinhos entre y -95 e 95, alça em cima
+        g.fillStyle(0xb7c0c8, 1);
+        g.fillRoundedRect(-46, -95, 92, 190, 10);
+        g.lineStyle(4, 0x6b7680, 1);
+        g.strokeRoundedRect(-46, -95, 92, 190, 10);
+        g.fillStyle(0x5d6771, 1);
+        for (let l = -80; l <= 80; l += 16) for (let c = -32; c <= 30; c += 16) g.fillRoundedRect(c + ((l / 16) % 2 ? 6 : 0), l, 10, 4, 2);
+        g.lineStyle(8, 0x8a6440, 1);
+        g.beginPath();
+        g.arc(0, -95, 17, Math.PI, 0, false);
+        g.strokePath();
+        break;
+      case 'polvilhador':
+        // potinho com tampa furada: os furos (por onde cai) em (0, 30)
+        g.fillStyle(0xffffff, 1);
+        g.fillRoundedRect(-28, -50, 56, 72, 14);
+        g.lineStyle(3, 0x8a96a3, 1);
+        g.strokeRoundedRect(-28, -50, 56, 72, 14);
+        g.fillStyle(0xb0b8c0, 1);
+        g.fillRoundedRect(-30, 16, 60, 18, 6);
+        g.fillStyle(0x5d6771, 1);
+        for (const dx of [-14, 0, 14]) g.fillCircle(dx, 26, 3);
         break;
       case 'espatula':
         g.fillStyle(0x8a6440, 1);

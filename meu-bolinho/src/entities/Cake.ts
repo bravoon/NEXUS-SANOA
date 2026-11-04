@@ -45,6 +45,8 @@ export class CakeView {
   private readonly guia: CacheGrafico;
   private cobertura: Phaser.GameObjects.RenderTexture | null = null;
   private glace: Phaser.GameObjects.RenderTexture | null = null;
+  private polvilho: Phaser.GameObjects.RenderTexture | null = null;
+  private readonly pincelPolvilho: Phaser.GameObjects.Image;
   private recheio: Phaser.GameObjects.RenderTexture | null = null;
   private readonly mascaras: Phaser.GameObjects.Graphics[] = [];
   /** Camada de cima (só no bolo em camadas). */
@@ -62,6 +64,7 @@ export class CakeView {
     this.corMassa = corAssada(corMassaCrua);
     this.pincelCobertura = scene.make.image({ key: 'pincel', add: false }).setTint(corCobertura);
     this.pincelGlace = scene.make.image({ key: 'pincel', add: false }).setTint(0xffffff);
+    this.pincelPolvilho = scene.make.image({ key: 'pincel', add: false }).setTint(0xffffff);
     this.pincelRecheio = scene.make.image({ key: 'pincel', add: false }).setTint(opcoes.corRecheio ?? 0xe57373);
 
     if (opcoes.camadas) {
@@ -217,6 +220,13 @@ export class CakeView {
     this.glace ??= this.camadaPintada(this.areaTopo, 15);
     this.pincelGlace.setTint(cor);
     this.carimbar(this.glace, this.pincelGlace, x0, y0, x1, y1, raio);
+  }
+
+  /** Polvilho (só visual): pontinhos na cor do polvilho, por cima do glacê. */
+  pintarPolvilho(cor: number, pontos: readonly Ponto[], raio: number): void {
+    this.polvilho ??= this.camadaPintada(this.areaTopo, 16);
+    this.pincelPolvilho.setTint(cor);
+    for (const p of pontos) this.carimbar(this.polvilho, this.pincelPolvilho, p.x, p.y, p.x, p.y, raio);
   }
 
   /** Pontinhos-guia do desenho de glacê (redesenha só quando muda). */

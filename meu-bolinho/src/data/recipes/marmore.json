@@ -1,0 +1,63 @@
+{
+  "id": "marmore",
+  "nome": "Bolo Mármore",
+  "corMassa": "#E9D7B9",
+  "etapas": [
+    {
+      "tipo": "quebrar_ovo",
+      "quantidade": 2
+    },
+    {
+      "tipo": "peneirar",
+      "item": "farinha",
+      "quantidade": 1.0
+    },
+    {
+      "tipo": "despejar",
+      "item": "chocolate_po",
+      "alvo": "tigela",
+      "quantidade": 0.25
+    },
+    {
+      "tipo": "despejar",
+      "item": "leite",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "despejar",
+      "item": "acucar",
+      "alvo": "tigela",
+      "quantidade": 0.5,
+      "apenas": "confeiteiro"
+    },
+    {
+      "tipo": "mexer"
+    },
+    {
+      "tipo": "untar",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "despejar_massa",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "forno",
+      "tempoSegundos": 22
+    },
+    {
+      "tipo": "desenformar"
+    },
+    {
+      "tipo": "rechear",
+      "corRecheio": "#6B3E26"
+    },
+    {
+      "tipo": "decorar",
+      "corCobertura": "#5A3220",
+      "glace": "circulo",
+      "corGlace": "#FFFFFF"
+    }
+  ]
+}

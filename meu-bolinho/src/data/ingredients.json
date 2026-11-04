@@ -61,5 +61,47 @@
     "corConteudo": "#F08A24",
     "corRecipiente": "#D35400",
     "simbolo": "folha"
+  },
+  "fuba": {
+    "nome": "fubá",
+    "material": "po",
+    "corConteudo": "#F4D35E",
+    "corRecipiente": "#C9A227",
+    "simbolo": "cruz"
+  },
+  "mel": {
+    "nome": "mel",
+    "material": "liquido",
+    "corConteudo": "#E3A92B",
+    "corRecipiente": "#B8741A",
+    "simbolo": "anel"
+  },
+  "coco": {
+    "nome": "coco",
+    "material": "po",
+    "corConteudo": "#FBF7EE",
+    "corRecipiente": "#8B5A2B",
+    "simbolo": "nuvem"
+  },
+  "suco_limao": {
+    "nome": "suco de limão",
+    "material": "liquido",
+    "corConteudo": "#E8F28C",
+    "corRecipiente": "#7CB342",
+    "simbolo": "lua"
+  },
+  "maca": {
+    "nome": "maçã",
+    "material": "po",
+    "corConteudo": "#F3E2B3",
+    "corRecipiente": "#D7263D",
+    "simbolo": "coracao"
+  },
+  "chocolate_barra": {
+    "nome": "chocolate em barra",
+    "material": "po",
+    "corConteudo": "#4A2A18",
+    "corRecipiente": "#6B3E26",
+    "simbolo": "raio"
   }
 }

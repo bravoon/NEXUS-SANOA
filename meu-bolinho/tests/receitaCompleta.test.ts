@@ -21,6 +21,8 @@ import { StirStep } from '../src/systems/steps/StirStep';
 import { UnmoldStep } from '../src/systems/steps/UnmoldStep';
 import { BeatStep } from '../src/systems/steps/BeatStep';
 import { FillLayerStep } from '../src/systems/steps/FillLayerStep';
+import { GrateStep } from '../src/systems/steps/GrateStep';
+import { SiftStep } from '../src/systems/steps/SiftStep';
 import { gerarDesenho, reamostrar } from '../src/systems/steps/TraceStep';
 import { circulo } from './helpers';
 
@@ -130,6 +132,34 @@ function jogar(dificuldade: Dificuldade, rng: () => number, bruto: unknown = jso
       r.inicioDoGesto();
       while (!c.metaAtingida()) bater(4);
       r.fimDoGesto();
+    } else if (c instanceof SiftStep) {
+      // sacudir de lado a lado sobre a tigela; fora da tigela nada cai
+      let lado = 1;
+      const sacudir = (n: number, sobre: boolean) => {
+        let caiu = 0;
+        for (let i = 0; i < n; i++) caiu += c.amostra((lado = -lado) * 80, (t += 120), sobre);
+        return caiu;
+      };
+      gestoIncompleto(() => expect(sacudir(20, false)).toBe(0));
+      gestoIncompleto(() => sacudir(3, true));
+      r.inicioDoGesto();
+      for (let i = 0; i < 500 && !c.metaAtingida(); i++) sessao.tigela.adicionar(c.item, sacudir(1, true));
+      r.fimDoGesto();
+    } else if (c instanceof GrateStep) {
+      // passadas verticais na face do ralador; de lado não rala
+      const passar = (n: number, vertical: boolean) => {
+        let q = 0;
+        for (let i = 0; i < n; i++) for (let k = 1; k <= 6; k++) {
+          const v = (i % 2 === 0 ? k : 6 - k) * 12;
+          q += c.amostra(vertical ? 0 : v, vertical ? v : 0, (t += 30), true);
+        }
+        return q;
+      };
+      gestoIncompleto(() => expect(passar(10, false)).toBe(0));
+      gestoIncompleto(() => passar(3, true));
+      r.inicioDoGesto();
+      for (let i = 0; i < 500 && !c.metaAtingida(); i++) sessao.tigela.adicionar(c.item, passar(2, true));
+      r.fimDoGesto();
     } else if (c instanceof FillLayerStep) {
       c.recheio.definirSuperficie(area, () => true);
       gestoIncompleto(() => pintarTudo(c.recheio));
@@ -146,6 +176,17 @@ function jogar(dificuldade: Dificuldade, rng: () => number, bruto: unknown = jso
         c.definirGlace(caminho);
         gestoIncompleto(() => c.tracoGlace!.tracar(caminho[0]!.x, caminho[0]!.y));
         gestoIncompleto(() => { for (const p of reamostrar(caminho, 3)) c.tracoGlace!.tracar(p.x, p.y); });
+      }
+      if (c.polvilhador) {
+        expect(c.fase).toBe('polvilhar');
+        expect(c.finalizar()).toBe(false); // sem polvilhar, "Pronto!" não vale
+        const sp = c.polvilhador;
+        sp.definirSuperficie(area, () => true);
+        const sacudir = (x: number, y: number, n: number) => { for (let i = 0; i < n; i++) sp.amostra(x + (i % 2 ? 60 : -60), y, (t += 120)); };
+        gestoIncompleto(() => sacudir(100, 30, 6));
+        for (let y = 0; y <= 200 && !sp.metaAtingida(); y += 30)
+          for (let x = 0; x <= 200 && !sp.metaAtingida(); x += 30) gestoIncompleto(() => { sp.fimDoGesto(); sacudir(x, y - 70, 4); });
+        expect(sp.metaAtingida()).toBe(true);
       }
       gestoIncompleto(() => c.decoracao.adicionar([{ tipo: 'vela', x: 0, y: 0, rot: 0, cor: 0 }]));
       r.inicioDoGesto();
@@ -181,7 +222,7 @@ describe('receita completa (fofinho.json)', () => {
 
 describe('toda receita em data/recipes joga do início ao fim só com input (adicionar receita = adicionar JSON)', () => {
   const arquivos = readdirSync(dirReceitas).filter((f) => f.endsWith('.json'));
-  it('há as 8 receitas da trilha', () => expect(arquivos.length).toBeGreaterThanOrEqual(8));
+  it('há as 16 receitas da trilha', () => expect(arquivos.length).toBeGreaterThanOrEqual(16));
   for (const arq of arquivos) {
     for (const d of ['facil', 'confeiteiro'] as const) {
       it(`${arq} [${d}]`, () => {

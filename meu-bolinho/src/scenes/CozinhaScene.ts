@@ -44,9 +44,11 @@ import { CoverageStep } from '../systems/steps/CoverageStep';
 import { EggStep } from '../systems/steps/EggStep';
 import { PourOutStep } from '../systems/steps/PourOutStep';
 import { BeatStep } from '../systems/steps/BeatStep';
+import { GrateStep } from '../systems/steps/GrateStep';
+import { SiftStep } from '../systems/steps/SiftStep';
 import { PourStep } from '../systems/steps/PourStep';
 import { RAIO_NORMALIZADO, StirStep } from '../systems/steps/StirStep';
-import { corHex } from '../utils/desenho';
+import { corHex, desenharSimbolo, escurecer } from '../utils/desenho';
 import { amortecer, clamp, distancia, type Ponto } from '../utils/math';
 import { CenaEtapas } from './CenaEtapas';
 import { Qualidade } from '../utils/Qualidade';
@@ -59,7 +61,9 @@ type Arrasto =
   | { tipo: 'tocar_ovo' }
   | { tipo: 'untar' }
   | { tipo: 'tigela'; offset: Ponto }
-  | { tipo: 'bater' };
+  | { tipo: 'bater' }
+  | { tipo: 'peneira' }
+  | { tipo: 'pedaco' };
 
 type Estacao = 'tigela' | 'forma';
 
@@ -69,6 +73,13 @@ const ZONA_DESPEJO = new Phaser.Geom.Rectangle(TIGELA.cx - TIGELA.raio * 0.85, T
 const ZONA_FORMA = new Phaser.Geom.Rectangle(FORMA.cx - 130, FORMA.cy - 330, 160, 220);
 const BOCA_FORMA: BocaAlvo = { cx: FORMA.cx, bordaY: FORMA.cy, meiaLargura: FORMA.rxInterno * 0.85, alturaMax: 420 };
 const PARTICULAS_POR_XICARA = 160;
+/** Peneira: descanso e região "sobre a tigela" (centro do aro). */
+const DESCANSO_PENEIRA = { x: 1110, y: 300 };
+const SOBRE_TIGELA = new Phaser.Geom.Rectangle(TIGELA.cx - TIGELA.raio * 0.8, TIGELA.bordaY - 280, TIGELA.raio * 1.6, 260);
+/** Ralador em pé dentro da tigela; a face (onde o pedaço rala) é este retângulo. */
+const RALADOR = { x: TIGELA.cx + 10, y: TIGELA.bordaY - 120 };
+const FACE_RALADOR = new Phaser.Geom.Rectangle(RALADOR.x - 70, RALADOR.y - 105, 140, 210);
+const DESCANSO_PEDACO = { x: 1110, y: 420 };
 
 export class CozinhaScene extends CenaEtapas {
   private tigela!: BowlView;
@@ -88,6 +99,10 @@ export class CozinhaScene extends CenaEtapas {
   private forma: PanView | null = null;
   private manteiga: Ferramenta | null = null;
   private batedor: Ferramenta | null = null;
+  private peneira: Ferramenta | null = null;
+  private montePeneira: Phaser.GameObjects.Graphics | null = null;
+  private ralador: Ferramenta | null = null;
+  private pedaco: Phaser.GameObjects.Container | null = null;
 
   private readonly cores: Record<string, number> = {};
   private readonly inclinacao = new TiltRecognizer();
@@ -110,6 +125,11 @@ export class CozinhaScene extends CenaEtapas {
     this.ovoNaBorda = null;
     this.forma = null;
     this.manteiga = null;
+    this.batedor = null;
+    this.peneira = null;
+    this.montePeneira = null;
+    this.ralador = null;
+    this.pedaco = null;
     this.caixaOvos = null;
     this.arrasto = null;
     this.travaX = null;
@@ -229,9 +249,61 @@ export class CozinhaScene extends CenaEtapas {
         this.barra.setVisible(true);
         this.falar('bater.inicio');
         break;
+      case 'peneirar': {
+        this.irParaEstacao('tigela');
+        this.peneira = new Ferramenta(this, 'peneira', { ...DESCANSO_PENEIRA }, 150);
+        this.montePeneira = this.add.graphics();
+        this.peneira.add(this.montePeneira);
+        this.desenharMontePeneira(1);
+        this.barra.setVisible(true);
+        this.falar('peneirar.inicio');
+        break;
+      }
+      case 'ralar': {
+        this.irParaEstacao('tigela');
+        this.ralador = new Ferramenta(this, 'ralador', { ...RALADOR });
+        this.ralador.setDepth(22);
+        this.pedaco = this.criarPedaco(etapa.item);
+        this.barra.setVisible(true);
+        this.falar('ralar.inicio');
+        break;
+      }
       default:
         break;
     }
+  }
+
+  /** Monte do ingrediente dentro da peneira (encolhe conforme cai). */
+  private desenharMontePeneira(fracao: number): void {
+    const g = this.montePeneira;
+    const etapa = this.runner.etapa;
+    if (!g || etapa?.tipo !== 'peneirar') return;
+    g.clear();
+    if (fracao <= 0.001) return;
+    const cor = this.cores[etapa.item] ?? 0xffffff;
+    const k = 0.35 + 0.65 * fracao;
+    g.fillStyle(cor, 1);
+    g.fillEllipse(0, -6 * k, 120 * k, 40 * k);
+    g.fillStyle(escurecer(cor, 0.12), 1);
+    g.fillEllipse(-14 * k, -14 * k, 50 * k, 18 * k);
+  }
+
+  /** Pedaço a ralar (coco, chocolate, maçã...): cor do ingrediente + símbolo dele. */
+  private criarPedaco(item: string): Phaser.GameObjects.Container {
+    const def = INGREDIENTES[item];
+    const cor = def ? corHex(def.corRecipiente) : 0xaaaaaa;
+    const c = this.add.container(DESCANSO_PEDACO.x, DESCANSO_PEDACO.y).setDepth(55);
+    const g = this.add.graphics();
+    g.fillStyle(cor, 1);
+    g.fillRoundedRect(-40, -50, 80, 100, 22);
+    g.lineStyle(4, escurecer(cor, 0.45), 1);
+    g.strokeRoundedRect(-40, -50, 80, 100, 22);
+    g.fillStyle(def ? corHex(def.corConteudo) : 0xffffff, 1);
+    g.fillRoundedRect(-30, 26, 60, 18, 8); // lado já ralado (aparece por baixo)
+    if (def) desenharSimbolo(g, def.simbolo, 0, -8, 36, 0xffffff);
+    c.add(g);
+    assarGraphics(this, g, `pedaco:${item}`, { x: -46, y: -56, largura: 92, altura: 112 });
+    return c;
   }
 
   protected override aoConcluirEtapa(_indice: number, etapa: EtapaResolvida): void {
@@ -262,6 +334,21 @@ export class CozinhaScene extends CenaEtapas {
         this.batedor = null;
         this.barra.setVisible(false);
         this.falar('bater.ok');
+        break;
+      case 'peneirar':
+        this.peneira?.destroy();
+        this.peneira = null;
+        this.montePeneira = null;
+        this.barra.setVisible(false);
+        this.falar('peneirar.ok');
+        break;
+      case 'ralar':
+        this.ralador?.destroy();
+        this.ralador = null;
+        this.pedaco?.destroy();
+        this.pedaco = null;
+        this.barra.setVisible(false);
+        this.falar('ralar.ok');
         break;
       default:
         break;
@@ -392,6 +479,22 @@ export class CozinhaScene extends CenaEtapas {
       return;
     }
 
+    if (etapa?.tipo === 'peneirar' && this.peneira?.contem(a)) {
+      this.tweens.killTweensOf(this.peneira);
+      this.arrasto = { tipo: 'peneira' };
+      this.som('pop');
+      this.runner.inicioDoGesto();
+      return;
+    }
+
+    if (etapa?.tipo === 'ralar' && this.pedaco && distancia(a, this.pedaco) < 80) {
+      this.tweens.killTweensOf(this.pedaco);
+      this.arrasto = { tipo: 'pedaco' };
+      this.som('pop');
+      this.runner.inicioDoGesto();
+      return;
+    }
+
     if (etapa?.tipo === 'despejar_massa' && this.tigela.contemPonto(a.x, a.y)) {
       this.tweens.killTweensOf(this.tigela);
       this.arrasto = { tipo: 'tigela', offset: { x: this.tigela.x - a.x, y: this.tigela.y - a.y } };
@@ -405,6 +508,44 @@ export class CozinhaScene extends CenaEtapas {
     if (arr?.tipo === 'mexer') this.alimentarMexer(a);
     if (arr?.tipo === 'untar') this.pintarManteiga(a);
     if (arr?.tipo === 'bater') this.alimentarBater(a);
+    if (arr?.tipo === 'peneira') this.alimentarPeneira(a);
+    if (arr?.tipo === 'pedaco') this.alimentarRalar(a);
+  }
+
+  /** O aro da peneira segue o dedo; sacudir sobre a tigela deixa cair o ingrediente. */
+  private alimentarPeneira(a: AmostraPonteiro): void {
+    const ctrl = this.runner.controlador;
+    const p = this.peneira;
+    if (!(ctrl instanceof SiftStep) || !p) return;
+    const sobre = SOBRE_TIGELA.contains(p.x, p.y);
+    const q = ctrl.amostra(a.x, a.t, sobre);
+    if (q <= 0) return;
+    this.sessao.tigela.adicionar(ctrl.item, q);
+    const cor = this.cores[ctrl.item] ?? 0xffffff;
+    const ySup = this.tigela.ySuperficie(this.sessao.tigela.total);
+    for (const dx of [-40, 0, 40]) this.emitirParticulas({ x: p.x + dx, y: p.y + 14 }, q / 3, cor, 'po', ySup);
+    this.desenharMontePeneira(1 - ctrl.progresso);
+    this.som('colher');
+    this.runner.notificarProgresso();
+  }
+
+  /** Passadas verticais do pedaço na face do ralador: cada uma rala uma porção. */
+  private alimentarRalar(a: AmostraPonteiro): void {
+    const ctrl = this.runner.controlador;
+    const pd = this.pedaco;
+    if (!(ctrl instanceof GrateStep) || !pd) return;
+    // o pedaço acompanha o dedo direto (sem atraso): o ralador precisa sentir o vai e vem
+    pd.setPosition(a.x, a.y);
+    const noRalador = FACE_RALADOR.contains(a.x, a.y);
+    const q = ctrl.amostra(a.x, a.y, a.t, noRalador);
+    if (noRalador) this.somContinuo('pincel', 0.6);
+    if (q <= 0) return;
+    this.sessao.tigela.adicionar(ctrl.item, q);
+    const cor = this.cores[ctrl.item] ?? 0xffffff;
+    this.emitirParticulas({ x: RALADOR.x, y: RALADOR.y + 90 }, q, cor, 'po', this.tigela.ySuperficie(this.sessao.tigela.total));
+    pd.setScale(0.4 + 0.6 * ctrl.pedaco);
+    this.som('colher');
+    this.runner.notificarProgresso();
   }
 
   protected aoSoltar(): void {
@@ -439,6 +580,14 @@ export class CozinhaScene extends CenaEtapas {
       }
       case 'bater':
         this.batedor?.voltar();
+        this.runner.fimDoGesto();
+        break;
+      case 'peneira':
+        this.peneira?.voltar();
+        this.runner.fimDoGesto();
+        break;
+      case 'pedaco':
+        if (this.pedaco) this.tweens.add({ targets: this.pedaco, x: DESCANSO_PEDACO.x, y: DESCANSO_PEDACO.y, duration: 300, ease: 'Back.Out' });
         this.runner.fimDoGesto();
         break;
       case 'tocar_ovo':
@@ -559,6 +708,7 @@ export class CozinhaScene extends CenaEtapas {
     if (arr?.tipo === 'untar') this.manteiga?.seguir({ x: this.dedo.x, y: this.dedo.y + 10 }, dt);
     if (arr?.tipo === 'tigela') this.atualizarTigela(arr.offset, dt);
     if (arr?.tipo === 'bater') this.batedor?.seguir(this.dedo, dt);
+    if (arr?.tipo === 'peneira') this.peneira?.seguir(this.dedo, dt);
 
     const ctrl = this.runner.controlador;
     let redemoinho = 0;
@@ -569,7 +719,7 @@ export class CozinhaScene extends CenaEtapas {
     } else if (ctrl instanceof BeatStep) {
       this.sessao.espuma = Math.max(this.sessao.espuma, ctrl.progresso);
       this.barra.definir(ctrl.progresso, 0);
-    } else if (ctrl instanceof CoverageStep || ctrl instanceof PourOutStep) {
+    } else if (ctrl instanceof CoverageStep || ctrl instanceof PourOutStep || ctrl instanceof SiftStep || ctrl instanceof GrateStep) {
       this.barra.definir(ctrl.progresso, 0);
     }
     const cascas = ctrl instanceof EggStep ? ctrl.cascasNaTigela : 0;
@@ -825,6 +975,34 @@ export class CozinhaScene extends CenaEtapas {
           demo: { tipo: 'sacudir', ponto: { x: TIGELA.cx - 40, y: TIGELA.bordaY + 30 } },
           fala: 'bater.dica',
         };
+      case 'peneirar': {
+        const sobre = { x: TIGELA.cx - 40, y: TIGELA.bordaY - 140 };
+        return this.peneira && !SOBRE_TIGELA.contains(this.peneira.x, this.peneira.y)
+          ? {
+              ficha,
+              destaques: [DESCANSO_PENEIRA],
+              demo: {
+                tipo: 'arrastar',
+                de: DESCANSO_PENEIRA,
+                para: sobre,
+                fantasma: (g) => {
+                  g.lineStyle(6, 0x8a96a3, 1);
+                  g.strokeEllipse(0, 0, 150, 56);
+                },
+              },
+              fala: 'peneirar.dica',
+            }
+          : { ficha, destaques: [sobre], demo: { tipo: 'sacudir', ponto: sobre }, fala: 'peneirar.dica' };
+      }
+      case 'ralar': {
+        const x = RALADOR.x, y0 = FACE_RALADOR.top + 30, y1 = FACE_RALADOR.bottom - 30;
+        return {
+          ficha,
+          destaques: [DESCANSO_PEDACO, RALADOR],
+          demo: { tipo: 'caminho', pontos: [DESCANSO_PEDACO, { x, y: y0 }, { x, y: y1 }, { x, y: y0 }, { x, y: y1 }, { x, y: y0 }] },
+          fala: 'ralar.dica',
+        };
+      }
       default:
         return null;
     }
@@ -898,6 +1076,16 @@ export class CozinhaScene extends CenaEtapas {
     if (ctrl instanceof CoverageStep) {
       linhas.push(`Untar: cobertura ${(ctrl.cobertura * 100).toFixed(1)}% / meta ${(ctrl.meta * 100).toFixed(0)}%`);
       desenharGrade(g, ctrl);
+    }
+    if (ctrl instanceof SiftStep) {
+      linhas.push(`Peneirar ${ctrl.item}: ${ctrl.sacudidas}/${ctrl.meta} sacudidas  na peneira ${ctrl.restante.toFixed(2)} xíc  sobre a tigela: ${this.peneira && SOBRE_TIGELA.contains(this.peneira.x, this.peneira.y) ? 'SIM' : 'não'}`);
+      g.lineStyle(2, 0xff00ff, 1);
+      g.strokeRectShape(SOBRE_TIGELA);
+    }
+    if (ctrl instanceof GrateStep) {
+      linhas.push(`Ralar ${ctrl.item}: ${ctrl.raladas}/${ctrl.meta} passadas  pedaço ${(ctrl.pedaco * 100).toFixed(0)}%`);
+      g.lineStyle(2, 0xff00ff, 1);
+      g.strokeRectShape(FACE_RALADOR);
     }
     if (ctrl instanceof BeatStep) {
       linhas.push(`Bater: ${ctrl.batidas}/${ctrl.meta} batidas  espuma ${(this.sessao.espuma * 100).toFixed(0)}%`);

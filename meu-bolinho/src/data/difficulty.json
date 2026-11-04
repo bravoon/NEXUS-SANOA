@@ -7,7 +7,10 @@
     "cobertura": 0.8,
     "batidas": 12,
     "tracado": 0.8,
-    "toleranciaGlace": 28
+    "toleranciaGlace": 28,
+    "sacudidas": 8,
+    "raladas": 10,
+    "polvilho": 0.6
   },
   "confeiteiro": {
     "maxIngredientes": 7,
@@ -17,6 +20,9 @@
     "cobertura": 0.9,
     "batidas": 20,
     "tracado": 0.92,
-    "toleranciaGlace": 18
+    "toleranciaGlace": 18,
+    "sacudidas": 12,
+    "raladas": 16,
+    "polvilho": 0.75
   }
 }

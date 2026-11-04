@@ -6,7 +6,11 @@ import { ALTURA, LARGURA } from '../config/layout';
 import { CORES } from '../config/layout';
 import { PauseButton } from '../entities/PauseButton';
 import { AudioSystem } from '../systems/audio/AudioSystem';
-import { botaoGrande, ESTILO_TITULO } from './ui';
+import { armazenamentoLocal } from '../systems/save/Preferencias';
+import { nomeExibido, perfilAtual } from '../systems/save/Perfis';
+import { desenharAvatar } from '../utils/avatar';
+import { imagemVetorial } from '../utils/CacheGrafico';
+import { aoSoltarNoObjeto, botaoGrande, ESTILO_TITULO } from './ui';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -45,8 +49,8 @@ export class MenuScene extends Phaser.Scene {
     botaoGrande(this, LARGURA / 2 - 110, 570, '▶  Jogar', CORES.sucesso, () => {
       audio?.desbloquear();
       audio?.efeito('pop');
-      audio?.falar('escolher_receita');
-      this.scene.start('Trilha');
+      // já tem jogador escolhido → direto para a trilha dele; senão "Quem vai jogar?"
+      this.scene.start(perfilAtual(armazenamentoLocal()) ? 'Trilha' : 'Perfis');
     }, 320, 110);
     botaoGrande(this, LARGURA / 2 + 190, 570, '▦', 0xcc79a7, () => {
       audio?.desbloquear();
@@ -54,11 +58,31 @@ export class MenuScene extends Phaser.Scene {
       this.scene.start('Galeria');
     }, 150, 110);
 
+    this.criarJogador();
     new PauseButton(this, () => this.scene.start('AreaPais'), { x: 60, y: ALTURA - 56, icone: 'cadeado' });
     this.add.text(110, ALTURA - 56, 'pais: segure 2 s', { fontFamily: 'Arial, sans-serif', fontSize: '16px', color: '#9c8a7e' }).setOrigin(0, 0.5);
     if (import.meta.env.DEV || new URLSearchParams(location.search).has('debug'))
       this.add.text(LARGURA - 20, ALTURA - 20, 'Tecla D: modo debug', { fontFamily: 'Arial, sans-serif', fontSize: '15px', color: '#b0a49a' }).setOrigin(1, 1);
 
     audio?.falar('boas_vindas');
+  }
+
+  /** Quem está jogando (tocar → trocar de jogador). */
+  private criarJogador(): void {
+    const perfil = perfilAtual(armazenamentoLocal());
+    if (!perfil) return;
+    const c = this.add.container(LARGURA - 180, 56).setName('jogador');
+    const fundo = this.add.graphics();
+    fundo.fillStyle(0xffffff, 0.85);
+    fundo.fillRoundedRect(-145, -40, 290, 80, 40);
+    c.add(fundo);
+    c.add(imagemVetorial(this, `avatar:${perfil.avatar}:30`, { x: -34, y: -34, largura: 68, altura: 68 }, (g) => desenharAvatar(g, perfil.avatar, 0, 0, 30), -105, 0));
+    c.add(this.add.text(-63, -2, nomeExibido(perfil), { fontFamily: 'Arial Rounded MT Bold, Arial, sans-serif', fontSize: '26px', color: '#3b2a20', fontStyle: 'bold' }).setOrigin(0, 0.5));
+    c.add(this.add.text(118, 0, '⇄', { fontFamily: 'Arial, sans-serif', fontSize: '30px', color: '#cc79a7', fontStyle: 'bold' }).setOrigin(0.5));
+    c.setSize(290, 80).setInteractive({ useHandCursor: true });
+    aoSoltarNoObjeto(c, () => {
+      AudioSystem.get()?.efeito('pop');
+      this.scene.start('Perfis');
+    });
   }
 }

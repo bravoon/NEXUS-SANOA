@@ -202,7 +202,9 @@ describe('trilha de fases', () => {
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import trilhaJson from '../src/data/trilha.json';
+import trilhaDados from '../src/data/trilha.json';
+import { dividirEmMundos, mundoAtual, ordemDosMundos } from '../src/systems/progresso/Trilha';
+const trilhaJson = ordemDosMundos(trilhaDados.mundos);
 import { validarReceita } from '../src/systems/recipe/recipeLoader';
 
 describe('trilha real (data/trilha.json)', () => {
@@ -223,5 +225,27 @@ describe('trilha real (data/trilha.json)', () => {
     expect(estreia('bater')).toBe('nuvem');
     expect(estreia('rechear')).toBe('morango');
     expect(estreia('glace')).toBe('aniversario');
+    expect(estreia('peneirar')).toBe('fuba');
+    expect(estreia('ralar')).toBe('coco');
+    expect(estreia('polvilhar')).toBe('limao');
+  });
+
+  it('16 fases em 2 mundos de 8; o mundo 2 abre ao terminar a fase 8', () => {
+    expect(trilhaJson).toHaveLength(16);
+    const est: Record<string, number> = {};
+    let mundos = dividirEmMundos(montarTrilha(trilhaJson, receitas, est), trilhaDados.mundos);
+    expect(mundos.map((m) => m.fases.length)).toEqual([8, 8]);
+    expect(mundos[1]!.aberto).toBe(false);
+    expect(mundoAtual(mundos)).toBe(0);
+    for (const id of trilhaJson.slice(0, 8)) est[id] = 1;
+    mundos = dividirEmMundos(montarTrilha(trilhaJson, receitas, est), trilhaDados.mundos);
+    expect(mundos[1]!.aberto).toBe(true);
+    expect(mundos[1]!.fases[0]!.numero).toBe(9);
+    expect(mundoAtual(mundos)).toBe(1);
+  });
+
+  it('nenhuma receita da trilha passa do limite de ingredientes nos dois modos', async () => {
+    const { carregarReceita } = await import('../src/data/registry');
+    for (const id of trilhaJson) for (const d of ['facil', 'confeiteiro'] as const) expect(() => carregarReceita(id, d), `${id} ${d}`).not.toThrow();
   });
 });

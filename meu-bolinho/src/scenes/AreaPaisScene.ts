@@ -34,7 +34,7 @@ export class AreaPaisScene extends Phaser.Scene {
     this.interruptor(500, 'Liberar todas as fases da trilha', () => prefs().liberarFases, (v) => mudar({ liberarFases: v }));
 
     this.add
-      .text(LARGURA / 2, 548, `Voz: ${audio?.fonteVoz ?? 'indisponível'}\nSem anúncios, sem compras e sem coleta de dados. As preferências e a galeria ficam só neste aparelho.`, {
+      .text(LARGURA / 2, 548, `Voz: ${audio?.fonteVoz ?? 'indisponível'}\nSem anúncios, sem compras e sem coleta de dados. Os perfis, as estrelas, as preferências e a galeria ficam só neste aparelho.`, {
         fontFamily: 'Arial, sans-serif',
         fontSize: '17px',
         color: '#6b5a4e',
@@ -44,6 +44,7 @@ export class AreaPaisScene extends Phaser.Scene {
       .setOrigin(0.5, 0);
 
     botaoGrande(this, 170, ALTURA - 55, '⌂ Voltar', 0x0072b2, () => this.scene.start('Menu'), 240, 72);
+    botaoGrande(this, LARGURA / 2, ALTURA - 55, '👤 Perfis', 0xcc79a7, () => this.scene.start('Perfis', { gerenciar: true }), 260, 72);
     botaoGrande(this, LARGURA - 190, ALTURA - 55, '▶ Testar voz', CORES.sucesso, () => audio?.falar('boas_vindas', 'alta'), 280, 72);
   }
 

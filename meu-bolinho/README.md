@@ -17,7 +17,36 @@ npm test           # testes unitários (Node, sem navegador)
 npm run build      # typecheck + build de produção em dist/
 ```
 
-## Status: Trilha de fases (8 receitas, estrelas e 3 mecânicas novas)
+## Status: perfis de jogador e Mundo 2 (16 fases, 6 mecânicas de fase)
+
+**Quem vai jogar?** Cada criança tem o próprio perfil (um bichinho + nome opcional, digitado
+num teclado de letras grandes). Trilha, estrelas, galeria e progresso ficam separados por
+perfil. É só neste aparelho: sem senha, sem e-mail, sem internet, sem coleta de dados. O menu
+mostra quem está jogando (tocar troca de jogador). Os pais apagam perfis na área dos pais
+(👤 Perfis → segurar a lixeira 2 s). Quem já jogava antes dos perfis não perde nada: o primeiro
+perfil criado herda as estrelas e a galeria.
+
+A trilha agora tem **2 mundos de 8 fases**. O Mundo 2 abre ao terminar a fase 8 (setas ◀ ▶ na
+trilha).
+
+| Fase | Receita (Mundo 2: Confeitaria da Vovó) | Novidade |
+|---|---|---|
+| 9 | Bolo de Fubá | **peneirar**: levar a peneira até a tigela e sacudir de lado a lado |
+| 10 | Bolo de Mel | mel, glacê em onda |
+| 11 | Bolo de Coco | **ralar**: esfregar o coco para cima e para baixo no ralador |
+| 12 | Bolo Mármore | recheio de chocolate, glacê em círculo |
+| 13 | Bolo de Limão | **polvilhar**: sacudir o polvilhador de açúcar em cima do bolo |
+| 14 | Bolo de Maçã com Canela | ralar maçã, polvilhar canela |
+| 15 | Bolo Floresta Negra | bater, peneirar, ralar chocolate, rechear, glacê, granulado |
+| 16 | Bolo Gigante da Festa | todas as mecânicas juntas |
+
+Também sem auto-complete: a peneira só solta farinha quando é sacudida em cima da tigela
+(parada, longe ou arrastada reto = nada cai) e nunca passa da medida; o ralador só conta
+passadas verticais na face dele; o polvilho só cai quando a criança sacode em cima do bolo, e
+o "Pronto!" só aparece depois que o bolo foi polvilhado o bastante.
+Testes: `npm test` (224 unitários) e `npm run e2e:mundo2` (perfis + mundo 2 no navegador).
+
+## Trilha de fases (8 receitas, estrelas e 3 mecânicas novas)
 
 Tocar **Jogar** abre a **Trilha do Confeiteiro**: 8 fases em sequência. Só a primeira começa
 aberta; terminar uma fase (em qualquer modo) libera a próxima. Cada fase dá até 3 estrelas,

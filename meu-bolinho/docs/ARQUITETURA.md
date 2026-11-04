@@ -24,7 +24,7 @@ corre por tempo, mas só depois que a criança fechou a porta e girou o timer; e
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │ Cenas Phaser (apresentação)                                   │
-│ Boot → Preload → Menu → Trilha → Cozinha → Forno              │
+│ Boot → Preload → Menu → Perfis → Trilha → Cozinha → Forno     │
 │        → Confeitar → Resultado → Galeria                      │
 ├───────────────────────────────────────────────────────────────┤
 │ RecipeRunner (FSM data-driven)  ←  recipes/*.json + difficulty│
@@ -72,7 +72,11 @@ stateDiagram-v2
     [*] --> Boot
     Boot --> Preload : config + dispositivo detectado
     Preload --> Menu : atlas/áudio carregados
-    Menu --> Trilha : tocar "Jogar"
+    Menu --> Trilha : "Jogar" (com jogador escolhido)
+    Menu --> Perfis : "Jogar" sem jogador / tocar no avatar
+    Perfis --> NovoPerfil : "+ Novo jogador" (ou nenhum perfil)
+    NovoPerfil --> Trilha : bichinho + nome
+    Perfis --> Trilha : tocar num perfil
     Menu --> Galeria : tocar "Galeria"
     Menu --> AreaPais : segurar 2 s (cadeado)
     AreaPais --> Menu
@@ -410,3 +414,30 @@ tela não aciona nada).
   estrelas ganhas e o selo "Fase N liberada!".
 - **Testes**: `tests/fases.test.ts` (reconhecedor, controladores, avaliação, trilha real) e
   `tests/e2e/fases.cjs` (liberação, bater, rechear, glacê e estrelas no navegador).
+
+## 16. Perfis de jogador e Mundo 2
+
+- **Perfis** (`systems/save/Perfis.ts`, puro): até 6 perfis {id, avatar, nome opcional}, e qual
+  está jogando, em `meu-bolinho:perfis:v1`. `armazenamentoDoPerfil(base, id)` embrulha o
+  armazenamento e acrescenta `@<id>` às chaves do jogador (galeria, progresso, trilha); as
+  preferências continuam do aparelho. As cenas usam `armazenamentoJogador()` e não sabem de
+  perfis. O primeiro perfil herda as chaves antigas (sem sufixo). Apagar um perfil remove as
+  chaves dele. Não existe senha nem conta online: não há o que vazar e nada sai do aparelho.
+- **Cenas**: `PerfisScene` ("Quem vai jogar?"; com `{ gerenciar: true }` vira a tela da área
+  dos pais, com lixeira de segurar 2 s) e `NovoPerfilScene` (bichinho → teclado de letras
+  grandes → Pronto). Avatares desenhados com formas (`utils/avatar.ts`).
+- **Mundos** (`data/trilha.json` → `{ mundos: [{ nome, fases }] }`): `dividirEmMundos` agrupa as
+  fases montadas por `montarTrilha` (a numeração e a liberação continuam sequenciais: a fase 9
+  abre quando a 8 termina). `mundoAtual` escolhe o mundo onde está a próxima fase.
+- **Etapas novas** (parâmetros em `difficulty.json`: `sacudidas` 8/12, `raladas` 10/16,
+  `polvilho` 0,6/0,75):
+  - `peneirar` (`SiftStep` + `ShakeRecognizer` com `CONFIG_PENEIRAR`): a peneira já traz a medida;
+    cada sacudida com o aro sobre a tigela solta `quantidade/sacudidas`. Fora da tigela o
+    reconhecedor é zerado.
+  - `ralar` (`GrateStep` + `WhiskRecognizer` só no eixo y, `CONFIG_RALAR`): passadas verticais com
+    o pedaço na face do ralador; o pedaço encolhe conforme rala.
+  - `decorar` com `polvilhar` (`SprinkleStep` dentro de `DecorStep`, fase `polvilhar` entre o
+    glacê e os enfeites): cada sacudida carimba um círculo de 46 px, 70 px abaixo do polvilhador,
+    numa `CoverageGrid` do topo do bolo.
+- **Testes**: `tests/perfis.test.ts`, `tests/mundo2.test.ts`, receita completa das 16 receitas
+  nos dois modos e `tests/e2e/mundo2.cjs`.

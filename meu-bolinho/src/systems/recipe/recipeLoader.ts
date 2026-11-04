@@ -7,8 +7,10 @@
  */
 import { CONFIG_DESPEJAR_MASSA, CONFIG_FORNO } from '../../config/gameplay';
 import {
+  COR_POLVILHO,
   DESENHOS_GLACE,
   DIFICULDADES,
+  TIPOS_POLVILHO,
   TIPOS_ETAPA,
   type DesenhoGlace,
   type Dificuldade,
@@ -19,6 +21,7 @@ import {
   type ReceitaJson,
   type ReceitaResolvida,
   type TipoEtapa,
+  type TipoPolvilho,
 } from './recipeTypes';
 
 /** Ingrediente implícito da etapa de ovos (conta para o limite de ingredientes). */
@@ -57,7 +60,7 @@ export function validarReceita(bruto: unknown): ReceitaJson {
     if (e['apenas'] !== undefined && !DIFICULDADES.includes(e['apenas'] as Dificuldade)) {
       throw new ErroReceita(id, `etapa ${i}: "apenas" inválido`);
     }
-    for (const campo of ['quantidade', 'tolerancia', 'voltas', 'cobertura', 'tempoSegundos', 'restanteMax', 'batidas'] as const) {
+    for (const campo of ['quantidade', 'tolerancia', 'voltas', 'cobertura', 'tempoSegundos', 'restanteMax', 'batidas', 'sacudidas', 'raladas'] as const) {
       const v = e[campo];
       if (v !== undefined && (typeof v !== 'number' || !(v > 0))) {
         throw new ErroReceita(id, `etapa ${i}: "${campo}" deve ser número > 0`);
@@ -73,7 +76,12 @@ export function validarReceita(bruto: unknown): ReceitaJson {
     if (e['glace'] !== undefined && !DESENHOS_GLACE.includes(e['glace'] as DesenhoGlace)) {
       throw new ErroReceita(id, `etapa ${i}: "glace" deve ser um de ${DESENHOS_GLACE.join(', ')}`);
     }
+    if (e['polvilhar'] !== undefined && !TIPOS_POLVILHO.includes(e['polvilhar'] as TipoPolvilho)) {
+      throw new ErroReceita(id, `etapa ${i}: "polvilhar" deve ser um de ${TIPOS_POLVILHO.join(', ')}`);
+    }
     switch (tipo) {
+      case 'peneirar':
+      case 'ralar':
       case 'despejar':
         if (typeof e['item'] !== 'string') throw new ErroReceita(id, `etapa ${i}: "item" ausente`);
         if (typeof e['quantidade'] !== 'number') throw new ErroReceita(id, `etapa ${i}: "quantidade" ausente`);
@@ -100,6 +108,9 @@ export function validarReceita(bruto: unknown): ReceitaJson {
  * Regras de coerência da sequência (num dos modos): cada etapa precisa do que as anteriores
  * produziram. Uma receita incoerente fica indisponível com mensagem clara, em vez de travar o jogo.
  */
+/** Etapas que põem algo na tigela. */
+const COM_CONTEUDO = ['despejar', 'quebrar_ovo', 'peneirar', 'ralar'];
+
 function validarOrdem(id: string, etapas: EtapaResolvida[]): void {
   const vistos = new Set<string>();
   const exigir = (i: number, tipo: string, algum: string[], motivo: string) => {
@@ -109,7 +120,7 @@ function validarOrdem(id: string, etapas: EtapaResolvida[]): void {
     switch (e.tipo) {
       case 'mexer':
       case 'despejar_massa':
-        exigir(i, e.tipo, ['despejar', 'quebrar_ovo'], 'a tigela ainda está vazia');
+        exigir(i, e.tipo, COM_CONTEUDO, 'a tigela ainda está vazia');
         break;
       case 'forno':
         exigir(i, e.tipo, ['despejar_massa'], 'não há massa na forma');
@@ -122,7 +133,7 @@ function validarOrdem(id: string, etapas: EtapaResolvida[]): void {
         exigir(i, e.tipo, ['desenformar'], 'o bolo ainda está na forma');
         break;
       case 'bater':
-        exigir(i, e.tipo, ['despejar', 'quebrar_ovo'], 'a tigela ainda está vazia');
+        exigir(i, e.tipo, COM_CONTEUDO, 'a tigela ainda está vazia');
         break;
       default:
         break;
@@ -172,9 +183,21 @@ export function resolverReceita(
         return { tipo: 'bater', batidas: e.batidas ?? padrao.batidas };
       case 'rechear':
         return { tipo: 'rechear', cobertura: e.cobertura ?? padrao.cobertura, corRecheio: e.corRecheio ?? '#E57373' };
+      case 'peneirar':
+      case 'ralar': {
+        const item = e.item as string;
+        if (!ingredientes[item]) throw new ErroReceita(receita.id, `etapa ${i}: ingrediente "${item}" não existe`);
+        const quantidade = e.quantidade ?? 0.5;
+        return e.tipo === 'peneirar'
+          ? { tipo: 'peneirar', item, quantidade, sacudidas: e.sacudidas ?? padrao.sacudidas }
+          : { tipo: 'ralar', item, quantidade, raladas: e.raladas ?? padrao.raladas };
+      }
       case 'decorar':
         return {
           tipo: 'decorar',
+          polvilho: e.polvilhar
+            ? { tipo: e.polvilhar as TipoPolvilho, cor: COR_POLVILHO[e.polvilhar as TipoPolvilho], cobertura: padrao.polvilho }
+            : null,
           cobertura: e.cobertura ?? padrao.cobertura,
           corCobertura: e.corCobertura ?? '#5A3220',
           glace: e.glace
@@ -187,7 +210,13 @@ export function resolverReceita(
   validarOrdem(receita.id, etapas);
 
   const recipientes = [...new Set(etapas.flatMap((e) => (e.tipo === 'despejar' ? [e.item] : [])))];
-  const unicos = [...new Set(etapas.flatMap((e) => (e.tipo === 'despejar' ? [e.item] : e.tipo === 'quebrar_ovo' ? [ITEM_OVO] : [])))];
+  const unicos = [
+    ...new Set(
+      etapas.flatMap((e) =>
+        e.tipo === 'despejar' || e.tipo === 'peneirar' || e.tipo === 'ralar' ? [e.item] : e.tipo === 'quebrar_ovo' ? [ITEM_OVO] : [],
+      ),
+    ),
+  ];
   if (unicos.length > padrao.maxIngredientes) {
     throw new ErroReceita(
       receita.id,

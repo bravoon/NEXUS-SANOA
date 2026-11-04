@@ -17,6 +17,8 @@ export type TipoEtapa =
   | 'desenformar'
   | 'bater'
   | 'rechear'
+  | 'peneirar'
+  | 'ralar'
   | 'decorar';
 export const TIPOS_ETAPA: readonly TipoEtapa[] = [
   'despejar',
@@ -28,12 +30,19 @@ export const TIPOS_ETAPA: readonly TipoEtapa[] = [
   'desenformar',
   'bater',
   'rechear',
+  'peneirar',
+  'ralar',
   'decorar',
 ];
 
 /** Desenhos para escrever com glacê. */
 export type DesenhoGlace = 'coracao' | 'estrela' | 'circulo' | 'onda';
 export const DESENHOS_GLACE: readonly DesenhoGlace[] = ['coracao', 'estrela', 'circulo', 'onda'];
+
+/** O que se polvilha por cima do bolo (decorar). */
+export type TipoPolvilho = 'acucar' | 'canela' | 'granulado' | 'coco';
+export const TIPOS_POLVILHO: readonly TipoPolvilho[] = ['acucar', 'canela', 'granulado', 'coco'];
+export const COR_POLVILHO: Record<TipoPolvilho, string> = { acucar: '#FFFFFF', canela: '#9C5B2E', granulado: '#6B3E26', coco: '#FBF7EE' };
 
 export interface ParametrosDificuldade {
   maxIngredientes: number;
@@ -47,6 +56,12 @@ export interface ParametrosDificuldade {
   tracado: number;
   /** Distância (px) do dedo ao desenho que ainda conta. */
   toleranciaGlace: number;
+  /** Sacudidas da peneira para passar todo o ingrediente (peneirar). */
+  sacudidas: number;
+  /** Raladas (vai e vem no ralador) para ralar todo o pedaço (ralar). */
+  raladas: number;
+  /** Fração do topo do bolo que precisa ser polvilhada (decorar com polvilho). */
+  polvilho: number;
 }
 
 /** Etapa como escrita no JSON (campos de dificuldade são opcionais e sobrescrevem o padrão). */
@@ -73,6 +88,12 @@ export interface EtapaJson {
   glace?: string;
   /** Cor do glacê (decorar), #RRGGBB. */
   corGlace?: string;
+  /** Sacudidas (peneirar). */
+  sacudidas?: number;
+  /** Raladas (ralar). */
+  raladas?: number;
+  /** Polvilhar por cima no fim (decorar). */
+  polvilhar?: string;
   apenas?: Dificuldade;
 }
 
@@ -88,7 +109,7 @@ export interface IngredienteDef {
   material: Material;
   corConteudo: string;
   corRecipiente: string;
-  simbolo: 'quadrado' | 'triangulo' | 'gota' | 'estrela' | 'circulo' | 'losango' | 'tablete' | 'hexagono' | 'folha';
+  simbolo: 'quadrado' | 'triangulo' | 'gota' | 'estrela' | 'circulo' | 'losango' | 'tablete' | 'hexagono' | 'folha' | 'cruz' | 'lua' | 'coracao' | 'anel' | 'nuvem' | 'raio';
 }
 
 export interface EtapaDespejar {
@@ -141,6 +162,26 @@ export interface EtapaRechear {
   corRecheio: string;
 }
 
+export interface EtapaPeneirar {
+  tipo: 'peneirar';
+  item: string;
+  quantidade: number;
+  sacudidas: number;
+}
+
+export interface EtapaRalar {
+  tipo: 'ralar';
+  item: string;
+  quantidade: number;
+  raladas: number;
+}
+
+export interface PolvilhoResolvido {
+  tipo: TipoPolvilho;
+  cor: string;
+  cobertura: number;
+}
+
 export interface GlaceResolvido {
   desenho: DesenhoGlace;
   cor: string;
@@ -152,6 +193,8 @@ export interface EtapaDecorar {
   tipo: 'decorar';
   /** Escrever com glacê (opcional), entre a cobertura e os enfeites. */
   glace: GlaceResolvido | null;
+  /** Polvilhar por cima (opcional), depois do glacê e antes dos enfeites. */
+  polvilho: PolvilhoResolvido | null;
   cobertura: number;
   corCobertura: string;
 }
@@ -166,6 +209,8 @@ export type EtapaResolvida =
   | EtapaDesenformar
   | EtapaBater
   | EtapaRechear
+  | EtapaPeneirar
+  | EtapaRalar
   | EtapaDecorar;
 
 export interface ReceitaResolvida {
