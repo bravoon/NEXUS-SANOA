@@ -6,7 +6,7 @@
  * - "Novidade": mecânicas que aparecem pela primeira vez naquela fase (selo "Novo!").
  * - Receitas que não estão em trilha.json entram no fim (adicionar receita = só JSON).
  */
-import type { ReceitaJson, TipoEtapa } from '../recipe/recipeTypes';
+import type { Produto, ReceitaJson, TipoEtapa } from '../recipe/recipeTypes';
 import type { Armazenamento } from '../save/Preferencias';
 
 export type Mecanica = TipoEtapa | 'glace' | 'polvilhar';
@@ -15,6 +15,8 @@ export interface FaseTrilha {
   id: string;
   nome: string;
   corMassa: string;
+  /** O que se faz nesta fase (bolo, torta, biscoito...). */
+  produto: Produto;
   numero: number;
   liberada: boolean;
   concluida: boolean;
@@ -61,6 +63,7 @@ export function montarTrilha(
       id,
       nome: r.nome,
       corMassa: r.corMassa,
+      produto: r.produto ?? 'bolo',
       numero: i + 1,
       liberada: liberarTodas || i === 0 || (anterior?.concluida ?? false),
       concluida: e > 0,

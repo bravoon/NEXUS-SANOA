@@ -14,6 +14,10 @@ import { avaliar } from '../systems/progresso/Avaliacao';
 import { carregarEstrelas, montarTrilha, registrarEstrelas } from '../systems/progresso/Trilha';
 import { RECEITAS } from '../data/registry';
 import { MUNDOS, ordemDaTrilhaJson } from '../data/trilhaDados';
+import type { Produto } from '../systems/recipe/recipeTypes';
+
+/** Concordância do título: "Torta ... pronta!", "Biscoitos ... prontos!". */
+const PRONTO: Record<Produto, string> = { bolo: 'pronto', brownie: 'pronto', torta: 'pronta', biscoito: 'prontos', cupcake: 'prontos' };
 
 export class ResultadoScene extends Phaser.Scene {
   private sessao!: Sessao;
@@ -48,7 +52,7 @@ export class ResultadoScene extends Phaser.Scene {
     }
 
     this.add
-      .text(LARGURA / 2, 70, `${this.sessao.receita.nome} pronto!`, {
+      .text(LARGURA / 2, 70, `${this.sessao.receita.nome} ${PRONTO[this.sessao.receita.produto]}!`, {
         fontFamily: 'Arial Rounded MT Bold, Arial, sans-serif',
         fontSize: '56px',
         color: '#3b2a20',
@@ -95,7 +99,7 @@ export class ResultadoScene extends Phaser.Scene {
 
     const audio = AudioSystem.get();
     const y = 535;
-    const rotulos = ['Bolo pronto!', av.medidasCertinhas ? 'Medidas certinhas' : '', av.boloCaprichado ? 'Bolo caprichado' : ''];
+    const rotulos = ['Ficou pronto!', av.medidasCertinhas ? 'Medidas certinhas' : '', av.boloCaprichado ? 'Caprichado!' : ''];
     const ganhas = [true, av.medidasCertinhas, av.boloCaprichado];
     // as ganhas primeiro (da esquerda para a direita)
     const ordem = [0, 1, 2].sort((a, b) => Number(ganhas[b]) - Number(ganhas[a]));

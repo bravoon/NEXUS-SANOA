@@ -153,6 +153,13 @@ export const CONFIG_RALAR = {
   intervaloMinMs: 120,
 } as const;
 
+/** Rolo de massa: passadas amplas (qualquer direção) em cima da massa. */
+export const CONFIG_ROLO = {
+  amplitudeMin: 60,
+  velocidadeMin: 0.25,
+  intervaloMinMs: 150,
+} as const;
+
 /** Polvilhador: cada sacudida sobre o bolo carimba um círculo de polvilho. */
 export const CONFIG_POLVILHAR = {
   janelaMs: 700,

@@ -228,13 +228,16 @@ describe('trilha real (data/trilha.json)', () => {
     expect(estreia('peneirar')).toBe('fuba');
     expect(estreia('ralar')).toBe('coco');
     expect(estreia('polvilhar')).toBe('limao');
+    expect(estreia('abrir_massa')).toBe('torta_morango');
+    expect(estreia('cortar')).toBe('biscoitos');
+    expect(estreia('fatiar')).toBe('brownie');
   });
 
-  it('16 fases em 2 mundos de 8; o mundo 2 abre ao terminar a fase 8', () => {
-    expect(trilhaJson).toHaveLength(16);
+  it('24 fases em 3 mundos de 8; o mundo 2 abre ao terminar a fase 8', () => {
+    expect(trilhaJson).toHaveLength(24);
     const est: Record<string, number> = {};
     let mundos = dividirEmMundos(montarTrilha(trilhaJson, receitas, est), trilhaDados.mundos);
-    expect(mundos.map((m) => m.fases.length)).toEqual([8, 8]);
+    expect(mundos.map((m) => m.fases.length)).toEqual([8, 8, 8]);
     expect(mundos[1]!.aberto).toBe(false);
     expect(mundoAtual(mundos)).toBe(0);
     for (const id of trilhaJson.slice(0, 8)) est[id] = 1;

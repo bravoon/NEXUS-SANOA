@@ -1,0 +1,47 @@
+{
+  "id": "biscoitos_canela",
+  "nome": "Biscoitos de Canela",
+  "produto": "biscoito",
+  "corMassa": "#D9A86C",
+  "etapas": [
+    {
+      "tipo": "quebrar_ovo",
+      "quantidade": 1
+    },
+    {
+      "tipo": "despejar",
+      "item": "mel",
+      "alvo": "tigela",
+      "quantidade": 0.25
+    },
+    {
+      "tipo": "despejar",
+      "item": "manteiga",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "peneirar",
+      "item": "farinha",
+      "quantidade": 1.0
+    },
+    {
+      "tipo": "mexer"
+    },
+    {
+      "tipo": "abrir_massa"
+    },
+    {
+      "tipo": "cortar"
+    },
+    {
+      "tipo": "forno",
+      "tempoSegundos": 15
+    },
+    {
+      "tipo": "decorar",
+      "corCobertura": "#F5E6C8",
+      "polvilhar": "canela"
+    }
+  ]
+}

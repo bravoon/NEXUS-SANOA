@@ -8,12 +8,12 @@ longo no início/fim, normalizado em −16 LUFS. Salve em `src/assets/voz/<arqui
 automaticamente cada arquivo que existir; as falas sem arquivo usam a voz pt-BR do sistema
 (ou só o balão de texto).
 
-Total: 112 falas.
+Total: 129 falas.
 
 | id | arquivo | texto |
 |---|---|---|
-| `boas_vindas` | `boas_vindas.mp3` | Oi! Eu sou o Bolinho. Vamos fazer um bolo juntos? |
-| `escolher_receita` | `escolher_receita.mp3` | Escolha o seu bolo! |
+| `boas_vindas` | `boas_vindas.mp3` | Oi! Eu sou o Bolinho. Vamos cozinhar juntos? |
+| `escolher_receita` | `escolher_receita.mp3` | Escolha o que vamos fazer! |
 | `despejar.farinha` | `despejar.farinha.mp3` | Agora a farinha! Leve até a tigela e incline. |
 | `despejar.acucar` | `despejar.acucar.mp3` | Agora o açúcar! Leve até a tigela e incline. |
 | `despejar.leite` | `despejar.leite.mp3` | Agora o leite! Leve até a tigela e incline. |
@@ -53,8 +53,8 @@ Total: 112 falas.
 | `forno.colocar` | `forno.colocar.mp3` | Coloque a forma dentro do forno! |
 | `forno.fechar` | `forno.fechar.mp3` | Agora feche a porta do forno. |
 | `forno.timer` | `forno.timer.mp3` | Agora gire o botão uma volta inteira! |
-| `forno.ligado` | `forno.ligado.mp3` | Forno ligado! Veja o bolo crescer. |
-| `forno.apitou` | `forno.apitou.mp3` | O bolo ficou pronto! Abra a porta e use a luva. |
+| `forno.ligado` | `forno.ligado.mp3` | Forno ligado! Veja a massa crescer. |
+| `forno.apitou` | `forno.apitou.mp3` | Ficou pronto! Abra a porta e use a luva. |
 | `forno.abriu_sem_luva` | `forno.abriu_sem_luva.mp3` | Use a luva para pegar a forma! |
 | `forno.abriu_com_luva` | `forno.abriu_com_luva.mp3` | Pegue a forma e leve até a bancada. |
 | `forno.luva_abrir` | `forno.luva_abrir.mp3` | Luva no lugar! Agora abra a porta. |
@@ -74,11 +74,11 @@ Total: 112 falas.
 | `desenformar.ok` | `desenformar.ok.mp3` | Uau, saiu inteirinho! |
 | `desenformar.dica_prato` | `desenformar.dica_prato.mp3` | Arraste o prato até em cima da forma. |
 | `desenformar.dica_puxar` | `desenformar.dica_puxar.mp3` | Encoste no prato e puxe o dedo para baixo, bem rápido, como um escorregador. |
-| `decorar.cobertura` | `decorar.cobertura.mp3` | Passe a cobertura no bolo todo! |
+| `decorar.cobertura` | `decorar.cobertura.mp3` | Passe a cobertura em cima, todinho! |
 | `decorar.liberado` | `decorar.liberado.mp3` | Que lindo! Agora enfeite do seu jeito. Quando acabar, toque em Pronto! |
-| `decorar.cheio` | `decorar.cheio.mp3` | O bolo já está cheio de enfeites! |
-| `decorar.dica_cobertura` | `decorar.dica_cobertura.mp3` | Esfregue o dedo em cima do bolo até ele ficar todo coberto. |
-| `decorar.dica_enfeites` | `decorar.dica_enfeites.mp3` | Arraste os enfeites até o bolo. Para o granulado, segure o pote e sacuda! |
+| `decorar.cheio` | `decorar.cheio.mp3` | Já está cheio de enfeites! |
+| `decorar.dica_cobertura` | `decorar.dica_cobertura.mp3` | Esfregue o dedo por cima até ficar tudo coberto. |
+| `decorar.dica_enfeites` | `decorar.dica_enfeites.mp3` | Arraste os enfeites para cima do doce. Para o granulado, segure o pote e sacuda! |
 | `rechear.inicio` | `rechear.inicio.mp3` | Vamos rechear! Espalhe o recheio em toda a camada de baixo. |
 | `rechear.camada` | `rechear.camada.mp3` | Agora coloque a camada de cima, bem no meio. |
 | `rechear.longe` | `rechear.longe.mp3` | Quase! Solte a camada bem em cima do bolo. |
@@ -91,9 +91,9 @@ Total: 112 falas.
 | `elogio.1` | `elogio.1.mp3` | Muito bem! |
 | `elogio.2` | `elogio.2.mp3` | Isso aí! |
 | `elogio.3` | `elogio.3.mp3` | Que capricho! |
-| `resultado` | `resultado.mp3` | Seu bolo ficou lindo! Parabéns, confeiteiro! |
+| `resultado` | `resultado.mp3` | Ficou lindo! Parabéns, confeiteiro! |
 | `estrela.medidas` | `estrela.medidas.mp3` | Medidas certinhas! Ganhou mais uma estrela. |
-| `estrela.capricho` | `estrela.capricho.mp3` | Bolo caprichado! Ganhou mais uma estrela. |
+| `estrela.capricho` | `estrela.capricho.mp3` | Que capricho! Ganhou mais uma estrela. |
 | `fase.liberada` | `fase.liberada.mp3` | Oba! Uma fase nova foi liberada! |
 | `trilha.escolher` | `trilha.escolher.mp3` | Escolha uma fase no caminho! |
 | `trilha.trancada` | `trilha.trancada.mp3` | Essa fase ainda está trancada. Termine a anterior para abrir! |
@@ -109,8 +109,8 @@ Total: 112 falas.
 | `ralar.inicio` | `ralar.inicio.mp3` | Esfregue o pedaço para cima e para baixo no ralador! |
 | `ralar.dica` | `ralar.dica.mp3` | Arraste o pedaço até o ralador e esfregue para cima e para baixo! |
 | `ralar.ok` | `ralar.ok.mp3` | Ralado! Muito bem! |
-| `polvilhar.inicio` | `polvilhar.inicio.mp3` | Agora pegue o polvilhador e sacuda em cima do bolo! |
-| `polvilhar.dica` | `polvilhar.dica.mp3` | Segure o polvilhador em cima do bolo e sacuda de um lado para o outro! |
+| `polvilhar.inicio` | `polvilhar.inicio.mp3` | Agora pegue o polvilhador e sacuda por cima! |
+| `polvilhar.dica` | `polvilhar.dica.mp3` | Segure o polvilhador por cima e sacuda de um lado para o outro! |
 | `polvilhar.ok` | `polvilhar.ok.mp3` | Que lindo! Agora coloque os enfeites. |
 | `despejar.fuba` | `despejar.fuba.mp3` | Agora o fubá! Leve até a tigela e incline. |
 | `despejar.mel` | `despejar.mel.mp3` | Agora o mel! Leve até a tigela e incline. |
@@ -124,3 +124,20 @@ Total: 112 falas.
 | `rejeicao.suco_limao` | `rejeicao.suco_limao.mp3` | Ainda não! Agora é a vez do suco de limão. |
 | `rejeicao.maca` | `rejeicao.maca.mp3` | Ainda não! Agora é a vez da maçã. |
 | `rejeicao.chocolate_barra` | `rejeicao.chocolate_barra.mp3` | Ainda não! Agora é a vez do chocolate. |
+| `abrir.inicio` | `abrir.inicio.mp3` | Leve a bola de massa até a forma! |
+| `abrir.dica_bola` | `abrir.dica_bola.mp3` | Arraste a bola de massa da tigela até a forma. |
+| `abrir.rolo` | `abrir.rolo.mp3` | Agora pegue o rolo e passe para a frente e para trás! |
+| `abrir.dica` | `abrir.dica.mp3` | Passe o rolo por cima da massa, para a frente e para trás. |
+| `abrir.ok` | `abrir.ok.mp3` | Massa aberta! Ficou lisinha. |
+| `cortar.inicio` | `cortar.inicio.mp3` | Pegue o cortador e solte em cima da massa para cortar um biscoito! |
+| `cortar.dica` | `cortar.dica.mp3` | Arraste o cortador até um lugar da massa sem biscoito e solte. |
+| `cortar.fora` | `cortar.fora.mp3` | Ops! O cortador precisa ficar em cima da massa. |
+| `cortar.encostado` | `cortar.encostado.mp3` | Aí já tem biscoito! Procure um lugar livre. |
+| `cortar.ok` | `cortar.ok.mp3` | Biscoitos cortados! Agora é hora do forno. |
+| `fatiar.inicio` | `fatiar.inicio.mp3` | Hora de cortar as fatias! Passe a faca de um lado até o outro, pelo meio. |
+| `fatiar.dica` | `fatiar.dica.mp3` | Arraste a faca atravessando tudo, de uma ponta até a outra, pelo meio. |
+| `fatiar.curto` | `fatiar.curto.mp3` | Quase! Vá de uma ponta até a outra. |
+| `fatiar.meio` | `fatiar.meio.mp3` | Passe a faca bem pelo meio! |
+| `fatiar.repetido` | `fatiar.repetido.mp3` | Esse corte já foi feito. Corte em outra direção! |
+| `fatiar.ok` | `fatiar.ok.mp3` | Fatias prontinhas para dividir! |
+| `trilha.mundo3` | `trilha.mundo3.mp3` | Um mundo novo! Bem-vindo à Padaria da Praça! |

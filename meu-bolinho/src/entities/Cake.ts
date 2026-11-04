@@ -11,7 +11,9 @@
  */
 import Phaser from 'phaser';
 import { BOLO } from '../config/layout';
-import type { Retangulo } from '../systems/coverage/CoverageGrid';
+import type { Mascara, Retangulo } from '../systems/coverage/CoverageGrid';
+import { caixaDoProduto, dentroDoProduto, geometriaDoProduto, type GeometriaProduto } from '../systems/produto/Produto';
+import type { Produto } from '../systems/recipe/recipeTypes';
 import type { Decoracao } from '../systems/decoration/Decoracao';
 import { distancia, type Ponto } from '../utils/math';
 import { clarear, corAssada, escurecer } from '../utils/desenho';
@@ -34,6 +36,10 @@ export const DESCANSO_CAMADA = { x: 1060, y: 470, escala: 0.5 } as const;
 export interface OpcoesBolo {
   camadas: boolean;
   corRecheio?: number;
+  /** Padrão: bolo. Torta, brownie, cupcakes e biscoitos têm outro desenho e outro topo. */
+  produto?: Produto;
+  /** Biscoitos: onde a criança cortou (normalizado no disco da massa). */
+  biscoitos?: readonly Ponto[];
 }
 
 export class CakeView {
@@ -54,6 +60,9 @@ export class CakeView {
   private faixaRecheio: Phaser.GameObjects.Image | null = null;
   /** Centro do topo do bolo (muda se a camada de cima foi assentada fora do centro). */
   private topoAtual: Ponto = { x: BOLO.cx, y: BOLO.topoY };
+  /** Peças do topo (bolo: uma elipse; cupcakes: seis; biscoitos: onde foram cortados). */
+  readonly geometria: GeometriaProduto;
+  private cortes: Phaser.GameObjects.Graphics | null = null;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -66,8 +75,14 @@ export class CakeView {
     this.pincelGlace = scene.make.image({ key: 'pincel', add: false }).setTint(0xffffff);
     this.pincelPolvilho = scene.make.image({ key: 'pincel', add: false }).setTint(0xffffff);
     this.pincelRecheio = scene.make.image({ key: 'pincel', add: false }).setTint(opcoes.corRecheio ?? 0xe57373);
+    const produto = opcoes.produto ?? 'bolo';
+    this.geometria = geometriaDoProduto(produto, { x: BOLO.cx, y: BOLO.topoY }, BOLO, opcoes.biscoitos ?? []);
 
-    if (opcoes.camadas) {
+    if (produto !== 'bolo') {
+      this.topoAtual = this.geometria.centro;
+      const chave = `produto:${produto}:${this.corMassa}:${(opcoes.biscoitos ?? []).map((b) => `${b.x.toFixed(2)},${b.y.toFixed(2)}`).join(';')}`;
+      imagemVetorial(scene, chave, CAIXA_BOLO, (g) => this.desenharProduto(g)).setDepth(10);
+    } else if (opcoes.camadas) {
       imagemVetorial(scene, `bolo:inferior:${this.corMassa}`, CAIXA_BOLO, (g) => this.desenharBase(g, Y_INFERIOR)).setDepth(10);
       const caixaCamada: Caixa = { x: -BOLO.rx - 4, y: -BOLO.ry - 4, largura: BOLO.rx * 2 + 8, altura: BOLO.ry * 2 + MEIA + 8 };
       this.camadaSuperior = imagemVetorial(scene, `bolo:superior:${this.corMassa}`, caixaCamada, (g) => this.desenharCamada(g))
@@ -89,7 +104,12 @@ export class CakeView {
     return this.topoAtual;
   }
 
+  get produto(): Produto {
+    return this.geometria.produto;
+  }
+
   get areaTopo(): Retangulo {
+    if (this.produto !== 'bolo') return caixaDoProduto(this.geometria);
     return { x: this.topoAtual.x - BOLO.rx, y: this.topoAtual.y - BOLO.ry, largura: BOLO.rx * 2, altura: BOLO.ry * 2 };
   }
 
@@ -110,11 +130,44 @@ export class CakeView {
 
   /** Ponto (mundo) dentro do topo do bolo? `margem` < 1 encolhe a elipse. */
   noTopo(p: Ponto, margem = 1): boolean {
+    if (this.produto !== 'bolo') return dentroDoProduto(this.geometria, p.x, p.y, margem);
     return ((p.x - this.topoAtual.x) / (BOLO.rx * margem)) ** 2 + ((p.y - this.topoAtual.y) / (BOLO.ry * margem)) ** 2 <= 1;
   }
 
   noRecheio(p: Ponto, margem = 1): boolean {
     return ((p.x - BOLO.cx) / (BOLO.rx * margem)) ** 2 + ((p.y - Y_INFERIOR) / (BOLO.ry * margem)) ** 2 <= 1;
+  }
+
+  /** Máscara do topo para as grades de cobertura (`margem` < 1 encolhe). */
+  mascaraTopo(margem = 1): Mascara {
+    return (x, y) => this.noTopo({ x, y }, margem);
+  }
+
+  /** Ponto (mundo) → coordenadas normalizadas pela elipse que envolve o doce (fatiar). */
+  normalizar(p: Ponto): Ponto {
+    const g = this.geometria;
+    return { x: (p.x - this.topoAtual.x) / g.rx, y: (p.y - this.topoAtual.y) / g.ry };
+  }
+
+  /** Risca um corte de faca de borda a borda (só visual), passando pelo traço da criança. */
+  desenharCorte(a: Ponto, b: Ponto): void {
+    const g = (this.cortes ??= this.scene.add.graphics().setDepth(18));
+    const geo = this.geometria;
+    // estende a linha até sair do doce (o corte é de borda a borda, como o da faca)
+    const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+    const ux = dx / L, uy = dy / L;
+    const dentro = (t: number) => this.noTopo({ x: a.x + ux * t, y: a.y + uy * t }, 1.02);
+    let t0 = 0, t1 = L;
+    while (t0 > -2 * geo.rx && dentro(t0 - 4)) t0 -= 4;
+    while (t1 < 3 * geo.rx && dentro(t1 + 4)) t1 += 4;
+    const p0 = { x: a.x + ux * t0, y: a.y + uy * t0 }, p1 = { x: a.x + ux * t1, y: a.y + uy * t1 };
+    g.lineStyle(7, escurecer(this.corMassa, 0.45), 0.9);
+    g.lineBetween(p0.x, p0.y, p1.x, p1.y);
+    g.lineStyle(2, 0xffffff, 0.6);
+    g.lineBetween(p0.x, p0.y - 3, p1.x, p1.y - 3);
+    // a lateral também mostra o corte
+    g.lineStyle(5, escurecer(this.corMassa, 0.5), 0.8);
+    for (const p of [p0, p1]) if (p.y > this.topoAtual.y) g.lineBetween(p.x, p.y, p.x, p.y + geo.lateral);
   }
 
   /** Coordenadas relativas ao centro do topo (as da Decoracao). */
@@ -134,6 +187,75 @@ export class CakeView {
     g.fillEllipse(BOLO.cx, yBase, BOLO.rx * 2, BOLO.ry * 2);
     g.fillRect(BOLO.cx - BOLO.rx, yTopo, BOLO.rx * 2, yBase - yTopo);
     this.desenharMiolo(g, BOLO.cx, yTopo);
+  }
+
+  /** Torta, brownie, cupcakes, biscoitos: prato + peças com lateral. */
+  private desenharProduto(g: Phaser.GameObjects.Graphics): void {
+    const geo = this.geometria;
+    const yBase = BOLO.topoY + BOLO.alturaLateral;
+    g.fillStyle(0xdfe7ee, 1);
+    g.fillEllipse(BOLO.cx, yBase + 14, BOLO.pratoRx * 2, BOLO.pratoRy * 2);
+    g.lineStyle(4, 0x8aa1b4, 1);
+    g.strokeEllipse(BOLO.cx, yBase + 14, BOLO.pratoRx * 2, BOLO.pratoRy * 2);
+    const cor = this.corMassa;
+    const lado = escurecer(cor, 0.18);
+    const h = geo.lateral;
+    // peças de trás para a frente (as de baixo na tela por cima)
+    const pecas = [...geo.pecas].sort((a, b) => a.cy - b.cy);
+    for (const p of pecas) {
+      switch (geo.produto) {
+        case 'torta': {
+          // massa (casca) com borda ondulada; o topo é o recheio claro, pronto para a cobertura
+          g.fillStyle(lado, 1);
+          g.fillEllipse(p.cx, p.cy + h, p.rx * 2 + 16, p.ry * 2 + 10);
+          g.fillRect(p.cx - p.rx - 8, p.cy, p.rx * 2 + 16, h);
+          g.fillStyle(cor, 1);
+          for (let i = 0; i < 28; i++) {
+            const a = (i / 28) * Math.PI * 2;
+            g.fillCircle(p.cx + Math.cos(a) * (p.rx + 6), p.cy + Math.sin(a) * (p.ry + 4), 13);
+          }
+          g.fillStyle(clarear(cor, 0.35), 1);
+          g.fillEllipse(p.cx, p.cy, p.rx * 2 - 6, p.ry * 2 - 4);
+          break;
+        }
+        case 'brownie': {
+          g.fillStyle(lado, 1);
+          g.fillRect(p.cx - p.rx, p.cy + p.ry, p.rx * 2, h);
+          g.fillStyle(escurecer(cor, 0.3), 1);
+          g.fillRect(p.cx + p.rx - 2, p.cy - p.ry, 4, p.ry * 2 + h);
+          g.fillStyle(cor, 1);
+          g.fillRoundedRect(p.cx - p.rx, p.cy - p.ry, p.rx * 2, p.ry * 2, 10);
+          g.fillStyle(clarear(cor, 0.18), 1);
+          for (let i = 0; i < 26; i++) g.fillEllipse(p.cx - p.rx + 20 + ((i * 73) % (p.rx * 2 - 40)), p.cy - p.ry + 14 + ((i * 37) % (p.ry * 2 - 28)), 18, 6);
+          break;
+        }
+        case 'cupcake': {
+          // forminha de papel (trapézio listrado) + "cogumelo" de massa assada
+          const forminha = 0xf4a6c0;
+          g.fillStyle(forminha, 1);
+          g.fillPoints([{ x: p.cx - p.rx, y: p.cy + 6 }, { x: p.cx + p.rx, y: p.cy + 6 }, { x: p.cx + p.rx * 0.72, y: p.cy + h }, { x: p.cx - p.rx * 0.72, y: p.cy + h }], true);
+          g.lineStyle(2, escurecer(forminha, 0.2), 1);
+          for (let k = -4; k <= 4; k++) g.lineBetween(p.cx + k * p.rx * 0.22, p.cy + 8, p.cx + k * p.rx * 0.16, p.cy + h - 2);
+          g.fillStyle(lado, 1);
+          g.fillEllipse(p.cx, p.cy + 6, p.rx * 2 + 8, p.ry * 2 + 10);
+          g.fillStyle(cor, 1);
+          g.fillEllipse(p.cx, p.cy, p.rx * 2, p.ry * 2);
+          break;
+        }
+        case 'biscoito': {
+          g.fillStyle(lado, 1);
+          g.fillEllipse(p.cx, p.cy + h, p.rx * 2, p.ry * 2);
+          g.fillRect(p.cx - p.rx, p.cy, p.rx * 2, h);
+          g.fillStyle(cor, 1);
+          g.fillEllipse(p.cx, p.cy, p.rx * 2, p.ry * 2);
+          g.fillStyle(escurecer(cor, 0.12), 1);
+          for (let i = 0; i < 5; i++) g.fillCircle(p.cx + Math.cos(i * 1.3) * p.rx * 0.5, p.cy + Math.sin(i * 1.3) * p.ry * 0.5, 2.5);
+          break;
+        }
+        case 'bolo':
+          break;
+      }
+    }
   }
 
   /** Camada de cima (local: topo em (0,0)). */
@@ -162,7 +284,13 @@ export class CakeView {
     const rt = this.scene.add.renderTexture(area.x, area.y, Math.ceil(area.largura), Math.ceil(area.altura)).setOrigin(0, 0).setDepth(profundidade);
     const m = this.scene.make.graphics({}, false);
     m.fillStyle(0xffffff, 1);
-    m.fillEllipse(area.x + area.largura / 2, area.y + area.altura / 2, area.largura, area.altura);
+    if (this.produto !== 'bolo' && profundidade >= 14) {
+      // topo de torta/brownie/cupcakes/biscoitos: a máscara é a união das peças
+      for (const p of this.geometria.pecas) {
+        if (p.tipo === 'elipse') m.fillEllipse(p.cx, p.cy, p.rx * 2, p.ry * 2);
+        else m.fillRoundedRect(p.cx - p.rx, p.cy - p.ry, p.rx * 2, p.ry * 2, 10);
+      }
+    } else m.fillEllipse(area.x + area.largura / 2, area.y + area.altura / 2, area.largura, area.altura);
     rt.setMask(m.createGeometryMask());
     this.mascaras.push(m);
     return rt;

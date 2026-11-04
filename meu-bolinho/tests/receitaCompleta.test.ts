@@ -23,6 +23,9 @@ import { BeatStep } from '../src/systems/steps/BeatStep';
 import { FillLayerStep } from '../src/systems/steps/FillLayerStep';
 import { GrateStep } from '../src/systems/steps/GrateStep';
 import { SiftStep } from '../src/systems/steps/SiftStep';
+import { RollStep } from '../src/systems/steps/RollStep';
+import { CutStep } from '../src/systems/steps/CutStep';
+import { SliceStep } from '../src/systems/steps/SliceStep';
 import { gerarDesenho, reamostrar } from '../src/systems/steps/TraceStep';
 import { circulo } from './helpers';
 
@@ -160,6 +163,40 @@ function jogar(dificuldade: Dificuldade, rng: () => number, bruto: unknown = jso
       r.inicioDoGesto();
       for (let i = 0; i < 500 && !c.metaAtingida(); i++) sessao.tigela.adicionar(c.item, passar(2, true));
       r.fimDoGesto();
+    } else if (c instanceof RollStep) {
+      // rolo antes de colocar a massa não abre; depois, passadas amplas abrem
+      const rolar = (n: number) => { for (let i = 0; i < n; i++) for (let k = 1; k <= 6; k++) c.amostra(0, (i % 2 === 0 ? k : 6 - k) * 20, (t += 40), true); };
+      gestoIncompleto(() => { rolar(6); expect(c.passadas).toBe(0); });
+      gestoIncompleto(() => expect(c.colocarMassa()).toBe(true));
+      gestoIncompleto(() => rolar(2));
+      r.inicioDoGesto();
+      for (let i = 0; i < 200 && !c.metaAtingida(); i++) rolar(2);
+      r.fimDoGesto();
+    } else if (c instanceof CutStep) {
+      gestoIncompleto(() => expect(c.cortar(2, 0)).toBe('fora'));
+      gestoIncompleto(() => expect(c.cortar(0, 0)).toBe('cortou'));
+      gestoIncompleto(() => expect(c.cortar(0.05, 0)).toBe('encostado'));
+      const lugares = Array.from({ length: 40 }, (_, k) => ({ x: Math.cos(k * 2.4) * Math.sqrt(k / 40) * 0.75, y: Math.sin(k * 2.4) * Math.sqrt(k / 40) * 0.75 }));
+      for (const l of lugares) {
+        if (c.metaAtingida()) break;
+        r.inicioDoGesto();
+        c.cortar(l.x, l.y);
+        r.fimDoGesto();
+      }
+      expect(c.metaAtingida()).toBe(true);
+    } else if (c instanceof SliceStep) {
+      gestoIncompleto(() => expect(c.cortar({ x: -0.3, y: 0 }, { x: 0.3, y: 0 })).toBe('curto'));
+      gestoIncompleto(() => expect(c.cortar({ x: -1, y: 0.6 }, { x: 1, y: 0.6 })).toBe('fora_do_meio'));
+      gestoIncompleto(() => expect(c.cortar({ x: -1.1, y: 0 }, { x: 1.1, y: 0 })).toBe('cortou'));
+      gestoIncompleto(() => expect(c.cortar({ x: -1.1, y: 0.02 }, { x: 1.1, y: -0.02 })).toBe('repetido'));
+      for (let k = 1; !c.metaAtingida() && k < 6; k++) {
+        const a = (k * 60 * Math.PI) / 180;
+        r.inicioDoGesto();
+        c.cortar({ x: -Math.cos(a) * 1.1, y: -Math.sin(a) * 1.1 }, { x: Math.cos(a) * 1.1, y: Math.sin(a) * 1.1 });
+        r.fimDoGesto();
+      }
+      expect(c.metaAtingida()).toBe(true);
+      // (a etapa já concluiu no último fimDoGesto)
     } else if (c instanceof FillLayerStep) {
       c.recheio.definirSuperficie(area, () => true);
       gestoIncompleto(() => pintarTudo(c.recheio));
@@ -222,7 +259,7 @@ describe('receita completa (fofinho.json)', () => {
 
 describe('toda receita em data/recipes joga do início ao fim só com input (adicionar receita = adicionar JSON)', () => {
   const arquivos = readdirSync(dirReceitas).filter((f) => f.endsWith('.json'));
-  it('há as 16 receitas da trilha', () => expect(arquivos.length).toBeGreaterThanOrEqual(16));
+  it('há as 24 receitas da trilha', () => expect(arquivos.length).toBeGreaterThanOrEqual(24));
   for (const arq of arquivos) {
     for (const d of ['facil', 'confeiteiro'] as const) {
       it(`${arq} [${d}]`, () => {

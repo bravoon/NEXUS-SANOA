@@ -441,3 +441,26 @@ tela não aciona nada).
     numa `CoverageGrid` do topo do bolo.
 - **Testes**: `tests/perfis.test.ts`, `tests/mundo2.test.ts`, receita completa das 16 receitas
   nos dois modos e `tests/e2e/mundo2.cjs`.
+
+## 17. Produtos e Mundo 3 (Padaria da Praça)
+
+- **Produto** (`receita.produto`, padrão `bolo`): `torta`, `biscoito`, `brownie`, `cupcake`.
+  Geometria pura em `systems/produto/Produto.ts`: o topo é uma união de peças (elipses ou
+  retângulos); `dentroDoProduto` serve de máscara para cobertura, glacê, polvilho e enfeites.
+  Biscoitos: as peças são os cortes da criança (`sessao.forma.biscoitos`, normalizados no disco
+  da massa), os mesmos na forma, no forno e no prato.
+- **Visual**: `PanView(produto)` (forma de torta ondulada, assadeira lisa, forma quadrada,
+  assadeira de 6 forminhas) e `CakeView({ produto })` (`desenharProduto`, máscaras pela união das
+  peças, `desenharCorte`). A foto da galeria é tirada ao concluir a ÚLTIMA etapa (decorar ou
+  fatiar).
+- **Etapas novas** (`difficulty.json`: `passadasRolo` 8/12, `biscoitos` 6/8, `cortesFatia` 2/3):
+  - `abrir_massa` (`RollStep`): primeiro `colocarMassa()` (a criança arrasta a bola da tigela até
+    a forma), depois passadas do rolo (`WhiskRecognizer` com `CONFIG_ROLO`) em cima da forma.
+  - `cortar` (`CutStep`): soltar o cortador → `cortar(nx, ny)` = `cortou | fora | encostado`.
+  - `fatiar` (`SliceStep`): traço de `a` a `b` (normalizado pela elipse do doce) conta se as duas
+    pontas passam de 0,75, a reta passa a ≤ 0,3 do centro entre elas e o ângulo difere ≥ 25° dos
+    cortes anteriores.
+- **Regras de ordem por produto** (`validarOrdem`): biscoito precisa de `cortar` antes do forno;
+  só bolo usa `desenformar` e `rechear`; os outros decoram direto do forno; `fatiar` vem depois de
+  `decorar` e não vale para biscoitos nem cupcakes; brownie e cupcake não abrem massa com rolo.
+- **Testes**: `tests/padaria.test.ts`, receita completa das 24 receitas, `tests/e2e/padaria.cjs`.

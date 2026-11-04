@@ -1,0 +1,50 @@
+{
+  "id": "torta_limao",
+  "nome": "Torta de Limão",
+  "produto": "torta",
+  "corMassa": "#E9C08A",
+  "etapas": [
+    {
+      "tipo": "quebrar_ovo",
+      "quantidade": 1
+    },
+    {
+      "tipo": "despejar",
+      "item": "farinha",
+      "alvo": "tigela",
+      "quantidade": 1.0
+    },
+    {
+      "tipo": "despejar",
+      "item": "manteiga",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "despejar",
+      "item": "suco_limao",
+      "alvo": "tigela",
+      "quantidade": 0.25,
+      "apenas": "confeiteiro"
+    },
+    {
+      "tipo": "mexer"
+    },
+    {
+      "tipo": "abrir_massa"
+    },
+    {
+      "tipo": "forno",
+      "tempoSegundos": 20
+    },
+    {
+      "tipo": "decorar",
+      "corCobertura": "#F9E79F",
+      "glace": "onda",
+      "corGlace": "#FFFFFF"
+    },
+    {
+      "tipo": "fatiar"
+    }
+  ]
+}

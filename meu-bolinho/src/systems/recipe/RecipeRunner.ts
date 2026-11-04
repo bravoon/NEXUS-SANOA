@@ -16,6 +16,9 @@ import { BeatStep } from '../steps/BeatStep';
 import { FillLayerStep } from '../steps/FillLayerStep';
 import { GrateStep } from '../steps/GrateStep';
 import { SiftStep } from '../steps/SiftStep';
+import { RollStep } from '../steps/RollStep';
+import { CutStep } from '../steps/CutStep';
+import { SliceStep } from '../steps/SliceStep';
 import {
   estadoInicial,
   transicao,
@@ -37,6 +40,9 @@ export type ControladorEtapa =
   | FillLayerStep
   | SiftStep
   | GrateStep
+  | RollStep
+  | CutStep
+  | SliceStep
   | DecorStep;
 
 /** Estado compartilhado de que alguns controladores precisam ao serem criados. */
@@ -76,6 +82,12 @@ export function criarControlador(etapa: EtapaResolvida, ctx: ContextoEtapas): Co
       return new SiftStep(etapa.item, etapa.quantidade, etapa.sacudidas);
     case 'ralar':
       return new GrateStep(etapa.item, etapa.quantidade, etapa.raladas);
+    case 'abrir_massa':
+      return new RollStep(etapa.passadas);
+    case 'cortar':
+      return new CutStep(etapa.biscoitos);
+    case 'fatiar':
+      return new SliceStep(etapa.cortes);
     case 'decorar':
       return new DecorStep(etapa.cobertura, Number.parseInt(etapa.corCobertura.slice(1), 16), etapa.glace, etapa.polvilho);
   }

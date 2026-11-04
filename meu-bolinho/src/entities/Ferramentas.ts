@@ -5,7 +5,7 @@ import { CONFIG_ARRASTAR } from '../config/gameplay';
 import { ALVO_TOQUE_MIN } from '../config/layout';
 import { amortecer, type Ponto } from '../utils/math';
 
-export type TipoFerramenta = 'luva' | 'prato' | 'manteiga' | 'espatula' | 'batedor' | 'saco' | 'camada' | 'peneira' | 'ralador' | 'polvilhador';
+export type TipoFerramenta = 'luva' | 'prato' | 'manteiga' | 'espatula' | 'batedor' | 'saco' | 'camada' | 'peneira' | 'ralador' | 'polvilhador' | 'rolo' | 'cortador' | 'faca';
 
 export class Ferramenta extends Phaser.GameObjects.Container {
   readonly g: Phaser.GameObjects.Graphics;
@@ -118,6 +118,36 @@ export class Ferramenta extends Phaser.GameObjects.Container {
         g.fillRoundedRect(-30, 16, 60, 18, 6);
         g.fillStyle(0x5d6771, 1);
         for (const dx of [-14, 0, 14]) g.fillCircle(dx, 26, 3);
+        break;
+      case 'rolo':
+        // rolo de massa deitado: cilindro + cabos
+        g.fillStyle(0x8a6440, 1);
+        g.fillRoundedRect(-112, -9, 30, 18, 8);
+        g.fillRoundedRect(82, -9, 30, 18, 8);
+        g.fillStyle(0xd9a05b, 1);
+        g.fillRoundedRect(-84, -22, 168, 44, 20);
+        g.fillStyle(0xe8bf80, 1);
+        g.fillRoundedRect(-80, -18, 160, 12, 6);
+        g.lineStyle(3, 0x9c6438, 1);
+        g.strokeRoundedRect(-84, -22, 168, 44, 20);
+        break;
+      case 'cortador':
+        // cortador redondo (o círculo é o tamanho do biscoito) com alça
+        g.lineStyle(8, 0x8a96a3, 1);
+        g.strokeEllipse(0, 0, 64, 40);
+        g.lineStyle(3, 0x5d6771, 1);
+        g.strokeEllipse(0, 0, 72, 46);
+        g.fillStyle(0xd55e00, 1);
+        g.fillRoundedRect(-10, -52, 20, 36, 8);
+        break;
+      case 'faca':
+        // faca de bolo: a ponta da lâmina em (0,0), cabo para cima-direita
+        g.fillStyle(0xd7dde2, 1);
+        g.fillTriangle(0, 0, 18, -86, 36, -80);
+        g.lineStyle(2, 0x8a96a3, 1);
+        g.strokeTriangle(0, 0, 18, -86, 36, -80);
+        g.fillStyle(0x8a6440, 1);
+        g.fillRoundedRect(16, -112, 22, 32, 8);
         break;
       case 'espatula':
         g.fillStyle(0x8a6440, 1);

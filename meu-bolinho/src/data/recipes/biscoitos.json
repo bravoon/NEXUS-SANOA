@@ -1,0 +1,46 @@
+{
+  "id": "biscoitos",
+  "nome": "Biscoitos Amanteigados",
+  "produto": "biscoito",
+  "corMassa": "#F3D9A4",
+  "etapas": [
+    {
+      "tipo": "quebrar_ovo",
+      "quantidade": 1
+    },
+    {
+      "tipo": "despejar",
+      "item": "acucar",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "despejar",
+      "item": "manteiga",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "peneirar",
+      "item": "farinha",
+      "quantidade": 1.0
+    },
+    {
+      "tipo": "mexer"
+    },
+    {
+      "tipo": "abrir_massa"
+    },
+    {
+      "tipo": "cortar"
+    },
+    {
+      "tipo": "forno",
+      "tempoSegundos": 15
+    },
+    {
+      "tipo": "decorar",
+      "corCobertura": "#FFFFFF"
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import {
   COR_POLVILHO,
   DESENHOS_GLACE,
   DIFICULDADES,
+  PRODUTOS,
   TIPOS_POLVILHO,
   TIPOS_ETAPA,
   type DesenhoGlace,
@@ -22,6 +23,7 @@ import {
   type ReceitaResolvida,
   type TipoEtapa,
   type TipoPolvilho,
+  type Produto,
 } from './recipeTypes';
 
 /** Ingrediente implícito da etapa de ovos (conta para o limite de ingredientes). */
@@ -48,6 +50,9 @@ export function validarReceita(bruto: unknown): ReceitaJson {
   if (typeof id !== 'string' || id.length === 0) throw new ErroReceita('?', '"id" ausente');
   if (typeof bruto['nome'] !== 'string') throw new ErroReceita(id, '"nome" ausente');
   if (!ehCor(bruto['corMassa'])) throw new ErroReceita(id, '"corMassa" deve ser #RRGGBB');
+  if (bruto['produto'] !== undefined && !PRODUTOS.includes(bruto['produto'] as Produto)) {
+    throw new ErroReceita(id, `"produto" deve ser um de ${PRODUTOS.join(', ')}`);
+  }
   const etapas = bruto['etapas'];
   if (!Array.isArray(etapas) || etapas.length === 0) throw new ErroReceita(id, '"etapas" vazio');
 
@@ -60,7 +65,7 @@ export function validarReceita(bruto: unknown): ReceitaJson {
     if (e['apenas'] !== undefined && !DIFICULDADES.includes(e['apenas'] as Dificuldade)) {
       throw new ErroReceita(id, `etapa ${i}: "apenas" inválido`);
     }
-    for (const campo of ['quantidade', 'tolerancia', 'voltas', 'cobertura', 'tempoSegundos', 'restanteMax', 'batidas', 'sacudidas', 'raladas'] as const) {
+    for (const campo of ['quantidade', 'tolerancia', 'voltas', 'cobertura', 'tempoSegundos', 'restanteMax', 'batidas', 'sacudidas', 'raladas', 'passadas', 'biscoitos', 'cortes'] as const) {
       const v = e[campo];
       if (v !== undefined && (typeof v !== 'number' || !(v > 0))) {
         throw new ErroReceita(id, `etapa ${i}: "${campo}" deve ser número > 0`);
@@ -111,7 +116,7 @@ export function validarReceita(bruto: unknown): ReceitaJson {
 /** Etapas que põem algo na tigela. */
 const COM_CONTEUDO = ['despejar', 'quebrar_ovo', 'peneirar', 'ralar'];
 
-function validarOrdem(id: string, etapas: EtapaResolvida[]): void {
+function validarOrdem(id: string, etapas: EtapaResolvida[], produto: Produto): void {
   const vistos = new Set<string>();
   const exigir = (i: number, tipo: string, algum: string[], motivo: string) => {
     if (!algum.some((t) => vistos.has(t))) throw new ErroReceita(id, `etapa ${i} (${tipo}): ${motivo}`);
@@ -123,14 +128,31 @@ function validarOrdem(id: string, etapas: EtapaResolvida[]): void {
         exigir(i, e.tipo, COM_CONTEUDO, 'a tigela ainda está vazia');
         break;
       case 'forno':
-        exigir(i, e.tipo, ['despejar_massa'], 'não há massa na forma');
+        exigir(i, e.tipo, ['despejar_massa', 'abrir_massa'], 'não há massa na forma');
+        if (produto === 'biscoito') exigir(i, e.tipo, ['cortar'], 'os biscoitos ainda não foram cortados');
         break;
-      case 'desenformar':
-        exigir(i, e.tipo, ['forno'], 'o bolo ainda não foi assado');
+      case 'abrir_massa':
+        exigir(i, e.tipo, ['mexer'], 'a massa ainda não foi misturada');
+        if (produto === 'brownie' || produto === 'cupcake') throw new ErroReceita(id, `etapa ${i} (abrir_massa): ${produto} não tem massa de abrir`);
+        break;
+      case 'cortar':
+        exigir(i, e.tipo, ['abrir_massa'], 'a massa ainda não foi aberta');
+        if (produto !== 'biscoito') throw new ErroReceita(id, `etapa ${i} (cortar): só biscoitos são cortados com cortador`);
+        break;
+      case 'fatiar':
+        exigir(i, e.tipo, ['decorar'], 'fatie depois de decorar');
+        if (produto === 'biscoito' || produto === 'cupcake') throw new ErroReceita(id, `etapa ${i} (fatiar): ${produto} não se fatia`);
         break;
       case 'decorar':
+        exigir(i, e.tipo, produto === 'bolo' ? ['desenformar'] : ['forno'], produto === 'bolo' ? 'o bolo ainda está na forma' : 'ainda não foi ao forno');
+        break;
+      case 'desenformar':
+        if (produto !== 'bolo') throw new ErroReceita(id, `etapa ${i} (desenformar): só o bolo é desenformado virando a forma`);
+        exigir(i, e.tipo, ['forno'], 'o bolo ainda não foi assado');
+        break;
       case 'rechear':
         exigir(i, e.tipo, ['desenformar'], 'o bolo ainda está na forma');
+        if (produto !== 'bolo') throw new ErroReceita(id, `etapa ${i} (rechear): só bolos são recheados em camadas`);
         break;
       case 'bater':
         exigir(i, e.tipo, COM_CONTEUDO, 'a tigela ainda está vazia');
@@ -192,6 +214,12 @@ export function resolverReceita(
           ? { tipo: 'peneirar', item, quantidade, sacudidas: e.sacudidas ?? padrao.sacudidas }
           : { tipo: 'ralar', item, quantidade, raladas: e.raladas ?? padrao.raladas };
       }
+      case 'abrir_massa':
+        return { tipo: 'abrir_massa', passadas: e.passadas ?? padrao.passadasRolo };
+      case 'cortar':
+        return { tipo: 'cortar', biscoitos: e.biscoitos ?? padrao.biscoitos };
+      case 'fatiar':
+        return { tipo: 'fatiar', cortes: e.cortes ?? padrao.cortesFatia };
       case 'decorar':
         return {
           tipo: 'decorar',
@@ -207,7 +235,8 @@ export function resolverReceita(
     }
   });
 
-  validarOrdem(receita.id, etapas);
+  const produto = receita.produto ?? 'bolo';
+  validarOrdem(receita.id, etapas, produto);
 
   const recipientes = [...new Set(etapas.flatMap((e) => (e.tipo === 'despejar' ? [e.item] : [])))];
   const unicos = [
@@ -227,6 +256,7 @@ export function resolverReceita(
   return {
     id: receita.id,
     nome: receita.nome,
+    produto,
     corMassa: receita.corMassa,
     dificuldade,
     etapas,

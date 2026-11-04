@@ -19,7 +19,10 @@ export type TipoEtapa =
   | 'rechear'
   | 'peneirar'
   | 'ralar'
-  | 'decorar';
+  | 'abrir_massa'
+  | 'cortar'
+  | 'decorar'
+  | 'fatiar';
 export const TIPOS_ETAPA: readonly TipoEtapa[] = [
   'despejar',
   'quebrar_ovo',
@@ -32,8 +35,15 @@ export const TIPOS_ETAPA: readonly TipoEtapa[] = [
   'rechear',
   'peneirar',
   'ralar',
+  'abrir_massa',
+  'cortar',
   'decorar',
+  'fatiar',
 ];
+
+/** O que a receita produz (muda a forma, o forno e o prato; as etapas vêm do JSON). */
+export type Produto = 'bolo' | 'torta' | 'biscoito' | 'brownie' | 'cupcake';
+export const PRODUTOS: readonly Produto[] = ['bolo', 'torta', 'biscoito', 'brownie', 'cupcake'];
 
 /** Desenhos para escrever com glacê. */
 export type DesenhoGlace = 'coracao' | 'estrela' | 'circulo' | 'onda';
@@ -62,6 +72,12 @@ export interface ParametrosDificuldade {
   raladas: number;
   /** Fração do topo do bolo que precisa ser polvilhada (decorar com polvilho). */
   polvilho: number;
+  /** Passadas do rolo para abrir a massa (abrir_massa). */
+  passadasRolo: number;
+  /** Biscoitos a cortar (cortar). */
+  biscoitos: number;
+  /** Cortes de faca (fatiar): 2 cortes = 4 fatias. */
+  cortesFatia: number;
 }
 
 /** Etapa como escrita no JSON (campos de dificuldade são opcionais e sobrescrevem o padrão). */
@@ -94,12 +110,20 @@ export interface EtapaJson {
   raladas?: number;
   /** Polvilhar por cima no fim (decorar). */
   polvilhar?: string;
+  /** Passadas do rolo (abrir_massa). */
+  passadas?: number;
+  /** Biscoitos (cortar). */
+  biscoitos?: number;
+  /** Cortes (fatiar). */
+  cortes?: number;
   apenas?: Dificuldade;
 }
 
 export interface ReceitaJson {
   id: string;
   nome: string;
+  /** Padrão: "bolo". */
+  produto?: Produto;
   corMassa: string;
   etapas: EtapaJson[];
 }
@@ -176,6 +200,21 @@ export interface EtapaRalar {
   raladas: number;
 }
 
+export interface EtapaAbrirMassa {
+  tipo: 'abrir_massa';
+  passadas: number;
+}
+
+export interface EtapaCortar {
+  tipo: 'cortar';
+  biscoitos: number;
+}
+
+export interface EtapaFatiar {
+  tipo: 'fatiar';
+  cortes: number;
+}
+
 export interface PolvilhoResolvido {
   tipo: TipoPolvilho;
   cor: string;
@@ -211,11 +250,15 @@ export type EtapaResolvida =
   | EtapaRechear
   | EtapaPeneirar
   | EtapaRalar
+  | EtapaAbrirMassa
+  | EtapaCortar
+  | EtapaFatiar
   | EtapaDecorar;
 
 export interface ReceitaResolvida {
   id: string;
   nome: string;
+  produto: Produto;
   corMassa: string;
   dificuldade: Dificuldade;
   etapas: EtapaResolvida[];

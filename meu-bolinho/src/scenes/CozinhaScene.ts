@@ -33,7 +33,6 @@ import { PanView } from '../entities/Pan';
 import { PourContainer } from '../entities/PourContainer';
 import { ProgressBar } from '../entities/ProgressBar';
 import { Spoon } from '../entities/Spoon';
-import { mascaraElipse } from '../systems/coverage/CoverageGrid';
 import { bicoSobreBoca, posicaoBico, type BocaAlvo } from '../systems/fill/pourFlow';
 import type { AmostraPonteiro } from '../systems/gesture/GestureSystem';
 import { TiltRecognizer } from '../systems/gesture/recognizers/TiltRecognizer';
@@ -46,6 +45,8 @@ import { PourOutStep } from '../systems/steps/PourOutStep';
 import { BeatStep } from '../systems/steps/BeatStep';
 import { GrateStep } from '../systems/steps/GrateStep';
 import { SiftStep } from '../systems/steps/SiftStep';
+import { RollStep } from '../systems/steps/RollStep';
+import { CutStep } from '../systems/steps/CutStep';
 import { PourStep } from '../systems/steps/PourStep';
 import { RAIO_NORMALIZADO, StirStep } from '../systems/steps/StirStep';
 import { corHex, desenharSimbolo, escurecer } from '../utils/desenho';
@@ -63,7 +64,10 @@ type Arrasto =
   | { tipo: 'tigela'; offset: Ponto }
   | { tipo: 'bater' }
   | { tipo: 'peneira' }
-  | { tipo: 'pedaco' };
+  | { tipo: 'pedaco' }
+  | { tipo: 'bola' }
+  | { tipo: 'rolo' }
+  | { tipo: 'cortador' };
 
 type Estacao = 'tigela' | 'forma';
 
@@ -80,6 +84,8 @@ const SOBRE_TIGELA = new Phaser.Geom.Rectangle(TIGELA.cx - TIGELA.raio * 0.8, TI
 const RALADOR = { x: TIGELA.cx + 10, y: TIGELA.bordaY - 120 };
 const FACE_RALADOR = new Phaser.Geom.Rectangle(RALADOR.x - 70, RALADOR.y - 105, 140, 210);
 const DESCANSO_PEDACO = { x: 1110, y: 420 };
+const DESCANSO_ROLO = { x: 1110, y: 330 };
+const DESCANSO_CORTADOR = { x: 1120, y: 400 };
 
 export class CozinhaScene extends CenaEtapas {
   private tigela!: BowlView;
@@ -103,6 +109,9 @@ export class CozinhaScene extends CenaEtapas {
   private montePeneira: Phaser.GameObjects.Graphics | null = null;
   private ralador: Ferramenta | null = null;
   private pedaco: Phaser.GameObjects.Container | null = null;
+  private bola: Phaser.GameObjects.Container | null = null;
+  private rolo: Ferramenta | null = null;
+  private cortador: Ferramenta | null = null;
 
   private readonly cores: Record<string, number> = {};
   private readonly inclinacao = new TiltRecognizer();
@@ -130,6 +139,9 @@ export class CozinhaScene extends CenaEtapas {
     this.montePeneira = null;
     this.ralador = null;
     this.pedaco = null;
+    this.bola = null;
+    this.rolo = null;
+    this.cortador = null;
     this.caixaOvos = null;
     this.arrasto = null;
     this.travaX = null;
@@ -231,7 +243,7 @@ export class CozinhaScene extends CenaEtapas {
         this.irParaEstacao('forma');
         const forma = this.forma!;
         forma.criarCamadaManteiga();
-        if (ctrl instanceof CoverageStep) ctrl.definirSuperficie(forma.areaFundo, mascaraElipse(forma.areaFundo));
+        if (ctrl instanceof CoverageStep) ctrl.definirSuperficie(forma.areaFundo, forma.mascaraFundo);
         this.manteiga = new Ferramenta(this, 'manteiga', { x: FORMA.cx + FORMA.rx + 90, y: FORMA.cy });
         this.barra.setVisible(true);
         this.falar('untar.inicio');
@@ -259,6 +271,31 @@ export class CozinhaScene extends CenaEtapas {
         this.falar('peneirar.inicio');
         break;
       }
+      case 'abrir_massa': {
+        this.irParaEstacao('forma');
+        const cor = corHex(this.sessao.receita.corMassa);
+        const b = this.add.container(TIGELA_LATERAL.x, TIGELA_LATERAL.y - 20).setDepth(45);
+        const g = this.add.graphics();
+        g.fillStyle(escurecer(cor, 0.15), 1);
+        g.fillEllipse(0, 22, 100, 40);
+        g.fillStyle(cor, 1);
+        g.fillCircle(0, 0, 46);
+        g.fillStyle(0xffffff, 0.35);
+        g.fillEllipse(-14, -16, 32, 16);
+        b.add(g);
+        this.bola = b;
+        this.tweens.add({ targets: b, scaleY: { from: 1, to: 0.94 }, duration: 400, yoyo: true, repeat: 2 });
+        this.rolo = new Ferramenta(this, 'rolo', { ...DESCANSO_ROLO }, 120).setVisible(false);
+        this.barra.setVisible(true);
+        this.falar('abrir.inicio');
+        break;
+      }
+      case 'cortar':
+        this.irParaEstacao('forma');
+        this.cortador = new Ferramenta(this, 'cortador', { ...DESCANSO_CORTADOR }, 100);
+        this.barra.setVisible(true);
+        this.falar('cortar.inicio');
+        break;
       case 'ralar': {
         this.irParaEstacao('tigela');
         this.ralador = new Ferramenta(this, 'ralador', { ...RALADOR });
@@ -342,6 +379,18 @@ export class CozinhaScene extends CenaEtapas {
         this.barra.setVisible(false);
         this.falar('peneirar.ok');
         break;
+      case 'abrir_massa':
+        this.rolo?.destroy();
+        this.rolo = null;
+        this.barra.setVisible(false);
+        this.falar('abrir.ok');
+        break;
+      case 'cortar':
+        this.cortador?.destroy();
+        this.cortador = null;
+        this.barra.setVisible(false);
+        this.falar('cortar.ok');
+        break;
       case 'ralar':
         this.ralador?.destroy();
         this.ralador = null;
@@ -395,7 +444,7 @@ export class CozinhaScene extends CenaEtapas {
       });
       if (!this.forma) {
         sombra(this, FORMA.cx, FORMA.cy + FORMA.ry + 20, FORMA.rx * 2.2, 2);
-        this.forma = new PanView(this, FORMA.cx, FORMA.cy, 1, corHex(this.sessao.receita.corMassa));
+        this.forma = new PanView(this, FORMA.cx, FORMA.cy, 1, corHex(this.sessao.receita.corMassa), 12, this.sessao.receita.produto);
         this.forma.setAlpha(0);
         this.tweens.add({ targets: this.forma.objetos, alpha: 1, duration: 500 });
       }
@@ -495,6 +544,31 @@ export class CozinhaScene extends CenaEtapas {
       return;
     }
 
+    if (etapa?.tipo === 'abrir_massa' && ctrl instanceof RollStep) {
+      if (!ctrl.massaNaForma && this.bola && distancia(a, this.bola) < 80) {
+        this.tweens.killTweensOf(this.bola);
+        this.arrasto = { tipo: 'bola' };
+        this.som('pop');
+        this.runner.inicioDoGesto();
+        return;
+      }
+      if (ctrl.massaNaForma && this.rolo && (this.rolo.contem(a) || this.forma?.contem(a))) {
+        this.tweens.killTweensOf(this.rolo);
+        this.arrasto = { tipo: 'rolo' };
+        this.runner.inicioDoGesto();
+        this.alimentarRolo(a);
+        return;
+      }
+    }
+
+    if (etapa?.tipo === 'cortar' && this.cortador?.contem(a)) {
+      this.tweens.killTweensOf(this.cortador);
+      this.arrasto = { tipo: 'cortador' };
+      this.som('pop');
+      this.runner.inicioDoGesto();
+      return;
+    }
+
     if (etapa?.tipo === 'despejar_massa' && this.tigela.contemPonto(a.x, a.y)) {
       this.tweens.killTweensOf(this.tigela);
       this.arrasto = { tipo: 'tigela', offset: { x: this.tigela.x - a.x, y: this.tigela.y - a.y } };
@@ -510,6 +584,25 @@ export class CozinhaScene extends CenaEtapas {
     if (arr?.tipo === 'bater') this.alimentarBater(a);
     if (arr?.tipo === 'peneira') this.alimentarPeneira(a);
     if (arr?.tipo === 'pedaco') this.alimentarRalar(a);
+    if (arr?.tipo === 'bola') this.bola?.setPosition(a.x, a.y);
+    if (arr?.tipo === 'rolo') this.alimentarRolo(a);
+    if (arr?.tipo === 'cortador') this.cortador?.setPosition(a.x, a.y);
+  }
+
+  /** Rolo em cima da massa: cada passada ampla abre mais um pouco. */
+  private alimentarRolo(a: AmostraPonteiro): void {
+    const ctrl = this.runner.controlador;
+    const f = this.forma;
+    if (!(ctrl instanceof RollStep) || !f || !this.rolo) return;
+    this.rolo.setPosition(a.x, a.y);
+    // a massa se espalha pela forma toda: rolar em qualquer parte da forma vale; fora dela, não
+    const n = f.normalizar(a);
+    const sobre = Math.hypot(n.x, n.y) <= 1.15;
+    if (sobre) this.somContinuo('pincel', 0.5);
+    if (ctrl.amostra(a.x, a.y, a.t, sobre) <= 0) return;
+    this.sessao.forma.aberta = ctrl.abertura;
+    this.som('tum');
+    this.runner.notificarProgresso();
   }
 
   /** O aro da peneira segue o dedo; sacudir sobre a tigela deixa cair o ingrediente. */
@@ -586,6 +679,52 @@ export class CozinhaScene extends CenaEtapas {
         this.peneira?.voltar();
         this.runner.fimDoGesto();
         break;
+      case 'bola': {
+        const ctrl = this.runner.controlador;
+        const b = this.bola;
+        if (b && this.forma?.contem(b) && ctrl instanceof RollStep && ctrl.colocarMassa()) {
+          // a massa sai da tigela e vai para a forma (a criança levou)
+          const total = this.sessao.tigela.total;
+          this.sessao.tigela.removerProporcional(total);
+          this.sessao.forma.massa = Math.max(0.5, total);
+          this.sessao.forma.aberta = 0;
+          b.destroy();
+          this.bola = null;
+          this.som('tum');
+          this.rolo?.setVisible(true);
+          this.rolo?.setAlpha(0);
+          if (this.rolo) this.tweens.add({ targets: this.rolo, alpha: 1, duration: 250 });
+          this.runner.notificarProgresso();
+          this.falar('abrir.rolo');
+        } else if (b) {
+          this.tweens.add({ targets: b, x: TIGELA_LATERAL.x, y: TIGELA_LATERAL.y - 20, duration: 300, ease: 'Back.Out' });
+        }
+        this.runner.fimDoGesto();
+        break;
+      }
+      case 'rolo':
+        this.rolo?.voltar();
+        this.runner.fimDoGesto();
+        break;
+      case 'cortador': {
+        const ctrl = this.runner.controlador;
+        const c = this.cortador;
+        if (c && this.forma && ctrl instanceof CutStep) {
+          const n = this.forma.normalizar(c);
+          const r = ctrl.cortar(n.x, n.y);
+          if (r === 'cortou') {
+            this.sessao.forma.biscoitos.push(n);
+            if (ctrl.metaAtingida()) this.sessao.forma.sobraRetirada = true;
+            this.som('pop');
+            this.tweens.add({ targets: c, scaleY: { from: 0.8, to: 1 }, duration: 120 });
+            this.runner.notificarProgresso();
+          } else if (r === 'fora') this.falar('cortar.fora', 'neutro');
+          else if (r === 'encostado') this.falar('cortar.encostado', 'neutro');
+          c.voltar();
+        }
+        this.runner.fimDoGesto();
+        break;
+      }
       case 'pedaco':
         if (this.pedaco) this.tweens.add({ targets: this.pedaco, x: DESCANSO_PEDACO.x, y: DESCANSO_PEDACO.y, duration: 300, ease: 'Back.Out' });
         this.runner.fimDoGesto();
@@ -719,7 +858,7 @@ export class CozinhaScene extends CenaEtapas {
     } else if (ctrl instanceof BeatStep) {
       this.sessao.espuma = Math.max(this.sessao.espuma, ctrl.progresso);
       this.barra.definir(ctrl.progresso, 0);
-    } else if (ctrl instanceof CoverageStep || ctrl instanceof PourOutStep || ctrl instanceof SiftStep || ctrl instanceof GrateStep) {
+    } else if (ctrl instanceof CoverageStep || ctrl instanceof PourOutStep || ctrl instanceof SiftStep || ctrl instanceof GrateStep || ctrl instanceof RollStep || ctrl instanceof CutStep) {
       this.barra.definir(ctrl.progresso, 0);
     }
     const cascas = ctrl instanceof EggStep ? ctrl.cascasNaTigela : 0;
@@ -994,6 +1133,37 @@ export class CozinhaScene extends CenaEtapas {
             }
           : { ficha, destaques: [sobre], demo: { tipo: 'sacudir', ponto: sobre }, fala: 'peneirar.dica' };
       }
+      case 'abrir_massa': {
+        if (!(ctrl instanceof RollStep)) return null;
+        if (!ctrl.massaNaForma && this.bola) {
+          const de = { x: TIGELA_LATERAL.x, y: TIGELA_LATERAL.y - 20 };
+          return {
+            ficha,
+            destaques: [de],
+            demo: { tipo: 'arrastar', de, para: { x: FORMA.cx, y: FORMA.cy }, fantasma: (g) => { g.fillStyle(corHex(this.sessao.receita.corMassa), 1); g.fillCircle(0, 0, 46); } },
+            fala: 'abrir.dica_bola',
+          };
+        }
+        const x = FORMA.cx, y = FORMA.cy;
+        return { ficha, destaques: [DESCANSO_ROLO], demo: { tipo: 'caminho', pontos: [DESCANSO_ROLO, { x, y: y - 70 }, { x, y: y + 70 }, { x, y: y - 70 }, { x, y: y + 70 }] }, fala: 'abrir.dica' };
+      }
+      case 'cortar': {
+        if (!(ctrl instanceof CutStep) || !this.forma) return null;
+        // um lugar livre de verdade para a demonstração (a mão-fantasma não corta)
+        let livre = { x: 0, y: 0 };
+        for (let k = 0; k < 60; k++) {
+          const ang = k * 2.4, r = Math.sqrt(k / 60) * 0.75;
+          const n = { x: Math.cos(ang) * r, y: Math.sin(ang) * r };
+          if (ctrl.biscoitos.every((b) => Math.hypot(b.x - n.x, b.y - n.y) >= ctrl.raio * 2)) { livre = n; break; }
+        }
+        const para = { x: this.forma.x + livre.x * FORMA.rxInterno, y: this.forma.y + livre.y * FORMA.ryInterno };
+        return {
+          ficha,
+          destaques: [DESCANSO_CORTADOR],
+          demo: { tipo: 'arrastar', de: DESCANSO_CORTADOR, para, fantasma: (g) => { g.lineStyle(8, 0x8a96a3, 1); g.strokeEllipse(0, 0, 64, 40); } },
+          fala: 'cortar.dica',
+        };
+      }
       case 'ralar': {
         const x = RALADOR.x, y0 = FACE_RALADOR.top + 30, y1 = FACE_RALADOR.bottom - 30;
         return {
@@ -1081,6 +1251,12 @@ export class CozinhaScene extends CenaEtapas {
       linhas.push(`Peneirar ${ctrl.item}: ${ctrl.sacudidas}/${ctrl.meta} sacudidas  na peneira ${ctrl.restante.toFixed(2)} xíc  sobre a tigela: ${this.peneira && SOBRE_TIGELA.contains(this.peneira.x, this.peneira.y) ? 'SIM' : 'não'}`);
       g.lineStyle(2, 0xff00ff, 1);
       g.strokeRectShape(SOBRE_TIGELA);
+    }
+    if (ctrl instanceof RollStep) {
+      linhas.push(`Abrir massa: na forma ${ctrl.massaNaForma ? 'SIM' : 'não'}  passadas ${ctrl.passadas}/${ctrl.meta}  aberta ${(ctrl.abertura * 100).toFixed(0)}%`);
+    }
+    if (ctrl instanceof CutStep) {
+      linhas.push(`Cortar: ${ctrl.biscoitos.length}/${ctrl.meta} biscoitos`);
     }
     if (ctrl instanceof GrateStep) {
       linhas.push(`Ralar ${ctrl.item}: ${ctrl.raladas}/${ctrl.meta} passadas  pedaço ${(ctrl.pedaco * 100).toFixed(0)}%`);

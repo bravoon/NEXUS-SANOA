@@ -10,7 +10,10 @@
     "toleranciaGlace": 28,
     "sacudidas": 8,
     "raladas": 10,
-    "polvilho": 0.6
+    "polvilho": 0.6,
+    "passadasRolo": 8,
+    "biscoitos": 6,
+    "cortesFatia": 2
   },
   "confeiteiro": {
     "maxIngredientes": 7,
@@ -23,6 +26,9 @@
     "toleranciaGlace": 18,
     "sacudidas": 12,
     "raladas": 16,
-    "polvilho": 0.75
+    "polvilho": 0.75,
+    "passadasRolo": 12,
+    "biscoitos": 8,
+    "cortesFatia": 3
   }
 }

@@ -17,7 +17,32 @@ npm test           # testes unitários (Node, sem navegador)
 npm run build      # typecheck + build de produção em dist/
 ```
 
-## Status: perfis de jogador e Mundo 2 (16 fases, 6 mecânicas de fase)
+## Status: Mundo 3, a Padaria da Praça (24 fases; não é só bolo)
+
+A trilha tem agora um terceiro mundo, que abre ao terminar a fase 16. As receitas dizem o que
+produzem (`"produto"` no JSON: `bolo`, `torta`, `biscoito`, `brownie`, `cupcake`) e isso muda a
+forma, o forno e o prato. Cada produto tem a própria assadeira e o próprio desenho, e a
+cobertura, o polvilho e os enfeites só valem em cima dele.
+
+| Fase | Receita | Novidade |
+|---|---|---|
+| 17 | Torta de Morango | **abrir a massa**: levar a bola de massa até a forma e passar o rolo |
+| 18 | Biscoitos Amanteigados | **cortar biscoitos**: soltar o cortador em cima da massa, um por um |
+| 19 | Brownie | **fatiar**: passar a faca de ponta a ponta, pelo meio |
+| 20 | Cupcakes de Chocolate | assadeira de 6 forminhas |
+| 21 | Torta de Limão | glacê em onda, fatiar |
+| 22 | Biscoitos de Canela | cortar e polvilhar canela |
+| 23 | Torta de Maçã | ralar maçã, polvilhar canela, fatiar |
+| 24 | Torta Gigante da Padaria | quase tudo junto |
+
+Zero auto-complete também aqui: a massa só abre com passadas do rolo em cima da forma (parado
+ou tremendo não abre); cada biscoito fica exatamente onde a criança soltou o cortador (fora da
+massa ou encostado em outro não corta), e os biscoitos que vão para o forno e para o prato são
+esses mesmos; a faca só fatia se atravessar o doce pelo meio numa direção nova, e a foto da
+galeria é tirada depois de fatiado.
+Testes: `npm test` (263 unitários) e `npm run e2e:padaria`.
+
+## Perfis de jogador e Mundo 2 (16 fases, 6 mecânicas de fase)
 
 **Quem vai jogar?** Cada criança tem o próprio perfil (um bichinho + nome opcional, digitado
 num teclado de letras grandes). Trilha, estrelas, galeria e progresso ficam separados por

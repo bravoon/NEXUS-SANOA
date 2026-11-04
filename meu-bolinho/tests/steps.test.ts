@@ -70,7 +70,7 @@ describe('StirStep', () => {
 
 describe('RecipeRunner (integração com a FSM)', () => {
   const receita: ReceitaResolvida = {
-    id: 't', nome: 't', corMassa: '#ffffff', dificuldade: 'facil', ingredientes: ['leite'], recipientes: ['leite'],
+    id: 't', nome: 't', produto: 'bolo', corMassa: '#ffffff', dificuldade: 'facil', ingredientes: ['leite'], recipientes: ['leite'],
     etapas: [
       { tipo: 'despejar', item: 'leite', alvo: 'tigela', quantidade: 1, tolerancia: 0.2, material: 'liquido' },
       { tipo: 'mexer', voltas: 1 },
@@ -137,7 +137,7 @@ describe('RecipeRunner: saída da correção', () => {
     const { EggStep } = await import('../src/systems/steps/EggStep');
     const bus = new EventBus<MapaEventos>();
     const receita: ReceitaResolvida = {
-      id: 'o', nome: 'o', corMassa: '#ffffff', dificuldade: 'confeiteiro', ingredientes: ['ovo'], recipientes: [],
+      id: 'o', nome: 'o', produto: 'bolo', corMassa: '#ffffff', dificuldade: 'confeiteiro', ingredientes: ['ovo'], recipientes: [],
       etapas: [{ tipo: 'quebrar_ovo', quantidade: 2, cascaDeOvo: true }],
     };
     const r = new RecipeRunner(receita, bus, { rng: () => 0, tigela: new BowlContents(4) });

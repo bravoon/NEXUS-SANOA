@@ -128,6 +128,32 @@ export function desenharIconeEtapa(
       if (def) desenharSimbolo(g, def.simbolo, x + 18, y + 8, 16, corHex(def.corRecipiente));
       return String(etapa.raladas);
     }
+    case 'abrir_massa':
+      // rolo de massa sobre a massa aberta
+      g.fillStyle(0xf3dcb0, 1);
+      g.fillEllipse(x, y + 10, 40, 16);
+      g.fillStyle(0xd9a05b, 1);
+      g.fillRoundedRect(x - 16, y - 12, 32, 12, 6);
+      g.fillStyle(0x8a6440, 1);
+      g.fillRect(x - 24, y - 9, 8, 6);
+      g.fillRect(x + 16, y - 9, 8, 6);
+      return String(etapa.passadas);
+    case 'cortar':
+      // cortador redondo e um biscoito
+      g.lineStyle(4, 0x8a96a3, 1);
+      g.strokeCircle(x - 6, y - 4, 12);
+      g.fillStyle(0xe3b36a, 1);
+      g.fillCircle(x + 12, y + 10, 9);
+      return String(etapa.biscoitos);
+    case 'fatiar':
+      // faca atravessando uma fatia
+      g.fillStyle(0xd9a05b, 1);
+      g.fillTriangle(x - 18, y + 14, x + 18, y + 14, x, y - 8);
+      g.fillStyle(0xb0b8c0, 1);
+      g.fillRect(x - 20, y - 16, 30, 6);
+      g.fillStyle(0x8a6440, 1);
+      g.fillRect(x + 10, y - 17, 12, 8);
+      return String(etapa.cortes * 2);
     case 'decorar':
       if (etapa.polvilho) {
         // pontinhos de polvilho caindo

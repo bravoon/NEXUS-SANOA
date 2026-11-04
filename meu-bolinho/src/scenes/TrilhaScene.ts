@@ -12,7 +12,7 @@ import { MUNDOS, ordemDaTrilhaJson } from '../data/trilhaDados';
 import { AudioSystem } from '../systems/audio/AudioSystem';
 import { carregarEstrelas, dividirEmMundos, montarTrilha, mundoAtual, placar, type FaseTrilha, type Mecanica } from '../systems/progresso/Trilha';
 import { Sessao } from '../systems/recipe/Sessao';
-import type { Dificuldade } from '../systems/recipe/recipeTypes';
+import type { Dificuldade, Produto } from '../systems/recipe/recipeTypes';
 import { carregarPreferencias } from '../systems/save/Preferencias';
 import { armazenamentoJogador, nomeExibido, perfilAtual } from '../systems/save/Perfis';
 import { armazenamentoLocal } from '../systems/save/Preferencias';
@@ -37,6 +37,58 @@ function posicoes(n: number): { x: number; y: number }[] {
   });
 }
 
+/** Miniatura do que se faz na fase (com a cor da receita). */
+function desenharProdutoMini(g: Phaser.GameObjects.Graphics, produto: Produto, cor: number): void {
+  const lado = escurecer(cor, 0.2);
+  switch (produto) {
+    case 'bolo':
+      g.fillStyle(lado, 1);
+      g.fillRect(-26, -4, 52, 20);
+      g.fillEllipse(0, 16, 52, 16);
+      g.fillStyle(cor, 1);
+      g.fillEllipse(0, -4, 52, 16);
+      g.fillStyle(0xd7263d, 1);
+      g.fillCircle(0, -14, 7);
+      break;
+    case 'torta':
+      g.fillStyle(0xd9a05b, 1);
+      g.fillEllipse(0, 8, 64, 26);
+      for (let i = 0; i < 14; i++) g.fillCircle(Math.cos((i / 14) * Math.PI * 2) * 30, 4 + Math.sin((i / 14) * Math.PI * 2) * 11, 5);
+      g.fillStyle(cor, 1);
+      g.fillEllipse(0, 4, 50, 18);
+      g.fillStyle(0xd7263d, 1);
+      g.fillCircle(-8, 2, 5);
+      g.fillCircle(8, 5, 5);
+      break;
+    case 'biscoito':
+      for (const [dx, dy] of [[-16, -8], [16, -6], [0, 12]] as const) {
+        g.fillStyle(lado, 1);
+        g.fillEllipse(dx, dy + 3, 30, 14);
+        g.fillStyle(cor, 1);
+        g.fillEllipse(dx, dy, 30, 14);
+      }
+      break;
+    case 'brownie':
+      g.fillStyle(lado, 1);
+      g.fillRect(-26, 2, 52, 14);
+      g.fillStyle(cor, 1);
+      g.fillRoundedRect(-26, -14, 52, 18, 4);
+      g.lineStyle(2, escurecer(cor, 0.45), 1);
+      g.lineBetween(0, -14, 0, 16);
+      break;
+    case 'cupcake':
+      g.fillStyle(0xf4a6c0, 1);
+      g.fillPoints([{ x: -18, y: 0 }, { x: 18, y: 0 }, { x: 12, y: 22 }, { x: -12, y: 22 }], true);
+      g.fillStyle(cor, 1);
+      g.fillCircle(-8, -6, 12);
+      g.fillCircle(8, -6, 12);
+      g.fillCircle(0, -16, 12);
+      g.fillStyle(0xd7263d, 1);
+      g.fillCircle(0, -28, 5);
+      break;
+  }
+}
+
 /** Mecânicas que ganham selo "NOVO" e aviso no popup. */
 const NOMES_MECANICA: Partial<Record<Mecanica, string>> = {
   bater: 'bater claras em neve',
@@ -45,6 +97,9 @@ const NOMES_MECANICA: Partial<Record<Mecanica, string>> = {
   peneirar: 'peneirar a farinha',
   ralar: 'ralar com o ralador',
   polvilhar: 'polvilhar por cima do bolo',
+  abrir_massa: 'abrir a massa com o rolo',
+  cortar: 'cortar biscoitos com o cortador',
+  fatiar: 'cortar em fatias com a faca',
 };
 
 /** Ícone da mecânica nova (selo "NOVO"). */
@@ -84,6 +139,23 @@ function iconeMecanica(g: Phaser.GameObjects.Graphics, m: Mecanica, x: number, y
       g.strokeRoundedRect(x - 8, y - 16, 16, 20, 4);
       g.fillStyle(0x6b3e26, 1);
       for (const [dx, dy] of [[-6, 10], [0, 14], [6, 9]] as const) g.fillCircle(x + dx, y + dy, 2);
+      break;
+    case 'abrir_massa':
+      g.fillStyle(0xd9a05b, 1);
+      g.fillRoundedRect(x - 14, y - 6, 28, 12, 6);
+      g.fillStyle(0x8a6440, 1);
+      g.fillRect(x - 20, y - 3, 6, 6);
+      g.fillRect(x + 14, y - 3, 6, 6);
+      break;
+    case 'cortar':
+      g.lineStyle(4, 0x8a96a3, 1);
+      g.strokeCircle(x, y, 10);
+      break;
+    case 'fatiar':
+      g.fillStyle(0xd7dde2, 1);
+      g.fillTriangle(x - 12, y + 10, x + 2, y - 14, x + 10, y - 12);
+      g.fillStyle(0x8a6440, 1);
+      g.fillRect(x + 2, y - 20, 8, 8);
       break;
     case 'glace':
       g.fillStyle(0xffffff, 1);
@@ -171,7 +243,7 @@ export class TrilhaScene extends Phaser.Scene {
       const m = this.add.image(pa.x - 78, pa.y - 66, this.textures.exists('menu:bolinho') ? 'menu:bolinho' : 'estrela').setScale(0.32);
       this.tweens.add({ targets: m, y: m.y - 10, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     }
-    audio?.falar(this.mundoPedido === null && im > 0 && fases[0] === atual ? 'trilha.mundo_novo' : 'trilha.escolher');
+    audio?.falar(this.mundoPedido === null && im > 0 && fases[0] === atual ? (im === 2 ? 'trilha.mundo3' : 'trilha.mundo_novo') : 'trilha.escolher');
   }
 
   /** Avatar e nome de quem está jogando; tocar troca de jogador. */
@@ -197,14 +269,7 @@ export class TrilhaScene extends Phaser.Scene {
       g.lineStyle(6, f.liberada ? escurecer(cor, 0.35) : 0xa89c92, 1);
       g.strokeCircle(0, 0, RAIO);
       if (f.liberada) {
-        // bolinho com a cor da receita
-        g.fillStyle(escurecer(cor, 0.2), 1);
-        g.fillRect(-26, -4, 52, 20);
-        g.fillEllipse(0, 16, 52, 16);
-        g.fillStyle(cor, 1);
-        g.fillEllipse(0, -4, 52, 16);
-        g.fillStyle(0xd7263d, 1);
-        g.fillCircle(0, -14, 7);
+        desenharProdutoMini(g, f.produto, cor);
       } else {
         // cadeado
         g.fillStyle(0x8a7f76, 1);

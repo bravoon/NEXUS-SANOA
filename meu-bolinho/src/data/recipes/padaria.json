@@ -1,0 +1,53 @@
+{
+  "id": "padaria",
+  "nome": "Torta Gigante da Padaria",
+  "produto": "torta",
+  "corMassa": "#E9C08A",
+  "etapas": [
+    {
+      "tipo": "quebrar_ovo",
+      "quantidade": 2
+    },
+    {
+      "tipo": "bater"
+    },
+    {
+      "tipo": "peneirar",
+      "item": "farinha",
+      "quantidade": 1.0
+    },
+    {
+      "tipo": "despejar",
+      "item": "acucar",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "despejar",
+      "item": "manteiga",
+      "alvo": "tigela",
+      "quantidade": 0.5,
+      "apenas": "confeiteiro"
+    },
+    {
+      "tipo": "mexer"
+    },
+    {
+      "tipo": "abrir_massa"
+    },
+    {
+      "tipo": "forno",
+      "tempoSegundos": 25
+    },
+    {
+      "tipo": "decorar",
+      "corCobertura": "#FFFFFF",
+      "glace": "estrela",
+      "corGlace": "#D7263D",
+      "polvilhar": "granulado"
+    },
+    {
+      "tipo": "fatiar"
+    }
+  ]
+}

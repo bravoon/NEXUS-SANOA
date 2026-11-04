@@ -66,7 +66,7 @@ export class FornoScene extends CenaEtapas {
     g.fillRect(LUVA.x - 40, LUVA.y - 60, 80, 10);
 
     this.forno = new OvenView(this);
-    this.forma = new PanView(this, BANCADA_FORNO.formaX, BANCADA_FORNO.formaY, BANCADA_FORNO.escala, corHex(this.sessao.receita.corMassa), 12);
+    this.forma = new PanView(this, BANCADA_FORNO.formaX, BANCADA_FORNO.formaY, BANCADA_FORNO.escala, corHex(this.sessao.receita.corMassa), 12, this.sessao.receita.produto);
     this.luva = new Ferramenta(this, 'luva', { x: LUVA.x, y: LUVA.y });
     this.prato = new Ferramenta(this, 'prato', { x: PRATO_DESENFORMAR.x, y: PRATO_DESENFORMAR.y }).setVisible(false);
     // vapor saindo do forno enquanto assa (cosmético)

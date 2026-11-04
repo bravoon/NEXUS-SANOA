@@ -23,6 +23,7 @@ import { ShakeRecognizer } from '../systems/gesture/recognizers/ShakeRecognizer'
 import type { EtapaResolvida } from '../systems/recipe/recipeTypes';
 import { DecorStep } from '../systems/steps/DecorStep';
 import { FillLayerStep } from '../systems/steps/FillLayerStep';
+import { SliceStep } from '../systems/steps/SliceStep';
 import { gerarDesenho } from '../systems/steps/TraceStep';
 import { CONFIG_GLACE, CONFIG_POLVILHAR } from '../config/gameplay';
 import { corHex } from '../utils/desenho';
@@ -37,6 +38,7 @@ type Arrasto =
   | { tipo: 'camada'; offset: Ponto }
   | { tipo: 'glace' }
   | { tipo: 'polvilho' }
+  | { tipo: 'faca'; inicio: Ponto }
   | { tipo: 'enfeite'; enfeite: TipoEnfeite; g: Phaser.GameObjects.Graphics; cor: number }
   | { tipo: 'granulado' }
   | { tipo: 'pronto' };
@@ -63,6 +65,7 @@ export class ConfeitarScene extends CenaEtapas {
   private liberado = false;
   private saco: Ferramenta | null = null;
   private polvilhador: Ferramenta | null = null;
+  private faca: Ferramenta | null = null;
   private avisouCamada = false;
   private contadorCor = 0;
 
@@ -77,6 +80,7 @@ export class ConfeitarScene extends CenaEtapas {
     this.avisouCamada = false;
     this.saco = null;
     this.polvilhador = null;
+    this.faca = null;
     this.contadorCor = 0;
     this.sacudir.parar();
   }
@@ -97,6 +101,8 @@ export class ConfeitarScene extends CenaEtapas {
     this.bolo = new CakeView(this, cor, corHex(this.sessao.receita.corMassa), {
       camadas: rechear !== undefined,
       corRecheio: rechear?.tipo === 'rechear' ? corHex(rechear.corRecheio) : undefined,
+      produto: this.sessao.receita.produto,
+      biscoitos: this.sessao.forma.biscoitos,
     });
     this.espatula = new Ferramenta(this, 'espatula', { x: BOLO.cx + BOLO.rx + 110, y: BOLO.topoY + 40 });
     this.barra = new ProgressBar(this, BARRA_MEXER.x - 120, 130, BARRA_MEXER.largura, BARRA_MEXER.altura, 'nenhum');
@@ -143,6 +149,16 @@ export class ConfeitarScene extends CenaEtapas {
     assarGraphics(this, gp, 'botao:pronto', { x: -PRONTO.largura / 2 - 4, y: -PRONTO.altura / 2 - 4, largura: PRONTO.largura + 8, altura: PRONTO.altura + 8 });
   }
 
+  private get fatiar(): SliceStep | null {
+    const c = this.runner.controlador;
+    return c instanceof SliceStep ? c : null;
+  }
+
+  /** A etapa atual é a última da receita (a foto do doce é tirada ao concluí-la). */
+  private get ultimaEtapa(): boolean {
+    return this.runner.estado.indice === this.sessao.receita.etapas.length - 1;
+  }
+
   private get rechear(): FillLayerStep | null {
     const c = this.runner.controlador;
     return c instanceof FillLayerStep ? c : null;
@@ -155,10 +171,22 @@ export class ConfeitarScene extends CenaEtapas {
       this.falar('rechear.inicio');
       return;
     }
+    if (etapa.tipo === 'fatiar') {
+      // os enfeites já estão no lugar: some a bandeja, aparece a faca
+      this.bandeja.setVisible(false);
+      this.botaoDesfazer.setVisible(false);
+      this.botaoPronto.setVisible(false);
+      this.espatula.setVisible(false);
+      this.polvilhador?.setVisible(false);
+      this.faca = new Ferramenta(this, 'faca', { x: BOLO.cx + BOLO.rx + 120, y: BOLO.topoY + 40 }, 110);
+      this.barra.setVisible(true).definir(0, 0);
+      this.falar('fatiar.inicio');
+      return;
+    }
     if (etapa.tipo !== 'decorar') return;
     this.barra.setVisible(true);
     this.bolo.prepararCobertura();
-    this.decor?.cobertura.definirSuperficie(this.bolo.areaTopo, mascaraElipse(this.bolo.areaTopo));
+    this.decor?.cobertura.definirSuperficie(this.bolo.areaTopo, this.bolo.mascaraTopo());
     this.falar('decorar.cobertura');
   }
 
@@ -179,6 +207,13 @@ export class ConfeitarScene extends CenaEtapas {
         this.som('pop');
         this.runner.inicioDoGesto();
       }
+      return;
+    }
+    if (this.fatiar) {
+      // a faca começa onde o dedo encostou (pode ser fora do doce: o corte é de borda a borda)
+      this.arrasto = { tipo: 'faca', inicio: { x: a.x, y: a.y } };
+      this.faca?.setPosition(a.x, a.y);
+      this.runner.inicioDoGesto();
       return;
     }
     const d = this.decor;
@@ -243,6 +278,7 @@ export class ConfeitarScene extends CenaEtapas {
     if (arr?.tipo === 'recheio') this.espalharRecheio(a);
     if (arr?.tipo === 'glace') this.tracarGlace(a);
     if (arr?.tipo === 'polvilho') this.polvilhar(a);
+    if (arr?.tipo === 'faca') this.faca?.setPosition(a.x, a.y);
   }
 
   protected aoSoltar(a: AmostraPonteiro): void {
@@ -254,6 +290,10 @@ export class ConfeitarScene extends CenaEtapas {
       if (arr.tipo === 'recheio') this.espatula.voltar();
       else this.soltarCamada(rec);
       this.runner.fimDoGesto();
+      return;
+    }
+    if (arr.tipo === 'faca') {
+      this.soltarFaca(arr.inicio, a);
       return;
     }
     const d = this.decor;
@@ -295,11 +335,42 @@ export class ConfeitarScene extends CenaEtapas {
         this.botaoPronto.setScale(1);
         if (Math.abs(a.x - PRONTO.x) <= PRONTO.largura / 2 + 20 && Math.abs(a.y - PRONTO.y) <= PRONTO.altura / 2 + 20 && d.finalizar()) {
           this.sessao.coberturaFinal = d.cobertura.cobertura;
-          this.tirarFoto(() => this.runner.fimDoGesto());
-          return;
+          this.sessao.enfeites = d.decoracao.total;
+          // a foto é do doce terminado: se ainda vai ser fatiado, ela espera
+          if (this.ultimaEtapa) {
+            this.tirarFoto(() => this.runner.fimDoGesto());
+            return;
+          }
         }
         break;
     }
+    this.runner.fimDoGesto();
+  }
+
+  /** Fim do traço da faca: corta se atravessou o doce pelo meio, numa direção nova. */
+  private soltarFaca(inicio: Ponto, fim: Ponto): void {
+    const f = this.fatiar;
+    this.faca?.voltar();
+    if (!f) {
+      this.runner.fimDoGesto();
+      return;
+    }
+    const r = f.cortar(this.bolo.normalizar(inicio), this.bolo.normalizar(fim));
+    if (r === 'cortou') {
+      this.bolo.desenharCorte(inicio, fim);
+      this.som('colher');
+      this.runner.notificarProgresso();
+      this.barra.definir(f.progresso, 0);
+      if (f.metaAtingida()) {
+        this.falar('fatiar.ok');
+        if (this.ultimaEtapa) {
+          this.tirarFoto(() => this.runner.fimDoGesto());
+          return;
+        }
+      }
+    } else if (r === 'curto') this.falar('fatiar.curto', 'neutro');
+    else if (r === 'fora_do_meio') this.falar('fatiar.meio', 'neutro');
+    else if (r === 'repetido') this.falar('fatiar.repetido', 'neutro');
     this.runner.fimDoGesto();
   }
 
@@ -390,7 +461,7 @@ export class ConfeitarScene extends CenaEtapas {
     const sp = d.polvilhador;
     if (!sp || sp.definido) return;
     const area = this.bolo.areaTopo;
-    sp.definirSuperficie(area, mascaraElipse({ x: area.x + area.largura * 0.025, y: area.y + area.altura * 0.025, largura: area.largura * 0.95, altura: area.altura * 0.95 }));
+    sp.definirSuperficie(area, this.bolo.mascaraTopo(0.95));
     this.polvilhador = new Ferramenta(this, 'polvilhador', { x: BOLO.cx + BOLO.rx + 110, y: BOLO.topoY - 20 }, 120);
     this.polvilhador.setDepth(70);
     this.saco?.setVisible(false);
@@ -439,7 +510,7 @@ export class ConfeitarScene extends CenaEtapas {
           if (!this.textures.exists(chave)) this.textures.addImage(chave, img);
           this.sessao.fotoBolo = chave;
           this.sessao.fotoUrl = fotoJpeg(img);
-          this.sessao.enfeites = this.decor?.decoracao.total ?? 0;
+          this.sessao.enfeites = this.decor?.decoracao.total ?? this.sessao.enfeites;
           depois();
         };
         if (img.complete) registrar();
@@ -513,6 +584,19 @@ export class ConfeitarScene extends CenaEtapas {
   protected dicaAtual(): DicaEtapa | null {
     const ficha = this.runner.estado.indice;
     const topo = this.bolo.topo;
+    const f = this.fatiar;
+    if (f) {
+      // um corte de borda a borda pelo meio, numa direção que ainda não foi usada
+      const g = this.bolo.geometria;
+      let ang = 0;
+      for (const cand of [0, 90, 45, 135, 30, 150, 60, 120]) {
+        if (f.cortes.every((c) => Math.min(Math.abs(c - cand) % 180, 180 - (Math.abs(c - cand) % 180)) >= 30)) { ang = cand; break; }
+      }
+      const rad = (ang * Math.PI) / 180, k = 1.15;
+      const de = { x: topo.x - Math.cos(rad) * g.rx * k, y: topo.y - Math.sin(rad) * g.ry * k };
+      const para = { x: topo.x + Math.cos(rad) * g.rx * k, y: topo.y + Math.sin(rad) * g.ry * k };
+      return { ficha, destaques: [topo], demo: { tipo: 'caminho', pontos: [de, para] }, fala: 'fatiar.dica' };
+    }
     const rec = this.rechear;
     if (rec) {
       const baixo = { x: BOLO.cx, y: this.bolo.areaRecheio.y + BOLO.ry };
@@ -553,6 +637,14 @@ export class ConfeitarScene extends CenaEtapas {
   // ================================================================ debug
 
   protected infoDebug(g: Phaser.GameObjects.Graphics): string[] {
+    const f = this.fatiar;
+    if (f) {
+      const geo = this.bolo.geometria;
+      g.lineStyle(2, 0x00ffff, 1);
+      g.strokeEllipse(geo.centro.x, geo.centro.y, geo.rx * 2 * 0.3, geo.ry * 2 * 0.3);
+      g.strokeEllipse(geo.centro.x, geo.centro.y, geo.rx * 2 * 0.75, geo.ry * 2 * 0.75);
+      return [`Fatiar: cortes ${f.cortes.length}/${f.meta} (${f.cortes.map((c) => c.toFixed(0) + '°').join(', ')})  fatias ${f.fatias}`];
+    }
     const d = this.decor;
     if (!d) return [];
     desenharGrade(g, d.cobertura);
