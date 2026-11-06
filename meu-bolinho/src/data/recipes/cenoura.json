@@ -1,0 +1,67 @@
+{
+  "id": "cenoura",
+  "nome": "Bolo de Cenoura",
+  "corMassa": "#F4A259",
+  "etapas": [
+    {
+      "tipo": "despejar",
+      "item": "cenoura",
+      "alvo": "tigela",
+      "quantidade": 0.75
+    },
+    {
+      "tipo": "quebrar_ovo",
+      "quantidade": 3
+    },
+    {
+      "tipo": "despejar",
+      "item": "acucar",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "despejar",
+      "item": "farinha",
+      "alvo": "tigela",
+      "quantidade": 1.0
+    },
+    {
+      "tipo": "despejar",
+      "item": "manteiga",
+      "alvo": "tigela",
+      "quantidade": 0.25,
+      "apenas": "confeiteiro"
+    },
+    {
+      "tipo": "despejar",
+      "item": "fermento",
+      "alvo": "tigela",
+      "quantidade": 0.25,
+      "apenas": "confeiteiro"
+    },
+    {
+      "tipo": "mexer"
+    },
+    {
+      "tipo": "untar",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "despejar_massa",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "forno",
+      "tempoSegundos": 22
+    },
+    {
+      "tipo": "desenformar"
+    },
+    {
+      "tipo": "decorar",
+      "corCobertura": "#5A3220",
+      "glace": "onda",
+      "corGlace": "#FFF3E0"
+    }
+  ]
+}

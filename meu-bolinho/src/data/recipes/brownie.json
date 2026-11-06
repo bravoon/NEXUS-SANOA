@@ -1,0 +1,59 @@
+{
+  "id": "brownie",
+  "nome": "Brownie",
+  "produto": "brownie",
+  "corMassa": "#6B3E26",
+  "etapas": [
+    {
+      "tipo": "quebrar_ovo",
+      "quantidade": 2
+    },
+    {
+      "tipo": "despejar",
+      "item": "chocolate_po",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "despejar",
+      "item": "acucar",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "peneirar",
+      "item": "farinha",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "despejar",
+      "item": "manteiga",
+      "alvo": "tigela",
+      "quantidade": 0.25,
+      "apenas": "confeiteiro"
+    },
+    {
+      "tipo": "mexer"
+    },
+    {
+      "tipo": "untar",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "despejar_massa",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "forno",
+      "tempoSegundos": 22
+    },
+    {
+      "tipo": "decorar",
+      "corCobertura": "#4A2A18",
+      "polvilhar": "acucar"
+    },
+    {
+      "tipo": "fatiar"
+    }
+  ]
+}

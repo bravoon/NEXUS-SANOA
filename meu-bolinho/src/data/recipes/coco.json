@@ -1,0 +1,63 @@
+{
+  "id": "coco",
+  "nome": "Bolo de Coco",
+  "corMassa": "#FBF3E4",
+  "etapas": [
+    {
+      "tipo": "quebrar_ovo",
+      "quantidade": 2
+    },
+    {
+      "tipo": "despejar",
+      "item": "acucar",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "peneirar",
+      "item": "farinha",
+      "quantidade": 1.0
+    },
+    {
+      "tipo": "ralar",
+      "item": "coco",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "despejar",
+      "item": "leite",
+      "alvo": "tigela",
+      "quantidade": 0.5,
+      "apenas": "confeiteiro"
+    },
+    {
+      "tipo": "despejar",
+      "item": "fermento",
+      "alvo": "tigela",
+      "quantidade": 0.25,
+      "apenas": "confeiteiro"
+    },
+    {
+      "tipo": "mexer"
+    },
+    {
+      "tipo": "untar",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "despejar_massa",
+      "alvo": "forma"
+    },
+    {
+      "tipo": "forno",
+      "tempoSegundos": 22
+    },
+    {
+      "tipo": "desenformar"
+    },
+    {
+      "tipo": "decorar",
+      "corCobertura": "#FFFFFF"
+    }
+  ]
+}

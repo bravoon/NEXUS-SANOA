@@ -1,0 +1,96 @@
+name: meu-bolinho
+# Um código, todas as plataformas: testes + build web (PWA) e os pacotes Android, iOS e desktop.
+on:
+  push:
+    paths: ['meu-bolinho/**', '.github/workflows/meu-bolinho.yml']
+  pull_request:
+    paths: ['meu-bolinho/**', '.github/workflows/meu-bolinho.yml']
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: meu-bolinho
+
+jobs:
+  web:
+    name: Testes + Web/PWA
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: meu-bolinho/package-lock.json }
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with: { name: meu-bolinho-web-pwa, path: meu-bolinho/dist, retention-days: 14 }
+
+  android:
+    name: Android (APK de teste)
+    needs: web
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: meu-bolinho/package-lock.json }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+      - run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon --stacktrace
+        working-directory: meu-bolinho/android
+      - uses: actions/upload-artifact@v4
+        with: { name: meu-bolinho-android-apk, path: meu-bolinho/android/app/build/outputs/apk/debug/*.apk, retention-days: 14 }
+
+  ios:
+    name: iOS (simulador, sem assinatura)
+    needs: web
+    runs-on: macos-15
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: meu-bolinho/package-lock.json }
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync ios
+      - name: xcodebuild (simulador)
+        run: >
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug
+          -sdk iphonesimulator -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO build
+      - run: cd ios/build/Build/Products/Debug-iphonesimulator && zip -qr ../../../../../meu-bolinho-ios-simulador.zip App.app
+      - uses: actions/upload-artifact@v4
+        with: { name: meu-bolinho-ios-simulador, path: meu-bolinho/meu-bolinho-ios-simulador.zip, retention-days: 14 }
+
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    needs: web
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false' # sem certificado: pacotes não assinados (teste)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: meu-bolinho/package-lock.json }
+      - run: npm ci
+      - run: npm run build
+      - run: npx electron-builder --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meu-bolinho-desktop-${{ matrix.os }}
+          path: |
+            meu-bolinho/release/*.AppImage
+            meu-bolinho/release/*.exe
+            meu-bolinho/release/*.dmg
+          retention-days: 14

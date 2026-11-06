@@ -1,0 +1,34 @@
+{
+  "facil": {
+    "maxIngredientes": 4,
+    "voltas": 5,
+    "tolerancia": 0.2,
+    "cascaDeOvo": false,
+    "cobertura": 0.8,
+    "batidas": 12,
+    "tracado": 0.8,
+    "toleranciaGlace": 28,
+    "sacudidas": 8,
+    "raladas": 10,
+    "polvilho": 0.6,
+    "passadasRolo": 8,
+    "biscoitos": 6,
+    "cortesFatia": 2
+  },
+  "confeiteiro": {
+    "maxIngredientes": 7,
+    "voltas": 10,
+    "tolerancia": 0.08,
+    "cascaDeOvo": true,
+    "cobertura": 0.9,
+    "batidas": 20,
+    "tracado": 0.92,
+    "toleranciaGlace": 18,
+    "sacudidas": 12,
+    "raladas": 16,
+    "polvilho": 0.75,
+    "passadasRolo": 12,
+    "biscoitos": 8,
+    "cortesFatia": 3
+  }
+}

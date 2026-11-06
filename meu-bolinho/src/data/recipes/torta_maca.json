@@ -1,0 +1,54 @@
+{
+  "id": "torta_maca",
+  "nome": "Torta de Maçã",
+  "produto": "torta",
+  "corMassa": "#E0B27A",
+  "etapas": [
+    {
+      "tipo": "quebrar_ovo",
+      "quantidade": 1
+    },
+    {
+      "tipo": "ralar",
+      "item": "maca",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "despejar",
+      "item": "farinha",
+      "alvo": "tigela",
+      "quantidade": 1.0
+    },
+    {
+      "tipo": "despejar",
+      "item": "manteiga",
+      "alvo": "tigela",
+      "quantidade": 0.5
+    },
+    {
+      "tipo": "despejar",
+      "item": "acucar",
+      "alvo": "tigela",
+      "quantidade": 0.25,
+      "apenas": "confeiteiro"
+    },
+    {
+      "tipo": "mexer"
+    },
+    {
+      "tipo": "abrir_massa"
+    },
+    {
+      "tipo": "forno",
+      "tempoSegundos": 22
+    },
+    {
+      "tipo": "decorar",
+      "corCobertura": "#E9C46A",
+      "polvilhar": "canela"
+    },
+    {
+      "tipo": "fatiar"
+    }
+  ]
+}

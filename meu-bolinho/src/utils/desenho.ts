@@ -1,0 +1,188 @@
+/** Helpers de desenho com Graphics (arte provisória do Milestone 1: só formas geométricas). */
+import type Phaser from 'phaser';
+import type { IngredienteDef } from '../systems/recipe/recipeTypes';
+
+export function corHex(s: string): number {
+  return Number.parseInt(s.replace('#', ''), 16);
+}
+
+/** Mistura duas cores RGB (t=0 → a, t=1 → b). */
+export function misturarCor(a: number, b: number, t: number): number {
+  const ar = (a >> 16) & 0xff, ag = (a >> 8) & 0xff, ab = a & 0xff;
+  const br = (b >> 16) & 0xff, bg = (b >> 8) & 0xff, bb = b & 0xff;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const bl = Math.round(ab + (bb - ab) * t);
+  return (r << 16) | (g << 8) | bl;
+}
+
+export const clarear = (c: number, t: number): number => misturarCor(c, 0xffffff, t);
+export const escurecer = (c: number, t: number): number => misturarCor(c, 0x000000, t);
+
+/**
+ * Símbolo do ingrediente. Cada ingrediente tem forma E cor distintas:
+ * a criança (e quem é daltônico) identifica pela forma, sem depender de leitura nem de cor.
+ */
+export function desenharSimbolo(
+  g: Phaser.GameObjects.Graphics,
+  simbolo: IngredienteDef['simbolo'],
+  x: number,
+  y: number,
+  tam: number,
+  cor: number,
+): void {
+  const h = tam / 2;
+  g.fillStyle(cor, 1);
+  g.lineStyle(3, escurecer(cor, 0.45), 1);
+  switch (simbolo) {
+    case 'quadrado':
+      g.fillRect(x - h, y - h, tam, tam);
+      g.strokeRect(x - h, y - h, tam, tam);
+      break;
+    case 'triangulo':
+      g.fillTriangle(x, y - h, x + h, y + h, x - h, y + h);
+      g.strokeTriangle(x, y - h, x + h, y + h, x - h, y + h);
+      break;
+    case 'gota': {
+      g.fillCircle(x, y + h * 0.25, h * 0.75);
+      g.fillTriangle(x, y - h, x + h * 0.65, y, x - h * 0.65, y);
+      g.strokeCircle(x, y + h * 0.25, h * 0.75);
+      break;
+    }
+    case 'estrela': {
+      const pts: Phaser.Types.Math.Vector2Like[] = [];
+      for (let i = 0; i < 10; i++) {
+        const r = i % 2 === 0 ? h : h * 0.45;
+        const a = -Math.PI / 2 + (i * Math.PI) / 5;
+        pts.push({ x: x + Math.cos(a) * r, y: y + Math.sin(a) * r });
+      }
+      g.fillPoints(pts, true);
+      g.strokePoints(pts, true);
+      break;
+    }
+    case 'circulo':
+      g.fillCircle(x, y, h);
+      g.strokeCircle(x, y, h);
+      break;
+    case 'losango': {
+      const pts = [
+        { x, y: y - h },
+        { x: x + h * 0.75, y },
+        { x, y: y + h },
+        { x: x - h * 0.75, y },
+      ];
+      g.fillPoints(pts, true);
+      g.strokePoints(pts, true);
+      break;
+    }
+    case 'tablete':
+      // barra deitada com uma "dobra" de papel
+      g.fillRoundedRect(x - h, y - h * 0.5, tam, h, 5);
+      g.strokeRoundedRect(x - h, y - h * 0.5, tam, h, 5);
+      g.lineBetween(x + h * 0.35, y - h * 0.5, x + h * 0.35, y + h * 0.5);
+      break;
+    case 'hexagono': {
+      const pts = Array.from({ length: 6 }, (_, i) => ({ x: x + Math.cos((i * Math.PI) / 3) * h, y: y + Math.sin((i * Math.PI) / 3) * h }));
+      g.fillPoints(pts, true);
+      g.strokePoints(pts, true);
+      break;
+    }
+    case 'folha':
+      // gota deitada com nervura (folhinha)
+      g.fillEllipse(x, y, tam, tam * 0.55);
+      g.strokeEllipse(x, y, tam, tam * 0.55);
+      g.lineBetween(x - h * 0.8, y, x + h * 0.8, y);
+      break;
+    case 'cruz':
+      g.fillRect(x - h * 0.32, y - h, h * 0.64, tam);
+      g.fillRect(x - h, y - h * 0.32, tam, h * 0.64);
+      g.strokeRect(x - h * 0.32, y - h, h * 0.64, tam);
+      g.strokeRect(x - h, y - h * 0.32, tam, h * 0.64);
+      break;
+    case 'lua': {
+      // meia-lua (crescente): arco externo + arco interno deslocado
+      const pts: Phaser.Types.Math.Vector2Like[] = [];
+      for (let i = 0; i <= 16; i++) {
+        const a = Math.PI / 2 + (i / 16) * Math.PI;
+        pts.push({ x: x + Math.cos(a) * h, y: y + Math.sin(a) * h });
+      }
+      for (let i = 16; i >= 0; i--) {
+        const a = Math.PI / 2 + (i / 16) * Math.PI;
+        pts.push({ x: x + h * 0.35 + Math.cos(a) * h * 0.7, y: y + Math.sin(a) * h * 0.95 });
+      }
+      g.fillPoints(pts, true);
+      g.strokePoints(pts, true);
+      break;
+    }
+    case 'coracao': {
+      const pts: Phaser.Types.Math.Vector2Like[] = [];
+      for (let i = 0; i < 28; i++) {
+        const t = (i / 28) * Math.PI * 2;
+        const px = 16 * Math.sin(t) ** 3;
+        const py = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+        pts.push({ x: x + (px / 17) * h, y: y + (py / 17) * h + h * 0.1 });
+      }
+      g.fillPoints(pts, true);
+      g.strokePoints(pts, true);
+      break;
+    }
+    case 'anel':
+      g.lineStyle(h * 0.45, cor, 1);
+      g.strokeCircle(x, y, h * 0.75);
+      g.lineStyle(3, escurecer(cor, 0.45), 1);
+      g.strokeCircle(x, y, h);
+      g.strokeCircle(x, y, h * 0.5);
+      break;
+    case 'nuvem':
+      g.fillCircle(x - h * 0.45, y + h * 0.15, h * 0.48);
+      g.fillCircle(x + h * 0.45, y + h * 0.15, h * 0.48);
+      g.fillCircle(x, y - h * 0.2, h * 0.58);
+      g.fillRect(x - h * 0.45, y + h * 0.1, h * 0.9, h * 0.53);
+      g.strokeCircle(x, y - h * 0.2, h * 0.58);
+      break;
+    case 'raio': {
+      const pts = [
+        { x: x + h * 0.2, y: y - h },
+        { x: x - h * 0.6, y: y + h * 0.1 },
+        { x: x - h * 0.05, y: y + h * 0.1 },
+        { x: x - h * 0.25, y: y + h },
+        { x: x + h * 0.6, y: y - h * 0.15 },
+        { x: x + h * 0.05, y: y - h * 0.15 },
+      ];
+      g.fillPoints(pts, true);
+      g.strokePoints(pts, true);
+      break;
+    }
+    default: {
+      // Exaustividade: um símbolo novo em IngredienteDef sem desenho aqui é erro de compilação.
+      const nunca: never = simbolo;
+      throw new Error(`símbolo sem desenho: ${String(nunca)}`);
+    }
+  }
+}
+
+/** Seta circular (ícone de "mexer"). */
+export function desenharSetaCircular(
+  g: Phaser.GameObjects.Graphics,
+  x: number,
+  y: number,
+  raio: number,
+  cor: number,
+  espessura = 6,
+): void {
+  g.lineStyle(espessura, cor, 1);
+  g.beginPath();
+  g.arc(x, y, raio, -Math.PI * 0.1, Math.PI * 1.55, false);
+  g.strokePath();
+  const a = Math.PI * 1.55;
+  const px = x + Math.cos(a) * raio;
+  const py = y + Math.sin(a) * raio;
+  const t = espessura * 1.6;
+  g.fillStyle(cor, 1);
+  g.fillTriangle(px - t, py - t * 0.2, px + t, py - t * 0.2, px + t * 0.2, py + t * 1.4);
+}
+
+/** Cor da massa depois de assada (derivada da cor crua da receita: dourado, marrom-chocolate...). */
+export function corAssada(corMassa: number): number {
+  return misturarCor(corMassa, 0x8b4513, 0.3);
+}

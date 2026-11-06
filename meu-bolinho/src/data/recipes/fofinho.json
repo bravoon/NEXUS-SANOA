@@ -1,0 +1,18 @@
+{
+  "id": "fofinho",
+  "nome": "Bolo Fofinho",
+  "corMassa": "#EBC57E",
+  "etapas": [
+    { "tipo": "despejar", "item": "farinha", "alvo": "tigela", "quantidade": 1.0 },
+    { "tipo": "despejar", "item": "acucar", "alvo": "tigela", "quantidade": 0.5 },
+    { "tipo": "quebrar_ovo", "quantidade": 2 },
+    { "tipo": "despejar", "item": "leite", "alvo": "tigela", "quantidade": 0.75 },
+    { "tipo": "despejar", "item": "fermento", "alvo": "tigela", "quantidade": 0.25, "apenas": "confeiteiro" },
+    { "tipo": "mexer" },
+    { "tipo": "untar", "alvo": "forma" },
+    { "tipo": "despejar_massa", "alvo": "forma" },
+    { "tipo": "forno", "tempoSegundos": 20 },
+    { "tipo": "desenformar" },
+    { "tipo": "decorar", "corCobertura": "#5A3220" }
+  ]
+}
